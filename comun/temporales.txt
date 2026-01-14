@@ -1,0 +1,8 @@
+base de datos
+host:192.168.100.14
+usuario:sic_test
+password:sic_test.2025
+
+usuario de sistema: 
+user:1100100 
+contraseña:1100100.2026
