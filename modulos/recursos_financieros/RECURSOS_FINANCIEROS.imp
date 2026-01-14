@@ -1,0 +1,69 @@
+# MÓDULO: RECURSOS FINANCIEROS
+# ARCHIVO DE CONTEXTO (.imp)
+# FECHA DE ACTUALIZACIÓN: 14 Enero 2026
+
+## 1. SUB-MÓDULOS
+Este módulo agrupa la gestión presupuestal y operativa de la obra.
+
+## 2. METODOLOGÍA DE TRABAJO (FLUJO DE USUARIO)
+El sistema sigue un flujo jerárquico para la gestión de obra:
+
+1.  **Nivel Superior (POA)**:
+    *   El usuario registra un **Programa Operativo Anual (POA)** para un ejercicio fiscal (ej. 2026).
+    *   Define el techo financiero autorizado.
+
+2.  **Nivel Intermedio (PROYECTOS)**:
+    *   Dentro de un POA, se dan de alta N **Proyectos de Obra**.
+    *   Cada proyecto representa una obra física o servicio específico.
+    *   El sistema monitorea estos proyectos mediante un **Semáforo** en el listado:
+        *   **Gris**: Proyecto recién creado, sin trámites administrativos iniciados.
+        *   **Rojo**: Proyecto con actividad administrativa (tiene al menos 1 FUA registrado), indicando que "ya tiene movimiento".
+
+3.  **Nivel Operativo (FUAs)**:
+    *   Para iniciar trámites sobre un proyecto (oficios de aprobación, movimientos de saldo, cancelaciones), se crea un **FUA (Formato Único de Atención)**.
+    *   **Método de Captura Recomendado**:
+        1. Ir al Listado de Proyectos.
+        2. Localizar el proyecto deseado.
+        3. Hacer clic en el ícono de **Documento (Ver FUAs)**.
+        4. Hacer clic en **"Nuevo FUA para este Proyecto"**.
+        *   *Nota*: Esto vincula automáticamente el FUA al proyecto seleccionado.
+    *   El FUA permite adjuntar evidencia documental (PDFs, imágenes) que respalda el movimiento.
+
+### A. PROGRAMAS OPERATIVOS ANUALES (POA)
+- **Ruta**: `modulos/recursos_financieros/programas_operativos`
+- **Funcionalidad**:
+  - CRUD de Programas Anuales (Ejercicio, Monto Autorizado, Estatus).
+  - **Proyectos de Obra**:
+    - Relación 1:N con Programas.
+    - Listado (`listar_proyectos.php`) con cálculo de montos totales.
+    - **Semáforo**: Indicador visual en el listado.
+      - **ROJO**: Si el proyecto tiene 1 o más FUAs asociados (cualquier estatus, incluso Cancelado).
+      - **GRIS**: Si no tiene movimientos.
+    - Botones de acción: Editar, Eliminar, y **Ver FUAs** (icono documento).
+
+### B. FORMATOS ÚNICOS DE ATENCIÓN (FUAs)
+- **Ruta**: `modulos/recursos_financieros/fuas`
+- **Tablas BD**: `fuas`, `cat_tipos_fua_accion`.
+- **Funcionalidad**:
+  - Gestión de trámites/movimientos financieros y administrativos.
+  - Relación 0:N con `proyectos_obra`.
+  - **Campos Clave**:
+    - Tipo de FUA (Nueva, Saldo, Control).
+    - Estatus (Activo, Cancelado, Control).
+    - Importes, Fechas (Ingreso, Acuse, etc.).
+    - Archivos adjuntos (multimedia/docs).
+  - **Flujo**:
+    - Se puede crear un FUA directo desde el menú.
+    - Se puede crear desde un Proyecto (pre-selecciona el proyecto automáticamente).
+
+## 2. CAMBIOS RECIENTES IMPLEMENTADOS
+1. **Creación Tabla FUAs**: Campos flexibles (nullables) para permitir guardado parcial.
+2. **Vinculación**:
+   - `index.php` (Router): Rutas para `recursos_financieros/fuas/*`.
+   - `captura.php` (FUA): Recibe `id_proyecto` por GET para pre-llenar el select2.
+   - `listar_proyectos.php`: Subconsulta SQL para contar `num_fuas` y activar semáforo rojo.
+3. **Carga de Archivos**: Implementada en `guardar.php` hacia `uploads/fuas/`.
+
+## 3. PENDIENTES / NOTAS
+- La validación de montos vs. suficiencia presupuestal aún no está implementada (To Do).
+- El catálogo de `Tipos de Obra` en FUA es básico, se puede expandir `cat_tipos_fua_accion`.

@@ -1,0 +1,29 @@
+# SISTEMA INTEGRAL DE PLAN DE OBRA Y SUFICIENCIAS (SIS-PAO)
+# ARCHIVO DE CONTEXTO GENERAL (.imp)
+# FECHA DE ACTUALIZACIÓN: 14 Enero 2026
+
+## 1. DESCRIPCIÓN DEL PROYECTO
+Sistema web para la gestión de obra pública, programas operativos anuales (POA), suficiencias presupuestales y seguimiento administrativo (FUAs).
+Desarrollado para la Secretaría de Comunicaciones y Obras Públicas.
+
+## 2. TECNOLOGÍA
+- **Lenguaje**: PHP 7.4/8.x (Vanilla, sin framework pesado).
+- **Base de Datos**: MySQL / MariaDB (Nombre BD: `sic`).
+- **Frontend**: HTML5, Bootstrap 5, Vanilla JS.
+- **Servidor**: WampServer (Apache).
+- **Estructura**:
+  - `index.php`: Enrutador principal (Front Controller).
+  - `config/db.php`: Conexión PDO a base de datos.
+  - `app/views`: Vistas y layouts (`wrapper.php`, `sidebar.php`).
+  - `modulos/`: Lógica de negocio dividida por áreas.
+
+## 3. PRINCIPALES CAMBIOS RECIENTES
+- **Conexión BD**: Se ajustó `config/db.php` para apuntar a `127.0.0.1` (local) por problemas con IP remota.
+- **Estructura Directorios**: Se consolidaron módulos en `modulos/recursos_financieros` y `modulos/configuracion`.
+- **Nuevos Módulos**: Implementación completa del módulo FUAs.
+
+## 4. INSTRUCCIONES DE DESPLIEGUE EN OTRA MÁQUINA
+1. Copiar todo el directorio `pao`.
+2. Restaurar base de datos `sic` usando `sql/database.sql`, `sql/pao_obras_structure.sql` y `sql/structure_fuas.sql`.
+3. Revisar `config/db.php` para credenciales locales.
+4. Asegurar que carpeta `uploads/fuas` tenga permisos de escritura.
