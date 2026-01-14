@@ -1,7 +1,7 @@
 <?php
 // Configuración de la base de datos basada en comun/temporales.txt
 
-define('DB_HOST', '127.0.0.1');
+define('DB_HOST', '192.168.100.14');
 define('DB_USER', 'sic_test');
 define('DB_PASS', 'sic_test.2025');
 define('DB_NAME', 'sic'); // Nombre de la base de datos asumido por el contexto del proyecto
