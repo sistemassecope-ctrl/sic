@@ -1,0 +1,32 @@
+# MÓDULO: CONFIGURACIÓN
+# ARCHIVO DE CONTEXTO (.imp)
+# FECHA DE ACTUALIZACIÓN: 14 Enero 2026
+
+## 1. DESCRIPCIÓN
+Módulo administrativo para la gestión de acceso y parametrización del sistema.
+
+## 2. COMPONENTES
+
+### A. ROLES Y USUARIOS
+- **Ruta**: `modulos/configuracion/roles_usuarios.php`
+- **Tablas BD**: `usuarios`, `roles`, `permisos`, `roles_permisos`.
+- **Funcionalidad**:
+  - Alta/Baja/Modificación de usuarios.
+  - Asignación de Roles (SuperAdmin, Administrador, Capturista).
+  - Control de estatus (Activo/Inactivo).
+  - Listado de usuarios por rol.
+
+### B. PERMISOS ESPECÍFICOS
+- **Ruta**: `modulos/configuracion/permisos_usuarios.php`
+- **Funcionalidad**:
+  - Asignación granular de permisos a usuarios específicos fuera de su rol.
+
+### C. ÁREAS PAO
+- **Ruta**: `modulos/configuracion/areas_pao.php`
+- **Funcionalidad**:
+  - Catálogo de áreas administrativas.
+
+## 3. NOTAS TÉCNICAS
+- El sistema de login usa `password_verify` (Bcrypt).
+- El usuario `1100100` (SuperAdmin) es el usuario semilla por defecto.
+- La sesión maneja `$_SESSION['user_permisos']` para validar acceso en rutas (ver `index.php`).
