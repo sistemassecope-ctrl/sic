@@ -1,0 +1,2 @@
+control basado en roles y permisos (RBAC)
+ una bitácora de acceso y una bitácora de acciones por cada módulo de este sistema (que usuario hace altas, modificaciones, etc.).
