@@ -1,0 +1,7 @@
+192.168.100.14
+usuario:sic_test
+password:sic_test.2025
+usuario de sistema: superadmin@secope.gob.mx
+contraseña de sistema: SuperAdmin.2025
+Usuario: 24212
+Contraseña: Temporal.2025
