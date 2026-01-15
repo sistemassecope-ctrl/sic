@@ -47,13 +47,25 @@ if ($id_proyecto) {
     <div class="col-md-4 text-end">
         <?php
         $newUrl = "/pao/index.php?route=recursos_financieros/fuas/nuevo";
+        $newUrlCarpeta = "/pao/index.php?route=recursos_financieros/fuas/captura_carpeta";
         if ($id_proyecto) {
             $newUrl .= "&id_proyecto=$id_proyecto";
+            $newUrlCarpeta .= "&id_proyecto=$id_proyecto";
         }
         ?>
-        <a href="<?php echo $newUrl; ?>" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Nuevo FUA <?php echo $id_proyecto ? 'para este Proyecto' : ''; ?>
-        </a>
+        <div class="btn-group">
+            <a href="<?php echo $newUrl; ?>" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo FUA <?php echo $id_proyecto ? '(Normal)' : ''; ?>
+            </a>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Opciones</span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="<?php echo $newUrlCarpeta; ?>"><i
+                            class="bi bi-folder2-open me-2"></i>Nueva Captura (Vista Carpeta)</a></li>
+            </ul>
+        </div>
     </div>
 </div>
 
@@ -66,8 +78,9 @@ if ($id_proyecto) {
                         <th class="ps-3">ID</th>
                         <th>Folio</th>
                         <th>Proyecto / Acción</th>
-                        <th>Tipo</th>
+                        <th>Tipo de Suficiencia</th>
                         <th>Estatus</th>
+                        <th>Etapa Actual</th>
                         <th>Importe</th>
                         <th class="text-end pe-3">Acciones</th>
                     </tr>
@@ -75,13 +88,45 @@ if ($id_proyecto) {
                 <tbody>
                     <?php if (empty($fuas)): ?>
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="bi bi-file-earmark-text display-6 d-block mb-3 opacity-50"></i>
                                 Sin registros de FUA encontrados.
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($fuas as $f): ?>
+                            <?php
+                            // Logic to determine progress based on current stage
+                            $progress = 5;
+                            $progressLabel = 'Captura';
+                            $progressColor = 'secondary'; // Gris neutral para inicio
+                    
+                            if (!empty($f['fecha_respuesta_sfa'])) {
+                                $progress = 100;
+                                $progressLabel = 'Concluido';
+                                $progressColor = 'success'; // Verde final
+                            } elseif (!empty($f['fecha_acuse_antes_fa'])) {
+                                $progress = 85;
+                                $progressLabel = 'Trámite SFyA';
+                                $progressColor = 'primary'; // Azul fuerte
+                            } elseif (!empty($f['fecha_firma_regreso'])) {
+                                $progress = 70;
+                                $progressLabel = 'Firmas Listas';
+                                $progressColor = 'info'; // Celeste
+                            } elseif (!empty($f['fecha_titular'])) {
+                                $progress = 50;
+                                $progressLabel = 'Firma Titular';
+                                $progressColor = 'warning'; // Amarillo
+                            } elseif (!empty($f['fecha_ingreso_cotrl_ptal'])) {
+                                $progress = 30;
+                                $progressLabel = 'Control Ptal.';
+                                $progressColor = 'warning'; // Naranja/Amarillo (Bootstrap no tiene orange, usamos warning)
+                            } elseif (!empty($f['fecha_ingreso_admvo'])) {
+                                $progress = 15;
+                                $progressLabel = 'Admvo.';
+                                $progressColor = 'danger'; // Rojo para indicar inicio formal
+                            }
+                            ?>
                             <tr>
                                 <td class="ps-3 fw-bold">#
                                     <?php echo $f['id_fua']; ?>
@@ -103,14 +148,14 @@ if ($id_proyecto) {
                                     <?php
                                     $tipoBadges = [
                                         'NUEVA' => 'bg-primary',
-                                        'REFRENDO' => 'bg-purple text-white', // Purple needs custom css or use standard like 'bg-indigo' if avail or 'bg-dark'
+                                        'REFRENDO' => 'bg-indigo text-white',
                                         'SALDO POR EJERCER' => 'bg-info text-dark',
                                         'CONTROL' => 'bg-secondary'
                                     ];
-                                    $tClass = $tipoBadges[$f['tipo_fua']] ?? 'bg-light text-dark border';
+                                    $tClass = $tipoBadges[$f['tipo_suficiencia']] ?? 'bg-light text-dark border';
                                     ?>
                                     <span class="badge <?php echo $tClass; ?>">
-                                        <?php echo $f['tipo_fua']; ?>
+                                        <?php echo $f['tipo_suficiencia']; ?>
                                     </span>
                                 </td>
                                 <td>
@@ -118,13 +163,31 @@ if ($id_proyecto) {
                                     $badge = match ($f['estatus']) {
                                         'ACTIVO' => 'bg-success',
                                         'CANCELADO' => 'bg-danger',
-                                        'CONTROL' => 'bg-warning text-dark',
                                         default => 'bg-secondary'
                                     };
                                     ?>
                                     <span class="badge <?php echo $badge; ?>">
                                         <?php echo $f['estatus']; ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column justify-content-center" style="min-width: 140px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted small" style="font-size: 0.65rem;">
+                                                <?php echo $progressLabel; ?>
+                                            </span>
+                                            <span class="small fw-bold text-<?php echo $progressColor; ?>"
+                                                style="font-size: 0.7rem;">
+                                                <?php echo $progress; ?>%
+                                            </span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-<?php echo $progressColor; ?>" role="progressbar"
+                                                style="width: <?php echo $progress; ?>%;"
+                                                aria-valuenow="<?php echo $progress; ?>" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="fw-bold text-end">
                                     $

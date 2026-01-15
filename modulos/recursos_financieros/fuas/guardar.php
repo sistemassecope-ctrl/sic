@@ -9,12 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CAMPOS
     $estatus = $_POST['estatus'] ?? null;
-    $tipo_fua = $_POST['tipo_fua'] ?? null;
+    $tipo_suficiencia = $_POST['tipo_suficiencia'] ?? null;
     $folio_fua = $_POST['folio_fua'] ?? null;
     $nombre_proyecto_accion = $_POST['nombre_proyecto_accion'] ?? null;
     $id_proyecto = !empty($_POST['id_proyecto']) ? (int) $_POST['id_proyecto'] : null;
-    $id_tipo_obra_accion = !empty($_POST['id_tipo_obra_accion']) ? (int) $_POST['id_tipo_obra_accion'] : null;
-    $direccion_solicitante = $_POST['direccion_solicitante'] ?? null;
+
     $fuente_recursos = $_POST['fuente_recursos'] ?? null;
     $importe = !empty($_POST['importe']) ? (float) $_POST['importe'] : 0.00;
 
@@ -25,7 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Fechas (NULL fix)
     $fecha_ingreso_admvo = !empty($_POST['fecha_ingreso_admvo']) ? $_POST['fecha_ingreso_admvo'] : null;
     $fecha_ingreso_cotrl_ptal = !empty($_POST['fecha_ingreso_cotrl_ptal']) ? $_POST['fecha_ingreso_cotrl_ptal'] : null;
+    $fecha_titular = !empty($_POST['fecha_titular']) ? $_POST['fecha_titular'] : null;
+    $fecha_firma_regreso = !empty($_POST['fecha_firma_regreso']) ? $_POST['fecha_firma_regreso'] : null;
     $fecha_acuse_antes_fa = !empty($_POST['fecha_acuse_antes_fa']) ? $_POST['fecha_acuse_antes_fa'] : null;
+    $fecha_respuesta_sfa = !empty($_POST['fecha_respuesta_sfa']) ? $_POST['fecha_respuesta_sfa'] : null;
+    $resultado_tramite = $_POST['resultado_tramite'] ?? 'PENDIENTE';
 
     $tarea = $_POST['tarea'] ?? null;
     $observaciones = $_POST['observaciones'] ?? null;
@@ -63,12 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // UPDATE
             $sql = "UPDATE fuas SET 
                 estatus = :estatus,
-                tipo_fua = :tipo_fua,
+                tipo_suficiencia = :tipo_suficiencia,
                 folio_fua = :folio_fua,
                 nombre_proyecto_accion = :nombre_proyecto_accion,
                 id_proyecto = :id_proyecto,
-                id_tipo_obra_accion = :id_tipo_obra_accion,
-                direccion_solicitante = :direccion_solicitante,
+
                 fuente_recursos = :fuente_recursos,
                 importe = :importe,
                 no_oficio_entrada = :no_oficio_entrada,
@@ -76,7 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 clave_presupuestal = :clave_presupuestal,
                 fecha_ingreso_admvo = :fecha_ingreso_admvo,
                 fecha_ingreso_cotrl_ptal = :fecha_ingreso_cotrl_ptal,
+                fecha_titular = :fecha_titular,
+                fecha_firma_regreso = :fecha_firma_regreso,
                 fecha_acuse_antes_fa = :fecha_acuse_antes_fa,
+                fecha_respuesta_sfa = :fecha_respuesta_sfa,
+                resultado_tramite = :resultado_tramite,
                 tarea = :tarea,
                 observaciones = :observaciones
                 WHERE id_fua = :id_fua";
@@ -94,14 +100,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // INSERT
             $sql = "INSERT INTO fuas (
-                estatus, tipo_fua, folio_fua, nombre_proyecto_accion, id_proyecto, id_tipo_obra_accion,
-                direccion_solicitante, fuente_recursos, importe, no_oficio_entrada, oficio_desf_ya,
-                clave_presupuestal, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_acuse_antes_fa,
+                estatus, tipo_suficiencia, folio_fua, nombre_proyecto_accion, id_proyecto,
+                fuente_recursos, importe, no_oficio_entrada, oficio_desf_ya,
+                clave_presupuestal, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, resultado_tramite,
                 tarea, observaciones, documentos_adjuntos
              ) VALUES (
-                :estatus, :tipo_fua, :folio_fua, :nombre_proyecto_accion, :id_proyecto, :id_tipo_obra_accion,
-                :direccion_solicitante, :fuente_recursos, :importe, :no_oficio_entrada, :oficio_desf_ya,
-                :clave_presupuestal, :fecha_ingreso_admvo, :fecha_ingreso_cotrl_ptal, :fecha_acuse_antes_fa,
+                :estatus, :tipo_suficiencia, :folio_fua, :nombre_proyecto_accion, :id_proyecto,
+                :fuente_recursos, :importe, :no_oficio_entrada, :oficio_desf_ya,
+                :clave_presupuestal, :fecha_ingreso_admvo, :fecha_ingreso_cotrl_ptal, :fecha_titular, :fecha_firma_regreso, :fecha_acuse_antes_fa, :fecha_respuesta_sfa, :resultado_tramite,
                 :tarea, :observaciones, :docs
              )";
             $stmt = $db->prepare($sql);
@@ -111,12 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Bind comunes
         $stmt->bindParam(':estatus', $estatus);
-        $stmt->bindParam(':tipo_fua', $tipo_fua);
+        $stmt->bindParam(':tipo_suficiencia', $tipo_suficiencia);
         $stmt->bindParam(':folio_fua', $folio_fua);
         $stmt->bindParam(':nombre_proyecto_accion', $nombre_proyecto_accion);
         $stmt->bindParam(':id_proyecto', $id_proyecto);
-        $stmt->bindParam(':id_tipo_obra_accion', $id_tipo_obra_accion);
-        $stmt->bindParam(':direccion_solicitante', $direccion_solicitante);
+
         $stmt->bindParam(':fuente_recursos', $fuente_recursos);
         $stmt->bindParam(':importe', $importe);
         $stmt->bindParam(':no_oficio_entrada', $no_oficio_entrada);
@@ -124,7 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindParam(':clave_presupuestal', $clave_presupuestal);
         $stmt->bindParam(':fecha_ingreso_admvo', $fecha_ingreso_admvo);
         $stmt->bindParam(':fecha_ingreso_cotrl_ptal', $fecha_ingreso_cotrl_ptal);
+        $stmt->bindParam(':fecha_titular', $fecha_titular);
+        $stmt->bindParam(':fecha_firma_regreso', $fecha_firma_regreso);
         $stmt->bindParam(':fecha_acuse_antes_fa', $fecha_acuse_antes_fa);
+        $stmt->bindParam(':fecha_respuesta_sfa', $fecha_respuesta_sfa);
+        $stmt->bindParam(':resultado_tramite', $resultado_tramite);
         $stmt->bindParam(':tarea', $tarea);
         $stmt->bindParam(':observaciones', $observaciones);
 
