@@ -39,7 +39,8 @@ if ($id_proyecto) {
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="#">Recursos Financieros</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Gestión de FUAs
-                    <?php echo $project_info ? ' - ' . htmlspecialchars($project_info['nombre_proyecto']) : ''; ?></li>
+                    <?php echo $project_info ? ' - ' . htmlspecialchars($project_info['nombre_proyecto']) : ''; ?>
+                </li>
             </ol>
         </nav>
     </div>
@@ -98,9 +99,20 @@ if ($id_proyecto) {
                                         </small>
                                     <?php endif; ?>
                                 </td>
-                                <td><span class="badge bg-info text-dark">
+                                <td>
+                                    <?php
+                                    $tipoBadges = [
+                                        'NUEVA' => 'bg-primary',
+                                        'REFRENDO' => 'bg-purple text-white', // Purple needs custom css or use standard like 'bg-indigo' if avail or 'bg-dark'
+                                        'SALDO POR EJERCER' => 'bg-info text-dark',
+                                        'CONTROL' => 'bg-secondary'
+                                    ];
+                                    $tClass = $tipoBadges[$f['tipo_fua']] ?? 'bg-light text-dark border';
+                                    ?>
+                                    <span class="badge <?php echo $tClass; ?>">
                                         <?php echo $f['tipo_fua']; ?>
-                                    </span></td>
+                                    </span>
+                                </td>
                                 <td>
                                     <?php
                                     $badge = match ($f['estatus']) {

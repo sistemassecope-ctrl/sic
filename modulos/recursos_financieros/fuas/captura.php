@@ -71,7 +71,7 @@ $tiposAccion = $stmtTipos->fetchAll(PDO::FETCH_ASSOC);
                     <label class="form-label fw-bold small text-uppercase text-secondary">Tipo de FUA</label>
                     <select name="tipo_fua" class="form-select">
                         <?php 
-                        $opts = ['NUEVA', 'SALDO POR EJERCER', 'CONTROL'];
+                        $opts = ['NUEVA', 'REFRENDO', 'SALDO POR EJERCER', 'CONTROL'];
                         foreach($opts as $o) {
                             $sel = ($is_editing && $fua['tipo_fua'] == $o) ? 'selected' : '';
                             echo "<option value='$o' $sel>$o</option>";
@@ -176,41 +176,122 @@ $tiposAccion = $stmtTipos->fetchAll(PDO::FETCH_ASSOC);
     <!-- SECCION: FECHAS Y OFICIOS -->
     <div class="card shadow-sm mb-4 border-0 rounded-3">
         <div class="card-header bg-light text-dark fw-bold py-3">
-            <i class="bi bi-calendar-range me-2 text-primary"></i> Fechas y Oficios
+            <i class="bi bi-calendar-range me-2 text-primary"></i> Seguimiento y Cronología
         </div>
         <div class="card-body p-4">
-             <div class="row g-3">
-                
+             <!-- Oficios y Claves -->
+             <div class="row g-3 mb-5">
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-secondary">No. Oficio Entrada</label>
-                    <input type="text" name="no_oficio_entrada" class="form-control" value="<?php echo $is_editing ? $fua['no_oficio_entrada'] : ''; ?>">
+                    <div class="input-group">
+                         <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                         <input type="text" name="no_oficio_entrada" class="form-control" value="<?php echo $is_editing ? $fua['no_oficio_entrada'] : ''; ?>">
+                    </div>
                 </div>
                  <div class="col-md-4">
                     <label class="form-label fw-bold small text-secondary">Oficio DESF Y A</label>
-                    <input type="text" name="oficio_desf_ya" class="form-control" value="<?php echo $is_editing ? $fua['oficio_desf_ya'] : ''; ?>">
+                     <div class="input-group">
+                         <span class="input-group-text bg-light"><i class="bi bi-envelope-check"></i></span>
+                        <input type="text" name="oficio_desf_ya" class="form-control" value="<?php echo $is_editing ? $fua['oficio_desf_ya'] : ''; ?>">
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-secondary">Clave Presupuestal</label>
-                    <input type="text" name="clave_presupuestal" class="form-control" value="<?php echo $is_editing ? $fua['clave_presupuestal'] : ''; ?>">
+                     <div class="input-group">
+                         <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                        <input type="text" name="clave_presupuestal" class="form-control" value="<?php echo $is_editing ? $fua['clave_presupuestal'] : ''; ?>">
+                    </div>
                 </div>
+             </div>
 
+             <!-- TIMELINE VISUAL DE FECHAS -->
+             <div class="row">
+                 <div class="col-12">
+                     <label class="form-label fw-bold small text-secondary mb-4 d-block text-center text-uppercase ls-1">Línea de Tiempo del Documento</label>
+                     
+                     <div class="timeline-container d-flex justify-content-between position-relative mb-3">
+                         <!-- Linea conectora de fondo -->
+                         <div class="timeline-line position-absolute top-0 start-0 w-100 bg-secondary opacity-25" style="height: 4px; top: 15px !important; z-index: 0;"></div>
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-secondary">F. Ingreso Admvo</label>
-                    <input type="date" name="fecha_ingreso_admvo" class="form-control" value="<?php echo $is_editing ? $fua['fecha_ingreso_admvo'] : ''; ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-secondary">F. Ingreso Control Ptal</label>
-                    <input type="date" name="fecha_ingreso_cotrl_ptal" class="form-control" value="<?php echo $is_editing ? $fua['fecha_ingreso_cotrl_ptal'] : ''; ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-secondary">F. Acuse Ante SFA</label>
-                    <input type="date" name="fecha_acuse_antes_fa" class="form-control" value="<?php echo $is_editing ? $fua['fecha_acuse_antes_fa'] : ''; ?>">
-                </div>
+                         <!-- PASO 1: Ingreso Admvo -->
+                         <div class="timeline-step text-center position-relative" style="z-index: 1; flex: 1;">
+                             <div class="step-indicator bg-white border border-4 border-<?php echo (!empty($fua['fecha_ingreso_admvo'])) ? 'success' : 'secondary'; ?> rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 40px; height: 40px;">
+                                 <i class="bi bi-<?php echo (!empty($fua['fecha_ingreso_admvo'])) ? 'check-lg text-success' : 'card-list text-secondary'; ?> fw-bold"></i>
+                             </div>
+                             <h6 class="fw-bold text-<?php echo (!empty($fua['fecha_ingreso_admvo'])) ? 'dark' : 'muted'; ?> mb-2">Ingreso Admvo.</h6>
+                             <div class="px-2">
+                                 <input type="date" name="fecha_ingreso_admvo" onchange="updateStepStatus(this)" class="form-control form-control-sm text-center border-<?php echo (!empty($fua['fecha_ingreso_admvo'])) ? 'success' : ''; ?>" value="<?php echo $is_editing ? $fua['fecha_ingreso_admvo'] : ''; ?>">
+                             </div>
+                         </div>
 
+                         <!-- PASO 2: Ingreso Control Ptal -->
+                         <div class="timeline-step text-center position-relative" style="z-index: 1; flex: 1;">
+                             <div class="step-indicator bg-white border border-4 border-<?php echo (!empty($fua['fecha_ingreso_cotrl_ptal'])) ? 'success' : 'secondary'; ?> rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 40px; height: 40px;">
+                                 <i class="bi bi-<?php echo (!empty($fua['fecha_ingreso_cotrl_ptal'])) ? 'check-lg text-success' : 'currency-dollar text-secondary'; ?> fw-bold"></i>
+                             </div>
+                             <h6 class="fw-bold text-<?php echo (!empty($fua['fecha_ingreso_cotrl_ptal'])) ? 'dark' : 'muted'; ?> mb-2">Control Ptal.</h6>
+                             <div class="px-2">
+                                 <input type="date" name="fecha_ingreso_cotrl_ptal" onchange="updateStepStatus(this)" class="form-control form-control-sm text-center border-<?php echo (!empty($fua['fecha_ingreso_cotrl_ptal'])) ? 'success' : ''; ?>" value="<?php echo $is_editing ? $fua['fecha_ingreso_cotrl_ptal'] : ''; ?>">
+                             </div>
+                         </div>
+
+                         <!-- PASO 3: Acuse Ante SFA -->
+                         <div class="timeline-step text-center position-relative" style="z-index: 1; flex: 1;">
+                             <div class="step-indicator bg-white border border-4 border-<?php echo (!empty($fua['fecha_acuse_antes_fa'])) ? 'primary' : 'secondary'; ?> rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 40px; height: 40px;">
+                                 <i class="bi bi-<?php echo (!empty($fua['fecha_acuse_antes_fa'])) ? 'check-lg text-primary' : 'building text-secondary'; ?> fw-bold"></i>
+                             </div>
+                             <h6 class="fw-bold text-<?php echo (!empty($fua['fecha_acuse_antes_fa'])) ? 'primary' : 'muted'; ?> mb-2">Acuse SFA</h6>
+                             <div class="px-2">
+                                 <input type="date" name="fecha_acuse_antes_fa" onchange="updateStepStatus(this)" class="form-control form-control-sm text-center border-<?php echo (!empty($fua['fecha_acuse_antes_fa'])) ? 'primary' : ''; ?>" value="<?php echo $is_editing ? $fua['fecha_acuse_antes_fa'] : ''; ?>">
+                             </div>
+                         </div>
+                     </div>
+                 </div>
              </div>
         </div>
     </div>
+
+    <style>
+        .ls-1 { letter-spacing: 1px; }
+        /* Transiciones suaves para los cambios de estado */
+        .step-indicator, .form-control {
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    <script>
+    function updateStepStatus(input) {
+        const stepContainer = input.closest('.timeline-step');
+        const indicator = stepContainer.querySelector('.step-indicator');
+        const icon = indicator.querySelector('i');
+        const title = stepContainer.querySelector('h6');
+        const isFilled = input.value !== '';
+        
+        // Determinar colores basados en si es el ultimo paso (primary) o intermedio (success)
+        // Por simplicidad usaremos success para todos al llenar, o logica custom si se requiere
+        const colorClass = input.name === 'fecha_acuse_antes_fa' ? 'primary' : 'success';
+        
+        if (isFilled) {
+            indicator.className = `step-indicator bg-white border border-4 border-${colorClass} rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm`;
+            icon.className = `bi bi-check-lg text-${colorClass} fw-bold`;
+            title.classList.remove('text-muted');
+            title.classList.add('text-dark'); // O color del paso
+            input.classList.add(`border-${colorClass}`);
+        } else {
+            indicator.className = 'step-indicator bg-white border border-4 border-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm';
+            // Restaurar iconos originales
+            let originalIcon = 'circle';
+            if(input.name.includes('admvo')) originalIcon = 'card-list';
+            if(input.name.includes('ptal')) originalIcon = 'currency-dollar';
+            if(input.name.includes('fa')) originalIcon = 'building';
+            
+            icon.className = `bi bi-${originalIcon} text-secondary fw-bold`;
+            title.classList.add('text-muted');
+            title.classList.remove('text-dark');
+            input.classList.remove(`border-${colorClass}`);
+        }
+    }
+    </script>
 
 
     <!-- SECCION: DETALLES ADICIONALES -->
