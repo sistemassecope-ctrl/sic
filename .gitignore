@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 config/db.php
 config/database.php
+=======
+config/database.php
+config/db.php
+>>>>>>> 0dbe4e537143e1c9e57398cb8b1d6d4a5da90c4d

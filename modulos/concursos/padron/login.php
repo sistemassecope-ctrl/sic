@@ -3,25 +3,27 @@
 session_start();
 include("conexion.php");
 
-$rfc = $_POST['rfc'];
-$password = $_POST['password'];
+$rfc = isset($_POST['rfc']) ? $_POST['rfc'] : '';
+$password = isset($_POST['password']) ? $_POST['password'] : '';
 
-$stmt = $conexion->prepare("SELECT * FROM usuarios_padron WHERE rfc = ?");
-$stmt->bind_param("s", $rfc);
-$stmt->execute();
-$resultado = $stmt->get_result();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($rfc) && !empty($password)) {
+    $stmt = $conexion->prepare("SELECT * FROM usuarios_padron WHERE rfc = ?");
+    $stmt->bind_param("s", $rfc);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
 
-if ($resultado->num_rows === 1) {
-    $usuario = $resultado->fetch_assoc();
-    if (password_verify($password, $usuario['password'])) {
-        $_SESSION['rfc'] = $usuario['rfc'];
-        header("Location: dashboard.php");
-        exit;
+    if ($resultado->num_rows === 1) {
+        $usuario = $resultado->fetch_assoc();
+        if (password_verify($password, $usuario['password'])) {
+            $_SESSION['rfc'] = $usuario['rfc'];
+            header("Location: dashboard.php");
+            exit;
+        } else {
+            $error = "Contraseña incorrecta.";
+        }
     } else {
-        $error = "Contraseña incorrecta.";
+        $error = "Usuario no encontrado.";
     }
-} else {
-    $error = "Usuario no encontrado.";
 }
 
 if (isset($error)) {

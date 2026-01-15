@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
         $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
         $documento = isset($_POST['documento']) ? trim($_POST['documento']) : '';
+        $numero_documento = isset($_POST['numero_documento']) ? trim($_POST['numero_documento']) : '';
         $imss = isset($_POST['imss']) ? trim($_POST['imss']) : '';
         $infonavit = isset($_POST['infonavit']) ? trim($_POST['infonavit']) : '';
         $capital = isset($_POST['capital']) ? trim($_POST['capital']) : '';
@@ -56,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensaje = '<div class="alert alert-warning">El capital debe ser un valor numérico válido (ejemplo: 1000 o 1000.50).</div>';
         } else {
             // Actualizar información
-            $stmt = $conexion->prepare("UPDATE persona_fisica SET nombre = ?, calle = ?, cp = ?, colonia = ?, municipio = ?, estado = ?, telefono = ?, celular = ?, documento = ?, imss = ?, infonavit = ?, capital = ?, regCmic = ?, especialidad = ?, descripcion = ? WHERE rfc = ?");
-            $stmt->bind_param("ssssssssssssssss", $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion, $rfc);
+            $stmt = $conexion->prepare("UPDATE persona_fisica SET nombre = ?, calle = ?, cp = ?, colonia = ?, municipio = ?, estado = ?, telefono = ?, celular = ?, documento = ?, numero_documento = ?, imss = ?, infonavit = ?, capital = ?, regCmic = ?, especialidad = ?, descripcion = ? WHERE rfc = ?");
+            $stmt->bind_param("sssssssssssssssss", $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $numero_documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion, $rfc);
             
             if ($stmt->execute()) {
                 $mensaje = '<div class="alert alert-success">Información actualizada exitosamente.</div>';
@@ -84,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
         $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
         $documento = isset($_POST['documento']) ? trim($_POST['documento']) : '';
+        $numero_documento = isset($_POST['numero_documento']) ? trim($_POST['numero_documento']) : '';
         $imss = isset($_POST['imss']) ? trim($_POST['imss']) : '';
         $infonavit = isset($_POST['infonavit']) ? trim($_POST['infonavit']) : '';
         $capital = isset($_POST['capital']) ? trim($_POST['capital']) : '';
@@ -104,8 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensaje = '<div class="alert alert-warning">El capital debe ser un valor numérico válido (ejemplo: 1000 o 1000.50).</div>';
         } else {
             // Insertar en persona_fisica
-            $stmt = $conexion->prepare("INSERT INTO persona_fisica (rfc, nombre, calle, cp, colonia, municipio, estado, telefono, celular, documento, imss, infonavit, capital, regCmic, especialidad, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssssssssssssss", $rfc, $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion);
+            $stmt = $conexion->prepare("INSERT INTO persona_fisica (rfc, nombre, calle, cp, colonia, municipio, estado, telefono, celular, documento, numero_documento, imss, infonavit, capital, regCmic, especialidad, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssssssssssssss", $rfc, $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $numero_documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion);
             
             if ($stmt->execute()) {
                 $mensaje = '<div class="alert alert-success">Información registrada exitosamente.</div>';
@@ -258,8 +260,17 @@ function getValue($array, $key, $default = '') {
                             <input type="text" class="form-control" id="especialidad" name="especialidad" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'especialidad')) : ''; ?>">
                         </div>
                         <div class="mb-3">
-                            <label for="documento" class="form-label">Documento</label>
-                            <input type="text" class="form-control" id="documento" name="documento" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'documento')) : ''; ?>">
+                            <label for="documento" class="form-label">Documento de Identificación</label>
+                            <select class="form-select" id="documento" name="documento">
+                                <option value="">Seleccione una opción</option>
+                                <option value="Cédula Profesional" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'Cédula Profesional') ? 'selected' : ''; ?>>Cédula Profesional</option>
+                                <option value="INE" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'INE') ? 'selected' : ''; ?>>INE</option>
+                                <option value="Pasaporte" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'Pasaporte') ? 'selected' : ''; ?>>Pasaporte</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero_documento" class="form-label">Número del Documento</label>
+                            <input type="text" class="form-control" id="numero_documento" name="numero_documento" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'numero_documento')) : ''; ?>">
                         </div>
                     </div>
                     <div class="col-md-6">
