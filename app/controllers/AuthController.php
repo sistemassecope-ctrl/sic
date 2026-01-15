@@ -45,7 +45,7 @@ class AuthController
                         'Inicio de sesión correcto. Rol: ' . $this->user->nombre_rol
                     );
 
-                    header("Location: /pao/index.php?route=home");
+                    header("Location: " . BASE_URL . "/index.php?route=home");
                     exit;
                 } else {
                     // Login fallido
@@ -80,7 +80,7 @@ class AuthController
         }
 
         session_destroy();
-        header("Location: /pao/index.php?route=login");
+        header("Location: " . BASE_URL . "/index.php?route=login");
         exit;
     }
 }

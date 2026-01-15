@@ -13,7 +13,7 @@ class PaoController
     public function index()
     {
         if (!isset($_SESSION['user_id'])) {
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
             exit;
         }
 

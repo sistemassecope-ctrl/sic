@@ -9,20 +9,20 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Iconos de Bootstrap -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/pao/assets/css/styles.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/styles.css">
 </head>
 
 <body class="bg-light min-vh-100 d-flex flex-column align-items-center justify-content-center position-relative">
 
     <!-- Link al Padrón de Contratistas -->
     <div class="position-absolute top-0 start-0 m-3">
-        <a href="/pao/modulos/concursos/padron/index.php" class="btn btn-outline-primary btn-sm fw-bold shadow-sm">
+        <a href="<?php echo BASE_URL; ?>/modulos/concursos/padron/index.php" class="btn btn-outline-primary btn-sm fw-bold shadow-sm">
             <i class="bi bi-person-vcard me-1"></i> Padrón de contratistas
         </a>
     </div>
 
     <div class="text-center mb-4">
-        <img src="/pao/img/logo_secope.png" alt="Logo SECOPE" style="max-height:100px;">
+        <img src="<?php echo BASE_URL; ?>/img/logo_secope.png" alt="Logo SECOPE" style="max-height:100px;">
     </div>
 
     <div class="container bg-white rounded-4 shadow p-4 mb-4" style="max-width:400px;">
@@ -36,7 +36,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="/pao/index.php?route=login" method="POST">
+        <form action="<?php echo BASE_URL; ?>/index.php?route=login" method="POST">
             <div class="mb-3">
                 <label for="email" class="form-label">Usuario</label>
                 <input type="text" class="form-control" name="email" id="email" required>

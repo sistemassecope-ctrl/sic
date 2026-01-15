@@ -10,7 +10,7 @@
     <!-- Iconos -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/pao/assets/css/styles.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/styles.css">
 </head>
 
 <body>
@@ -45,7 +45,7 @@
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>
-                                <li><a class="dropdown-item text-danger" href="/pao/index.php?route=logout"><i
+                                <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/index.php?route=logout"><i
                                             class="bi bi-box-arrow-right"></i> Salir</a></li>
                             </ul>
                         </li>

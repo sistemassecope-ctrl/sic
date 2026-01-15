@@ -25,7 +25,7 @@ switch ($route) {
     case 'home':
         // Verificar autenticación
         if (!isset($_SESSION['user_id'])) {
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
             exit;
         }
 
@@ -43,7 +43,7 @@ switch ($route) {
 
     case 'recursos_financieros/programas_operativos':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Programas Operativos Anuales';
         $content_view = 'modulos/recursos_financieros/programas_operativos/index.php';
         include 'app/views/layouts/wrapper.php';
@@ -51,7 +51,7 @@ switch ($route) {
 
     case 'recursos_financieros/programas_operativos/nuevo':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
 
         // Verificación de Permiso Específico
         $permisos = $_SESSION['user_permisos'] ?? [];
@@ -68,7 +68,7 @@ switch ($route) {
 
     case 'recursos_financieros/programas_operativos/guardar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
 
         // Ejecutar lógica de guardado
         require 'modulos/recursos_financieros/programas_operativos/guardar.php';
@@ -76,7 +76,7 @@ switch ($route) {
 
     case 'recursos_financieros/programas_operativos/proyectos':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
 
         $page_title = 'Proyectos del Programa Operativo';
         $content_view = 'modulos/recursos_financieros/programas_operativos/listar_proyectos.php';
@@ -86,7 +86,7 @@ switch ($route) {
     case 'recursos_financieros/proyectos/nuevo':
     case 'recursos_financieros/proyectos/editar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
 
         $page_title = 'Captura de Proyecto';
         $content_view = 'modulos/recursos_financieros/programas_operativos/captura_proyecto.php';
@@ -95,19 +95,19 @@ switch ($route) {
 
     case 'recursos_financieros/proyectos/guardar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/programas_operativos/guardar_proyecto.php';
         break;
 
     case 'recursos_financieros/proyectos/eliminar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/programas_operativos/eliminar_proyecto.php';
         break;
 
     case 'recursos_financieros/programas_operativos/editar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Editar Programa Operativo';
         $content_view = 'modulos/recursos_financieros/programas_operativos/captura.php';
         include 'app/views/layouts/wrapper.php';
@@ -115,14 +115,14 @@ switch ($route) {
 
     case 'recursos_financieros/programas_operativos/eliminar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/programas_operativos/eliminar.php';
         break;
 
     // --- RUTAS DE FUAS ---
     case 'recursos_financieros/fuas':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Gestión de FUAs';
         $content_view = 'modulos/recursos_financieros/fuas/index.php';
         include 'app/views/layouts/wrapper.php';
@@ -131,7 +131,7 @@ switch ($route) {
     case 'recursos_financieros/fuas/nuevo':
     case 'recursos_financieros/fuas/editar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Captura de FUA';
         $content_view = 'modulos/recursos_financieros/fuas/captura.php';
         include 'app/views/layouts/wrapper.php';
@@ -139,20 +139,20 @@ switch ($route) {
 
     case 'recursos_financieros/fuas/guardar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/fuas/guardar.php';
         break;
 
     case 'recursos_financieros/fuas/eliminar':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/fuas/eliminar.php';
         break;
 
 
     case 'configuracion/areas_pao':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Configuración de Áreas PAO';
         $content_view = 'modulos/configuracion/areas_pao.php';
         include 'app/views/layouts/wrapper.php';
@@ -160,7 +160,7 @@ switch ($route) {
 
     case 'configuracion/roles_usuarios':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Gestión de Roles y Usuarios';
         $content_view = 'modulos/configuracion/roles_usuarios.php';
         include 'app/views/layouts/wrapper.php';
@@ -168,7 +168,7 @@ switch ($route) {
 
     case 'configuracion/permisos_usuarios':
         if (!isset($_SESSION['user_id']))
-            header("Location: /pao/index.php?route=login");
+            header("Location: " . BASE_URL . "/index.php?route=login");
         $page_title = 'Permisos Específicos por Usuario';
         $content_view = 'modulos/configuracion/permisos_usuarios.php';
         include 'app/views/layouts/wrapper.php';

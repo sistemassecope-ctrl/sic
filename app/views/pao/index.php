@@ -7,14 +7,14 @@
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/pao/assets/css/styles.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/styles.css">
 </head>
 <body class="bg-light">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="#">
-                <img src="/pao/img/logo_secope.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
+                <img src="<?php echo BASE_URL; ?>/img/logo_secope.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
                 SIS-PAO
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -23,15 +23,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/pao/index.php?route=home">Inicio</a>
+                        <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php?route=home">Inicio</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/pao/index.php?route=pao">PAO</a>
+                        <a class="nav-link active" href="<?php echo BASE_URL; ?>/index.php?route=pao">PAO</a>
                     </li>
                 </ul>
                 <div class="d-flex align-items-center text-white">
                     <span class="me-3"><i class="bi bi-person-circle"></i> <?php echo $_SESSION['user_name'] ?? 'Usuario'; ?></span>
-                    <a href="/pao/index.php?route=logout" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
+                    <a href="<?php echo BASE_URL; ?>/index.php?route=logout" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
                 </div>
             </div>
         </div>

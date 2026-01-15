@@ -133,11 +133,11 @@ function getValue($array, $key, $default = '') {
 <head>
     <title>Panel - Padrón de Contratistas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/pao/assets/css/styles.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/styles.css">
 </head>
 <body class="bg-light min-vh-100 d-flex flex-column align-items-center justify-content-start">
     <div class="text-center my-4">
-        <a href="index.php"><img src="/pao/img/logo_secope.png" alt="Logo SECOPE" style="max-height:100px;"></a>
+        <a href="index.php"><img src="<?php echo BASE_URL; ?>/img/logo_secope.png" alt="Logo SECOPE" style="max-height:100px;"></a>
     </div>
     <div class="container bg-white rounded-4 shadow p-4 mb-4" style="max-width:800px;">
         <h2 class="mb-3 text-primary">Bienvenido, <?php echo htmlspecialchars($rfc); ?></h2>
