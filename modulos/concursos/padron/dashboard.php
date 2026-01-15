@@ -27,22 +27,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $modo_edicion = true;
     } elseif (isset($_POST['accion']) && $_POST['accion'] === 'guardar') {
         // Guardar cambios
-        $nombre = isset($_POST['nombre']) ? trim($_POST['nombre']) : '';
-        $calle = isset($_POST['calle']) ? trim($_POST['calle']) : '';
+        $nombre = isset($_POST['nombre']) ? mb_strtoupper(trim($_POST['nombre']), 'UTF-8') : '';
+        $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
         $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
-        $colonia = isset($_POST['colonia']) ? trim($_POST['colonia']) : '';
-        $municipio = isset($_POST['municipio']) ? trim($_POST['municipio']) : '';
-        $estado = isset($_POST['estado']) ? trim($_POST['estado']) : '';
+        $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
+        $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
+        $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
         $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
         $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
-        $documento = isset($_POST['documento']) ? trim($_POST['documento']) : '';
-        $numero_documento = isset($_POST['numero_documento']) ? trim($_POST['numero_documento']) : '';
-        $imss = isset($_POST['imss']) ? trim($_POST['imss']) : '';
-        $infonavit = isset($_POST['infonavit']) ? trim($_POST['infonavit']) : '';
-        $capital = isset($_POST['capital']) ? trim($_POST['capital']) : '';
-        $regCmic = isset($_POST['regCmic']) ? trim($_POST['regCmic']) : '';
-        $especialidad = isset($_POST['especialidad']) ? trim($_POST['especialidad']) : '';
-        $descripcion = isset($_POST['descripcion']) ? trim($_POST['descripcion']) : '';
+        $documento = isset($_POST['documento']) ? mb_strtoupper(trim($_POST['documento']), 'UTF-8') : '';
+        $numero_documento = isset($_POST['numero_documento']) ? mb_strtoupper(trim($_POST['numero_documento']), 'UTF-8') : '';
+        $imss = isset($_POST['imss']) ? mb_strtoupper(trim($_POST['imss']), 'UTF-8') : '';
+        $infonavit = isset($_POST['infonavit']) ? mb_strtoupper(trim($_POST['infonavit']), 'UTF-8') : '';
+        $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
+        $regCmic = isset($_POST['regCmic']) ? mb_strtoupper(trim($_POST['regCmic']), 'UTF-8') : '';
+        $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
+        $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
         
         // Validar campos requeridos
         if (empty($nombre) || empty($calle) || empty($cp) || empty($colonia) || empty($municipio) || empty($estado)) {
@@ -76,22 +76,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } else {
         // Procesar formulario de nuevo registro
-        $nombre = isset($_POST['nombre']) ? trim($_POST['nombre']) : '';
-        $calle = isset($_POST['calle']) ? trim($_POST['calle']) : '';
+        $nombre = isset($_POST['nombre']) ? mb_strtoupper(trim($_POST['nombre']), 'UTF-8') : '';
+        $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
         $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
-        $colonia = isset($_POST['colonia']) ? trim($_POST['colonia']) : '';
-        $municipio = isset($_POST['municipio']) ? trim($_POST['municipio']) : '';
-        $estado = isset($_POST['estado']) ? trim($_POST['estado']) : '';
+        $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
+        $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
+        $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
         $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
         $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
-        $documento = isset($_POST['documento']) ? trim($_POST['documento']) : '';
-        $numero_documento = isset($_POST['numero_documento']) ? trim($_POST['numero_documento']) : '';
-        $imss = isset($_POST['imss']) ? trim($_POST['imss']) : '';
-        $infonavit = isset($_POST['infonavit']) ? trim($_POST['infonavit']) : '';
-        $capital = isset($_POST['capital']) ? trim($_POST['capital']) : '';
-        $regCmic = isset($_POST['regCmic']) ? trim($_POST['regCmic']) : '';
-        $especialidad = isset($_POST['especialidad']) ? trim($_POST['especialidad']) : '';
-        $descripcion = isset($_POST['descripcion']) ? trim($_POST['descripcion']) : '';
+        $documento = isset($_POST['documento']) ? mb_strtoupper(trim($_POST['documento']), 'UTF-8') : '';
+        $numero_documento = isset($_POST['numero_documento']) ? mb_strtoupper(trim($_POST['numero_documento']), 'UTF-8') : '';
+        $imss = isset($_POST['imss']) ? mb_strtoupper(trim($_POST['imss']), 'UTF-8') : '';
+        $infonavit = isset($_POST['infonavit']) ? mb_strtoupper(trim($_POST['infonavit']), 'UTF-8') : '';
+        $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
+        $regCmic = isset($_POST['regCmic']) ? mb_strtoupper(trim($_POST['regCmic']), 'UTF-8') : '';
+        $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
+        $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
         
         // Validar campos requeridos
         if (empty($nombre) || empty($calle) || empty($cp) || empty($colonia) || empty($municipio) || empty($estado)) {
@@ -354,9 +354,12 @@ function getValue($array, $key, $default = '') {
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="capital" class="form-label">Capital</label>
-                                    <input type="number" class="form-control" id="capital" name="capital" step="0.01" min="0" pattern="^\d+(\.\d{1,2})?$" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'capital')) : ''; ?>">
-                                    <div class="form-text">Solo números con hasta 2 decimales (ejemplo: 1000.50)</div>
+                                    <label for="capital" class="form-label">Capital Contable</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="text" class="form-control text-end" id="capital" name="capital" placeholder="0.00" value="<?php echo $modo_edicion ? number_format((float)getValue($persona, 'capital'), 2, '.', ',') : ''; ?>">
+                                    </div>
+                                    <div class="form-text">Ejemplo: 1,000,000.00</div>
                                 </div>
                             </div>
                         </div>
@@ -526,11 +529,11 @@ function getValue($array, $key, $default = '') {
                                 
                                 // Seleccionar la colonia actual
                                 if (coloniaActual && coloniaActual.value) {
-                                    const currentColonia = coloniaActual.value;
+                                    const currentColonia = coloniaActual.value.trim().toUpperCase();
                                     
                                     // Buscar y seleccionar la opción
                                     for (let i = 0; i < coloniaSelect.options.length; i++) {
-                                        if (coloniaSelect.options[i].value === currentColonia) {
+                                        if (coloniaSelect.options[i].value.trim().toUpperCase() === currentColonia) {
                                             coloniaSelect.options[i].selected = true;
                                             break;
                                         }
@@ -546,6 +549,66 @@ function getValue($array, $key, $default = '') {
                         });
                 }
             }
+            // Formato de moneda para Capital
+            const capitalInput = document.getElementById('capital');
+            
+            if (capitalInput) {
+                // Función para formatear moneda
+                const formatCurrency = (value) => {
+                    // Si está vacío, retornar vacío
+                    if (value === '') return '';
+                    
+                    // Asegurar que es un número válido
+                    let number = parseFloat(value.replace(/,/g, ''));
+                    if (isNaN(number)) return '';
+                    
+                    // Formatear con 2 decimales y comas
+                    return new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(number);
+                };
+
+                // Al perder el foco, formatear
+                capitalInput.addEventListener('blur', function() {
+                    this.value = formatCurrency(this.value);
+                });
+
+                // Al ganar el foco, quitar comas para editar
+                capitalInput.addEventListener('focus', function() {
+                    let val = this.value.replace(/,/g, '');
+                    if (val !== '') {
+                        // Si termina en .00, quitarlo para facilitar edición, opcional
+                        // this.value = val.replace(/\.00$/, '');
+                        this.value = val;
+                    }
+                });
+
+                // Permitir solo números y punto decimal
+                capitalInput.addEventListener('input', function(e) {
+                    // Este input no debe convertirse a mayúsculas si el script global lo afecta
+                    // Filtrar caracteres no numéricos
+                    this.value = this.value.replace(/[^0-9.]/g, '');
+                    
+                    // Evitar múltiples puntos decimales
+                    if ((this.value.match(/\./g) || []).length > 1) {
+                         this.value = this.value.replace(/\.+$/, '');
+                    }
+                });
+            }
+
+            // Convertir a mayúsculas todos los inputs excepto correos, contraseñas y capital
+            const textInputs = document.querySelectorAll('input:not([type="email"]):not([type="password"]):not([type="hidden"]):not([type="file"]):not(#capital), textarea');
+            textInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    if (this.value) {
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        this.value = this.value.toUpperCase();
+                        this.setSelectionRange(start, end);
+                    }
+                });
+            });
         });
     </script>
 </body>

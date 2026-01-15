@@ -19,7 +19,7 @@ function validar_correo($correo) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $rfc = isset($_POST['rfc']) ? trim($_POST['rfc']) : '';
+    $rfc = isset($_POST['rfc']) ? mb_strtoupper(trim($_POST['rfc']), 'UTF-8') : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $correo = isset($_POST['correo']) ? trim($_POST['correo']) : '';
     
@@ -101,6 +101,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textInputs = document.querySelectorAll('input:not([type="email"]):not([type="password"]):not([type="hidden"]):not([type="file"]), textarea');
+            textInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    if (this.value) {
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        this.value = this.value.toUpperCase();
+                        this.setSelectionRange(start, end);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
 ?>

@@ -56,5 +56,20 @@ include("conexion.php");
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textInputs = document.querySelectorAll('input:not([type="email"]):not([type="password"]):not([type="hidden"]):not([type="file"]), textarea');
+            textInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    if (this.value) {
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        this.value = this.value.toUpperCase();
+                        this.setSelectionRange(start, end);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

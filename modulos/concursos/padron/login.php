@@ -3,7 +3,7 @@
 session_start();
 include("conexion.php");
 
-$rfc = isset($_POST['rfc']) ? $_POST['rfc'] : '';
+$rfc = isset($_POST['rfc']) ? mb_strtoupper($_POST['rfc'], 'UTF-8') : '';
 $password = isset($_POST['password']) ? $_POST['password'] : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($rfc) && !empty($password)) {
