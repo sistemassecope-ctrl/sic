@@ -1,8 +1,11 @@
 <?php
 // Guardar FUA
+require_once __DIR__ . '/../../../includes/services/DigitalArchiveService.php';
+
 $db = (new Database())->getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $archiveService = new DigitalArchiveService();
 
     // IDs
     $id_fua = !empty($_POST['id_fua']) ? (int) $_POST['id_fua'] : null;
@@ -21,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $oficio_desf_ya = $_POST['oficio_desf_ya'] ?? null;
     $clave_presupuestal = $_POST['clave_presupuestal'] ?? null;
 
-    // Fechas (NULL fix)
+    // Fechas
     $fecha_ingreso_admvo = !empty($_POST['fecha_ingreso_admvo']) ? $_POST['fecha_ingreso_admvo'] : null;
     $fecha_ingreso_cotrl_ptal = !empty($_POST['fecha_ingreso_cotrl_ptal']) ? $_POST['fecha_ingreso_cotrl_ptal'] : null;
     $fecha_titular = !empty($_POST['fecha_titular']) ? $_POST['fecha_titular'] : null;
@@ -33,35 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tarea = $_POST['tarea'] ?? null;
     $observaciones = $_POST['observaciones'] ?? null;
 
-    // ARCHIVOS
-    $documentos_adjuntos = null;
-    // Si es edición, habría que mantener los anteriores si no se suben nuevos, o concatenar.
-    // Lógica simple: Si sube, reemplaza/agrega nombre.
-    if (isset($_FILES['documentos_adjuntos']) && $_FILES['documentos_adjuntos']['error'][0] === UPLOAD_ERR_OK) {
-        $uploaded_files = [];
-        $uploadDir = __DIR__ . '/../../../uploads/fuas/';
-
-        foreach ($_FILES['documentos_adjuntos']['name'] as $key => $name) {
-            if ($_FILES['documentos_adjuntos']['error'][$key] === UPLOAD_ERR_OK) {
-                $tmp_name = $_FILES['documentos_adjuntos']['tmp_name'][$key];
-                $filename = time() . '_' . basename($name);
-                if (move_uploaded_file($tmp_name, $uploadDir . $filename)) {
-                    $uploaded_files[] = $filename;
-                }
-            }
-        }
-        if (!empty($uploaded_files)) {
-            $documentos_adjuntos = implode(',', $uploaded_files);
-        }
-    }
-
-    // Si estamos editando y no subimos nada, mantenemos el valor actual?
-    if ($id_fua && $documentos_adjuntos === null) {
-        // No actualizamos la columna documentos, o la leemos antes.
-        // Mejor en el Query construimos dinámicamente.
-    }
-
     try {
+        $db->beginTransaction();
+
+        // 1. Guardar/Actualizar Datos Principales (Sin Archivos aún para tener ID)
         if ($id_fua) {
             // UPDATE
             $sql = "UPDATE fuas SET 
@@ -70,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 folio_fua = :folio_fua,
                 nombre_proyecto_accion = :nombre_proyecto_accion,
                 id_proyecto = :id_proyecto,
-
                 fuente_recursos = :fuente_recursos,
                 importe = :importe,
                 no_oficio_entrada = :no_oficio_entrada,
@@ -87,41 +64,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 observaciones = :observaciones
                 WHERE id_fua = :id_fua";
 
-            // Si hay docs nuevos, agregar al query
-            if ($documentos_adjuntos) {
-                $sql = str_replace("observaciones = :observaciones", "observaciones = :observaciones, documentos_adjuntos = :docs", $sql);
-            }
-
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id_fua', $id_fua);
-            if ($documentos_adjuntos)
-                $stmt->bindParam(':docs', $documentos_adjuntos);
-
         } else {
             // INSERT
             $sql = "INSERT INTO fuas (
                 estatus, tipo_suficiencia, folio_fua, nombre_proyecto_accion, id_proyecto,
                 fuente_recursos, importe, no_oficio_entrada, oficio_desf_ya,
                 clave_presupuestal, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, resultado_tramite,
-                tarea, observaciones, documentos_adjuntos
+                tarea, observaciones
              ) VALUES (
                 :estatus, :tipo_suficiencia, :folio_fua, :nombre_proyecto_accion, :id_proyecto,
                 :fuente_recursos, :importe, :no_oficio_entrada, :oficio_desf_ya,
                 :clave_presupuestal, :fecha_ingreso_admvo, :fecha_ingreso_cotrl_ptal, :fecha_titular, :fecha_firma_regreso, :fecha_acuse_antes_fa, :fecha_respuesta_sfa, :resultado_tramite,
-                :tarea, :observaciones, :docs
+                :tarea, :observaciones
              )";
             $stmt = $db->prepare($sql);
-            $valDocs = $documentos_adjuntos ?? ''; // Para insert, si es null que sea string vacio o null
-            $stmt->bindParam(':docs', $valDocs);
         }
 
-        // Bind comunes
+        // Bind Comunes
         $stmt->bindParam(':estatus', $estatus);
         $stmt->bindParam(':tipo_suficiencia', $tipo_suficiencia);
         $stmt->bindParam(':folio_fua', $folio_fua);
         $stmt->bindParam(':nombre_proyecto_accion', $nombre_proyecto_accion);
         $stmt->bindParam(':id_proyecto', $id_proyecto);
-
         $stmt->bindParam(':fuente_recursos', $fuente_recursos);
         $stmt->bindParam(':importe', $importe);
         $stmt->bindParam(':no_oficio_entrada', $no_oficio_entrada);
@@ -139,10 +105,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt->execute();
 
+        if (!$id_fua) {
+            $id_fua = $db->lastInsertId();
+        }
+
+        // 2. Procesar Archivos con DigitalArchiveService
+        $nuevos_docs_ids = [];
+
+        // Simulación de usuario actual (temporal, ajustar con sesión real)
+        $id_usuario_actual = $_SESSION['id_usuario'] ?? 1; // Default a 1 si no hay session
+
+        if (isset($_FILES['documentos_adjuntos']) && !empty($_FILES['documentos_adjuntos']['name'][0])) {
+            // Reorganizar array de $_FILES para iterar más fácil
+            $files_array = [];
+            foreach ($_FILES['documentos_adjuntos'] as $key => $all) {
+                foreach ($all as $i => $val) {
+                    $files_array[$i][$key] = $val;
+                }
+            }
+
+            foreach ($files_array as $file) {
+                if ($file['error'] === UPLOAD_ERR_OK) {
+                    $metadata = [
+                        'modulo_origen' => 'FUA',
+                        'referencia_id' => $id_fua,
+                        'tipo_documento' => 'ANEXO_FUA', // Opcional: podrías hacerlo dinámico
+                        'id_usuario' => $id_usuario_actual
+                    ];
+
+                    $docId = $archiveService->saveDocument($file, $metadata);
+                    if ($docId) {
+                        $nuevos_docs_ids[] = $docId;
+                    }
+                }
+            }
+        }
+
+        // 3. Actualizar columna documentos_adjuntos (Concatenar JSON IDs)
+        if (!empty($nuevos_docs_ids)) {
+            // Recuperar existentes
+            $stmtDocs = $db->prepare("SELECT documentos_adjuntos FROM fuas WHERE id_fua = ?");
+            $stmtDocs->execute([$id_fua]);
+            $currentDocsStr = $stmtDocs->fetchColumn();
+
+            // Intentar decodificar JSON, si falla asumir que es string legacy o vacio
+            $currentDocs = json_decode($currentDocsStr, true);
+            if (!is_array($currentDocs)) {
+                $currentDocs = [];
+                // Si había legacy (string separado por comas), lo ignoramos o lo convertimos?
+                // Por ahora asumimos transición limpia a IDs.
+            }
+
+            $finalDocs = array_merge($currentDocs, $nuevos_docs_ids);
+
+            // Guardar como JSON
+            $stmtUpdateDocs = $db->prepare("UPDATE fuas SET documentos_adjuntos = ? WHERE id_fua = ?");
+            $stmtUpdateDocs->execute([json_encode($finalDocs), $id_fua]);
+        }
+
+        $db->commit();
         header("Location: /pao/index.php?route=recursos_financieros/fuas");
         exit;
 
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
+        $db->rollBack();
         echo "Error: " . $e->getMessage();
     }
 }

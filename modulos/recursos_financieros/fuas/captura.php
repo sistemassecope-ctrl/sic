@@ -31,6 +31,17 @@ $proyectos = $stmtProyectos->fetchAll(PDO::FETCH_ASSOC);
 $stmtFuentes = $db->query("SELECT * FROM cat_fuentes_financiamiento WHERE activo = 1 ORDER BY anio DESC, abreviatura ASC");
 $fuentesFinanciamiento = $stmtFuentes->fetchAll(PDO::FETCH_ASSOC);
 
+// 4. Cargar Documentos Adjuntos (Archivo Digital)
+$documentosExistentes = [];
+if ($is_editing && !empty($fua['documentos_adjuntos'])) {
+    $ids = json_decode($fua['documentos_adjuntos'], true);
+    if (is_array($ids) && count($ids) > 0) {
+        $idsStr = implode(',', array_map('intval', $ids));
+        $stmtDocs = $db->query("SELECT * FROM archivo_documentos WHERE id_documento IN ($idsStr)");
+        $documentosExistentes = $stmtDocs->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+
 ?>
 
 
@@ -311,6 +322,39 @@ $fuentesFinanciamiento = $stmtFuentes->fetchAll(PDO::FETCH_ASSOC);
                 <div class="col-12">
                     <label class="form-label">Observaciones</label>
                     <textarea name="observaciones" class="form-control" rows="2" style="resize: none;"><?php echo $is_editing ? htmlspecialchars($fua['observaciones']) : ''; ?></textarea>
+                </div>
+
+                <!-- SECCIÓN DOCUMENTOS ADJUNTOS -->
+                <div class="col-12 mt-4">
+                     <h5 class="text-secondary border-bottom pb-2 mb-3"><i class="bi bi-paperclip me-2"></i>Documentación Soporte</h5>
+                     
+                     <!-- Lista de Existentes -->
+                     <?php if (!empty($documentosExistentes)): ?>
+                        <div class="list-group mb-3">
+                            <?php foreach ($documentosExistentes as $doc): ?>
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center overflow-hidden">
+                                        <div class="me-3 fs-4 text-danger"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                                        <div class="text-truncate">
+                                            <h6 class="mb-0 text-truncate"><?php echo htmlspecialchars($doc['nombre_archivo_original']); ?></h6>
+                                            <small class="text-muted"><?php echo strtolower($doc['tipo_documento']); ?> | <?php echo date('d/m/Y', strtotime($doc['fecha_creacion'])); ?></small>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <!-- Enlance directo al visor -->
+                                        <a href="/pao/ver_archivo.php?uuid=<?php echo $doc['uuid']; ?>" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                     <?php endif; ?>
+
+                     <!-- Input Nuevos -->
+                     <label class="form-label">Adjuntar Nuevos Archivos (PDF)</label>
+                     <input type="file" name="documentos_adjuntos[]" class="form-control" multiple accept="application/pdf">
+                     <div class="form-text">Puede seleccionar múltiples archivos. Se integrarán al Archivo Digital.</div>
                 </div>
             </div>
 
