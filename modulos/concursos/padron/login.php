@@ -3,10 +3,19 @@
 session_start();
 include("conexion.php");
 
+// Si no es una petición POST, redirigir al index (donde está el formulario)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: index.php");
+    exit;
+}
+
 $rfc = isset($_POST['rfc']) ? mb_strtoupper($_POST['rfc'], 'UTF-8') : '';
 $password = isset($_POST['password']) ? $_POST['password'] : '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($rfc) && !empty($password)) {
+if (!empty($rfc) && !empty($password)) {
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $ua = $_SERVER['HTTP_USER_AGENT'];
+
     $stmt = $conexion->prepare("SELECT * FROM usuarios_padron WHERE rfc = ?");
     $stmt->bind_param("s", $rfc);
     $stmt->execute();
@@ -15,13 +24,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($rfc) && !empty($password)) 
     if ($resultado->num_rows === 1) {
         $usuario = $resultado->fetch_assoc();
         if (password_verify($password, $usuario['password'])) {
+            // Log de éxito
+            $stmt_log = $conexion->prepare("INSERT INTO bitacora_seguridad (rfc, accion, ip_address, user_agent, detalles) VALUES (?, 'LOGIN_EXITOSO', ?, ?, 'Inicio de sesión correcto')");
+            $stmt_log->bind_param("sss", $rfc, $ip, $ua);
+            $stmt_log->execute();
+
             $_SESSION['rfc'] = $usuario['rfc'];
             header("Location: dashboard.php");
             exit;
         } else {
+            // Log de error de contraseña
+            $stmt_log = $conexion->prepare("INSERT INTO bitacora_seguridad (rfc, accion, ip_address, user_agent, detalles) VALUES (?, 'LOGIN_FALLIDO_PASSWORD', ?, ?, 'Contraseña incorrecta')");
+            $stmt_log->bind_param("sss", $rfc, $ip, $ua);
+            $stmt_log->execute();
             $error = "Contraseña incorrecta.";
         }
     } else {
+        // Log de usuario no encontrado
+        $stmt_log = $conexion->prepare("INSERT INTO bitacora_seguridad (rfc, accion, ip_address, user_agent, detalles) VALUES (?, 'LOGIN_FALLIDO_USUARIO', ?, ?, 'Usuario no encontrado')");
+        $stmt_log->bind_param("sss", $rfc, $ip, $ua);
+        $stmt_log->execute();
         $error = "Usuario no encontrado.";
     }
 }

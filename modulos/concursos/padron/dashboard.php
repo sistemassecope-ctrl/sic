@@ -4,12 +4,14 @@ include("proteger.php");
 include("conexion.php");
 
 $rfc = $_SESSION['rfc'];
+$tipo_persona = (strlen($rfc) === 12) ? 'moral' : 'fisica';
 $mensaje = '';
 $modo_edicion = false;
 $persona = null;
 
-// Verificar si existe en persona_fisica
-$stmt = $conexion->prepare("SELECT * FROM persona_fisica WHERE rfc = ?");
+// Verificar si existe en la tabla correspondiente
+$tabla = ($tipo_persona === 'moral') ? 'persona_moral' : 'persona_fisica';
+$stmt = $conexion->prepare("SELECT * FROM $tabla WHERE rfc = ?");
 $stmt->bind_param("s", $rfc);
 $stmt->execute();
 $resultado = $stmt->get_result();
@@ -27,99 +29,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $modo_edicion = true;
     } elseif (isset($_POST['accion']) && $_POST['accion'] === 'guardar') {
         // Guardar cambios
-        $nombre = isset($_POST['nombre']) ? mb_strtoupper(trim($_POST['nombre']), 'UTF-8') : '';
-        $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
-        $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
-        $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
-        $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
-        $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
-        $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
-        $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
-        $documento = isset($_POST['documento']) ? mb_strtoupper(trim($_POST['documento']), 'UTF-8') : '';
-        $numero_documento = isset($_POST['numero_documento']) ? mb_strtoupper(trim($_POST['numero_documento']), 'UTF-8') : '';
-        $imss = isset($_POST['imss']) ? mb_strtoupper(trim($_POST['imss']), 'UTF-8') : '';
-        $infonavit = isset($_POST['infonavit']) ? mb_strtoupper(trim($_POST['infonavit']), 'UTF-8') : '';
-        $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
-        $regCmic = isset($_POST['regCmic']) ? mb_strtoupper(trim($_POST['regCmic']), 'UTF-8') : '';
-        $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
-        $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
-        
-        // Validar campos requeridos
-        if (empty($nombre) || empty($calle) || empty($cp) || empty($colonia) || empty($municipio) || empty($estado)) {
-            $mensaje = '<div class="alert alert-warning">Por favor, completa todos los campos obligatorios.</div>';
-        } elseif (strlen($cp) != 5 || !is_numeric($cp)) {
-            $mensaje = '<div class="alert alert-warning">El código postal debe tener 5 dígitos numéricos.</div>';
-        } elseif (strlen($telefono) != 10 || !is_numeric($telefono)) {
-            $mensaje = '<div class="alert alert-warning">El teléfono debe tener 10 dígitos numéricos.</div>';
-        } elseif (strlen($celular) != 10 || !is_numeric($celular)) {
-            $mensaje = '<div class="alert alert-warning">El celular debe tener 10 dígitos numéricos.</div>';
-        } elseif (!empty($capital) && !preg_match('/^\d+(\.\d{1,2})?$/', $capital)) {
-            $mensaje = '<div class="alert alert-warning">El capital debe ser un valor numérico válido (ejemplo: 1000 o 1000.50).</div>';
-        } else {
-            // Actualizar información
-            $stmt = $conexion->prepare("UPDATE persona_fisica SET nombre = ?, calle = ?, cp = ?, colonia = ?, municipio = ?, estado = ?, telefono = ?, celular = ?, documento = ?, numero_documento = ?, imss = ?, infonavit = ?, capital = ?, regCmic = ?, especialidad = ?, descripcion = ? WHERE rfc = ?");
-            $stmt->bind_param("sssssssssssssssss", $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $numero_documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion, $rfc);
+        if ($tipo_persona === 'fisica') {
+            $nombre = isset($_POST['nombre']) ? mb_strtoupper(trim($_POST['nombre']), 'UTF-8') : '';
+            $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
+            $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
+            $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
+            $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
+            $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
+            $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
+            $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
+            $documento = isset($_POST['documento']) ? mb_strtoupper(trim($_POST['documento']), 'UTF-8') : '';
+            $numero_documento = isset($_POST['numero_documento']) ? mb_strtoupper(trim($_POST['numero_documento']), 'UTF-8') : '';
+            $imss = isset($_POST['imss']) ? mb_strtoupper(trim($_POST['imss']), 'UTF-8') : '';
+            $infonavit = isset($_POST['infonavit']) ? mb_strtoupper(trim($_POST['infonavit']), 'UTF-8') : '';
+            $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
+            $regCmic = isset($_POST['regCmic']) ? mb_strtoupper(trim($_POST['regCmic']), 'UTF-8') : '';
+            $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
+            $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
             
-            if ($stmt->execute()) {
-                $mensaje = '<div class="alert alert-success">Información actualizada exitosamente.</div>';
-                $existe_persona = true;
-                $modo_edicion = false;
-                // Recargar datos
-                $stmt = $conexion->prepare("SELECT * FROM persona_fisica WHERE rfc = ?");
-                $stmt->bind_param("s", $rfc);
-                $stmt->execute();
-                $resultado = $stmt->get_result();
-                $persona = $resultado->fetch_assoc();
+            // Validar campos requeridos
+            if (empty($nombre) || empty($calle) || empty($cp) || empty($colonia) || empty($municipio) || empty($estado)) {
+                $mensaje = '<div class="alert alert-warning">Por favor, completa todos los campos obligatorios.</div>';
             } else {
-                $mensaje = '<div class="alert alert-danger">Error al actualizar la información: ' . $conexion->error . '</div>';
+                $stmt = $conexion->prepare("UPDATE persona_fisica SET nombre = ?, calle = ?, cp = ?, colonia = ?, municipio = ?, estado = ?, telefono = ?, celular = ?, documento = ?, numero_documento = ?, imss = ?, infonavit = ?, capital = ?, regCmic = ?, especialidad = ?, descripcion = ? WHERE rfc = ?");
+                $stmt->bind_param("sssssssssssssssss", $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $numero_documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion, $rfc);
+                
+                if ($stmt->execute()) {
+                    $mensaje = '<div class="alert alert-success">Información actualizada exitosamente.</div>';
+                    $modo_edicion = false;
+                    // Recargar datos
+                    $stmt = $conexion->prepare("SELECT * FROM persona_fisica WHERE rfc = ?");
+                    $stmt->bind_param("s", $rfc);
+                    $stmt->execute();
+                    $persona = $stmt->get_result()->fetch_assoc();
+                } else {
+                    $mensaje = '<div class="alert alert-danger">Error al actualizar: ' . $conexion->error . '</div>';
+                }
             }
-        }
-    } else {
-        // Procesar formulario de nuevo registro
-        $nombre = isset($_POST['nombre']) ? mb_strtoupper(trim($_POST['nombre']), 'UTF-8') : '';
-        $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
-        $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
-        $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
-        $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
-        $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
-        $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
-        $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
-        $documento = isset($_POST['documento']) ? mb_strtoupper(trim($_POST['documento']), 'UTF-8') : '';
-        $numero_documento = isset($_POST['numero_documento']) ? mb_strtoupper(trim($_POST['numero_documento']), 'UTF-8') : '';
-        $imss = isset($_POST['imss']) ? mb_strtoupper(trim($_POST['imss']), 'UTF-8') : '';
-        $infonavit = isset($_POST['infonavit']) ? mb_strtoupper(trim($_POST['infonavit']), 'UTF-8') : '';
-        $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
-        $regCmic = isset($_POST['regCmic']) ? mb_strtoupper(trim($_POST['regCmic']), 'UTF-8') : '';
-        $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
-        $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
-        
-        // Validar campos requeridos
-        if (empty($nombre) || empty($calle) || empty($cp) || empty($colonia) || empty($municipio) || empty($estado)) {
-            $mensaje = '<div class="alert alert-warning">Por favor, completa todos los campos obligatorios.</div>';
-        } elseif (strlen($cp) != 5 || !is_numeric($cp)) {
-            $mensaje = '<div class="alert alert-warning">El código postal debe tener 5 dígitos numéricos.</div>';
-        } elseif (strlen($telefono) != 10 || !is_numeric($telefono)) {
-            $mensaje = '<div class="alert alert-warning">El teléfono debe tener 10 dígitos numéricos.</div>';
-        } elseif (strlen($celular) != 10 || !is_numeric($celular)) {
-            $mensaje = '<div class="alert alert-warning">El celular debe tener 10 dígitos numéricos.</div>';
-        } elseif (!empty($capital) && !preg_match('/^\d+(\.\d{1,2})?$/', $capital)) {
-            $mensaje = '<div class="alert alert-warning">El capital debe ser un valor numérico válido (ejemplo: 1000 o 1000.50).</div>';
         } else {
-            // Insertar en persona_fisica
-            $stmt = $conexion->prepare("INSERT INTO persona_fisica (rfc, nombre, calle, cp, colonia, municipio, estado, telefono, celular, documento, numero_documento, imss, infonavit, capital, regCmic, especialidad, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssssssssssssssss", $rfc, $nombre, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $documento, $numero_documento, $imss, $infonavit, $capital, $regCmic, $especialidad, $descripcion);
+            // PERSONA MORAL
+            $nombre_empresa = isset($_POST['nombre_empresa']) ? mb_strtoupper(trim($_POST['nombre_empresa']), 'UTF-8') : '';
+            $calle = isset($_POST['calle']) ? mb_strtoupper(trim($_POST['calle']), 'UTF-8') : '';
+            $cp = isset($_POST['cp']) ? trim($_POST['cp']) : '';
+            $colonia = isset($_POST['colonia']) ? mb_strtoupper(trim($_POST['colonia']), 'UTF-8') : '';
+            $municipio = isset($_POST['municipio']) ? mb_strtoupper(trim($_POST['municipio']), 'UTF-8') : '';
+            $estado = isset($_POST['estado']) ? mb_strtoupper(trim($_POST['estado']), 'UTF-8') : '';
+            $telefono = isset($_POST['telefono']) ? trim($_POST['telefono']) : '';
+            $celular = isset($_POST['celular']) ? trim($_POST['celular']) : '';
             
-            if ($stmt->execute()) {
-                $mensaje = '<div class="alert alert-success">Información registrada exitosamente.</div>';
-                $existe_persona = true;
-                // Recargar datos
-                $stmt = $conexion->prepare("SELECT * FROM persona_fisica WHERE rfc = ?");
-                $stmt->bind_param("s", $rfc);
-                $stmt->execute();
-                $resultado = $stmt->get_result();
-                $persona = $resultado->fetch_assoc();
+            $acta_escritura = isset($_POST['acta_escritura']) ? mb_strtoupper(trim($_POST['acta_escritura']), 'UTF-8') : '';
+            $acta_fecha = !empty($_POST['acta_fecha']) ? $_POST['acta_fecha'] : null;
+            $acta_notario = isset($_POST['acta_notario']) ? mb_strtoupper(trim($_POST['acta_notario']), 'UTF-8') : '';
+            
+            $capital = isset($_POST['capital']) ? str_replace(',', '', trim($_POST['capital'])) : '';
+            $reg_cmic = isset($_POST['reg_cmic']) ? mb_strtoupper(trim($_POST['reg_cmic']), 'UTF-8') : '';
+            $especialidad = isset($_POST['especialidad']) ? mb_strtoupper(trim($_POST['especialidad']), 'UTF-8') : '';
+            $descripcion = isset($_POST['descripcion']) ? mb_strtoupper(trim($_POST['descripcion']), 'UTF-8') : '';
+
+            $reformas_escritura = isset($_POST['reformas_escritura']) ? mb_strtoupper(trim($_POST['reformas_escritura']), 'UTF-8') : '';
+            $reformas_fecha = !empty($_POST['reformas_fecha']) ? $_POST['reformas_fecha'] : null;
+
+            $rep_nombre = isset($_POST['rep_nombre']) ? mb_strtoupper(trim($_POST['rep_nombre']), 'UTF-8') : '';
+            $rep_escritura = isset($_POST['rep_escritura']) ? mb_strtoupper(trim($_POST['rep_escritura']), 'UTF-8') : '';
+            $rep_fecha = !empty($_POST['rep_fecha']) ? $_POST['rep_fecha'] : null;
+            $rep_notario = isset($_POST['rep_notario']) ? mb_strtoupper(trim($_POST['rep_notario']), 'UTF-8') : '';
+
+            if (empty($nombre_empresa) || empty($calle) || empty($cp)) {
+                $mensaje = '<div class="alert alert-warning">Por favor, completa los campos obligatorios.</div>';
             } else {
-                $mensaje = '<div class="alert alert-danger">Error al registrar la información: ' . $conexion->error . '</div>';
+                if ($existe_persona) {
+                    $stmt = $conexion->prepare("UPDATE persona_moral SET nombre_empresa=?, calle=?, cp=?, colonia=?, municipio=?, estado=?, telefono=?, celular=?, acta_escritura=?, acta_fecha=?, acta_notario=?, capital=?, reg_cmic=?, especialidad=?, descripcion=?, reformas_escritura=?, reformas_fecha=?, rep_nombre=?, rep_escritura=?, rep_fecha=?, rep_notario=? WHERE rfc=?");
+                    $stmt->bind_param("sssssssssssdssssssssss", $nombre_empresa, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $acta_escritura, $acta_fecha, $acta_notario, $capital, $reg_cmic, $especialidad, $descripcion, $reformas_escritura, $reformas_fecha, $rep_nombre, $rep_escritura, $rep_fecha, $rep_notario, $rfc);
+                } else {
+                    $stmt = $conexion->prepare("INSERT INTO persona_moral (rfc, nombre_empresa, calle, cp, colonia, municipio, estado, telefono, celular, acta_escritura, acta_fecha, acta_notario, capital, reg_cmic, especialidad, descripcion, reformas_escritura, reformas_fecha, rep_nombre, rep_escritura, rep_fecha, rep_notario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("ssssssssssssdsssssssss", $rfc, $nombre_empresa, $calle, $cp, $colonia, $municipio, $estado, $telefono, $celular, $acta_escritura, $acta_fecha, $acta_notario, $capital, $reg_cmic, $especialidad, $descripcion, $reformas_escritura, $reformas_fecha, $rep_nombre, $rep_escritura, $rep_fecha, $rep_notario);
+                }
+
+                if ($stmt->execute()) {
+                    $mensaje = '<div class="alert alert-success">Información guardada exitosamente.</div>';
+                    $existe_persona = true;
+                    $modo_edicion = false;
+                    $stmt = $conexion->prepare("SELECT * FROM persona_moral WHERE rfc = ?");
+                    $stmt->bind_param("s", $rfc);
+                    $stmt->execute();
+                    $persona = $stmt->get_result()->fetch_assoc();
+                } else {
+                    $mensaje = '<div class="alert alert-danger">Error: ' . $conexion->error . '</div>';
+                }
             }
         }
     }
@@ -152,18 +148,42 @@ function getValue($array, $key, $default = '') {
             <!-- Mostrar información del usuario -->
             <div class="row">
                 <div class="col-md-6">
-                    <h4 class="text-primary">Información Personal</h4>
-                    <p><strong>Nombre:</strong> <?php echo htmlspecialchars(getValue($persona, 'nombre')); ?></p>
+                    <h4 class="text-primary"><?php echo ($tipo_persona === 'moral') ? 'Información de la Empresa' : 'Información Personal'; ?></h4>
+                    <p><strong><?php echo ($tipo_persona === 'moral') ? 'Razón Social' : 'Nombre'; ?>:</strong> <?php echo htmlspecialchars(getValue($persona, ($tipo_persona === 'moral' ? 'nombre_empresa' : 'nombre'))); ?></p>
                     <p><strong>RFC:</strong> <?php echo htmlspecialchars(getValue($persona, 'rfc')); ?></p>
                     <p><strong>Especialidad:</strong> <?php echo htmlspecialchars(getValue($persona, 'especialidad')); ?></p>
+                    
+                    <?php if ($tipo_persona === 'moral'): ?>
+                        <h5 class="mt-3 text-secondary">Acta Constitutiva</h5>
+                        <p><strong>Escritura:</strong> <?php echo htmlspecialchars(getValue($persona, 'acta_escritura')); ?></p>
+                        <p><strong>Fecha:</strong> <?php echo htmlspecialchars(getValue($persona, 'acta_fecha')); ?></p>
+                        <p><strong>Notario:</strong> <?php echo htmlspecialchars(getValue($persona, 'acta_notario')); ?></p>
+                    <?php else: ?>
+                        <p><strong>Identificación:</strong> <?php echo htmlspecialchars(getValue($persona, 'documento') . ' ' . getValue($persona, 'numero_documento')); ?></p>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-6">
                     <h4 class="text-primary">Información de Contacto</h4>
                     <p><strong>Teléfono:</strong> <?php echo htmlspecialchars(getValue($persona, 'telefono')); ?></p>
                     <p><strong>Celular:</strong> <?php echo htmlspecialchars(getValue($persona, 'celular')); ?></p>
                     <p><strong>Dirección:</strong> <?php echo htmlspecialchars(getValue($persona, 'calle') . ', ' . getValue($persona, 'colonia') . ', ' . getValue($persona, 'municipio') . ', ' . getValue($persona, 'estado') . ' CP: ' . getValue($persona, 'cp')); ?></p>
+                    
+                    <?php if ($tipo_persona === 'moral'): ?>
+                        <h5 class="mt-3 text-secondary">Representante Legal</h5>
+                        <p><strong>Nombre:</strong> <?php echo htmlspecialchars(getValue($persona, 'rep_nombre')); ?></p>
+                        <p><strong>Escritura Poder:</strong> <?php echo htmlspecialchars(getValue($persona, 'rep_escritura')); ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
+
+            <?php if ($tipo_persona === 'moral'): ?>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <h5 class="text-secondary">Objeto Social</h5>
+                    <p class="text-muted border-bottom pb-2"><?php echo nl2br(htmlspecialchars(getValue($persona, 'descripcion'))); ?></p>
+                </div>
+            </div>
+            <?php endif; ?>
             <!-- Sección de Estado del Certificado -->
             <div class="row mt-4">
                 <div class="col-md-12">
@@ -229,10 +249,14 @@ function getValue($array, $key, $default = '') {
             </div>
             
             <div class="mt-3 d-flex justify-content-between">
-                <form method="POST" action="" style="display: inline;">
-                    <input type="hidden" name="accion" value="editar">
-                    <button type="submit" class="btn btn-primary">Editar información</button>
-                </form>
+                <div>
+                    <form method="POST" action="" style="display: inline;">
+                        <input type="hidden" name="accion" value="editar">
+                        <button type="submit" class="btn btn-primary">Editar información</button>
+                    </form>
+                    <a href="generar_hoja_registro.php" class="btn btn-success ms-2" target="_blank">Descargar Hoja de Registro</a>
+                    <a href="documentacion.php" class="btn btn-info text-white ms-2"><i class="fas fa-upload me-1"></i> Subir Documentación</a>
+                </div>
                 <a href="logout.php" class="btn btn-danger">Cerrar sesión</a>
             </div>
         <?php elseif ($existe_persona && !$modo_edicion && !$persona): ?>
@@ -246,63 +270,119 @@ function getValue($array, $key, $default = '') {
             <!-- Formulario para capturar/editar información -->
             <h4 class="text-primary mb-3"><?php echo $modo_edicion ? 'Editar información personal' : 'Complete su información personal'; ?></h4>
             <form method="POST" action="">
-                <input type="hidden" name="accion" value="<?php echo $modo_edicion ? 'guardar' : ''; ?>">
+                <input type="hidden" name="accion" value="guardar">
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 class="text-secondary">Información Personal</h5>
+                        <h5 class="text-secondary"><?php echo ($tipo_persona === 'moral' ? 'Información de la Empresa' : 'Información Personal'); ?></h5>
                         <div class="mb-3">
-                            <label for="nombre" class="form-label">Nombre completo *</label>
-                            <input type="text" class="form-control" id="nombre" name="nombre" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'nombre')) : ''; ?>" required>
+                            <label for="nombre" class="form-label"><?php echo ($tipo_persona === 'moral' ? 'Nombre o Razón Social *' : 'Nombre completo *'); ?></label>
+                            <input type="text" class="form-control" id="nombre" name="<?php echo ($tipo_persona === 'moral' ? 'nombre_empresa' : 'nombre'); ?>" value="<?php echo htmlspecialchars(getValue($persona, ($tipo_persona === 'moral' ? 'nombre_empresa' : 'nombre'))); ?>" required>
                         </div>
                         <div class="mb-3">
                             <label for="especialidad" class="form-label">Especialidad</label>
-                            <input type="text" class="form-control" id="especialidad" name="especialidad" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'especialidad')) : ''; ?>">
+                            <input type="text" class="form-control" id="especialidad" name="especialidad" value="<?php echo htmlspecialchars(getValue($persona, 'especialidad')); ?>">
                         </div>
+                        
+                        <?php if ($tipo_persona === 'fisica'): ?>
                         <div class="mb-3">
                             <label for="documento" class="form-label">Documento de Identificación</label>
                             <select class="form-select" id="documento" name="documento">
                                 <option value="">Seleccione una opción</option>
-                                <option value="Cédula Profesional" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'Cédula Profesional') ? 'selected' : ''; ?>>Cédula Profesional</option>
-                                <option value="INE" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'INE') ? 'selected' : ''; ?>>INE</option>
-                                <option value="Pasaporte" <?php echo ($modo_edicion && getValue($persona, 'documento') == 'Pasaporte') ? 'selected' : ''; ?>>Pasaporte</option>
+                                <option value="CÉDULA PROFESIONAL" <?php echo (getValue($persona, 'documento') == 'CÉDULA PROFESIONAL') ? 'selected' : ''; ?>>Cédula Profesional</option>
+                                <option value="INE" <?php echo (getValue($persona, 'documento') == 'INE') ? 'selected' : ''; ?>>INE</option>
+                                <option value="PASAPORTE" <?php echo (getValue($persona, 'documento') == 'PASAPORTE') ? 'selected' : ''; ?>>Pasaporte</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="numero_documento" class="form-label">Número del Documento</label>
-                            <input type="text" class="form-control" id="numero_documento" name="numero_documento" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'numero_documento')) : ''; ?>">
+                            <input type="text" class="form-control" id="numero_documento" name="numero_documento" value="<?php echo htmlspecialchars(getValue($persona, 'numero_documento')); ?>">
                         </div>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6">
                         <h5 class="text-secondary">Información de Contacto</h5>
                         <div class="mb-3">
                             <label for="telefono" class="form-label">Teléfono *</label>
-                            <input type="tel" class="form-control" id="telefono" name="telefono" maxlength="10" pattern="[0-9]{10}" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'telefono')) : ''; ?>" required>
-                            <div class="form-text">10 dígitos sin espacios ni guiones</div>
+                            <input type="tel" class="form-control" id="telefono" name="telefono" maxlength="10" value="<?php echo htmlspecialchars(getValue($persona, 'telefono')); ?>" required>
                         </div>
                         <div class="mb-3">
                             <label for="celular" class="form-label">Celular *</label>
-                            <input type="tel" class="form-control" id="celular" name="celular" maxlength="10" pattern="[0-9]{10}" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'celular')) : ''; ?>" required>
-                            <div class="form-text">10 dígitos sin espacios ni guiones</div>
+                            <input type="tel" class="form-control" id="celular" name="celular" maxlength="10" value="<?php echo htmlspecialchars(getValue($persona, 'celular')); ?>" required>
                         </div>
                     </div>
                 </div>
+
+                <?php if ($tipo_persona === 'moral'): ?>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6 border-end">
+                        <h5 class="text-secondary">Datos del Acta Constitutiva</h5>
+                        <div class="mb-3">
+                            <label class="form-label">No. de Escritura</label>
+                            <input type="text" class="form-control" name="acta_escritura" value="<?php echo htmlspecialchars(getValue($persona, 'acta_escritura')); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" class="form-control" name="acta_fecha" value="<?php echo htmlspecialchars(getValue($persona, 'acta_fecha')); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notario (Nombre, No. y Lugar)</label>
+                            <textarea class="form-control" name="acta_notario" rows="2"><?php echo htmlspecialchars(getValue($persona, 'acta_notario')); ?></textarea>
+                        </div>
+                        
+                        <h6 class="text-muted mt-3">Reformas al Acta (Si existen)</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="small">No. Escritura</label>
+                                <input type="text" class="form-control form-control-sm" name="reformas_escritura" value="<?php echo htmlspecialchars(getValue($persona, 'reformas_escritura')); ?>">
+                            </div>
+                            <div class="col-6">
+                                <label class="small">Fecha</label>
+                                <input type="date" class="form-control form-control-sm" name="reformas_fecha" value="<?php echo htmlspecialchars(getValue($persona, 'reformas_fecha')); ?>">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="text-secondary">Datos del Representante Legal</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Representante</label>
+                            <input type="text" class="form-control" name="rep_nombre" value="<?php echo htmlspecialchars(getValue($persona, 'rep_nombre')); ?>">
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="small">Escritura Pública No.</label>
+                                <input type="text" class="form-control form-control-sm" name="rep_escritura" value="<?php echo htmlspecialchars(getValue($persona, 'rep_escritura')); ?>">
+                            </div>
+                            <div class="col-6">
+                                <label class="small">Fecha Poder</label>
+                                <input type="date" class="form-control form-control-sm" name="rep_fecha" value="<?php echo htmlspecialchars(getValue($persona, 'rep_fecha')); ?>">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label">Notario del Poder (Nombre, No. y Lugar)</label>
+                            <textarea class="form-control" name="rep_notario" rows="2"><?php echo htmlspecialchars(getValue($persona, 'rep_notario')); ?></textarea>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 
+                <hr>
                 <div class="row">
                     <div class="col-md-12">
-                        <h5 class="text-secondary">Dirección</h5>
+                        <h5 class="text-secondary">Dirección Fiscal</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="cp" class="form-label">Código Postal *</label>
-                                    <input type="text" class="form-control" id="cp" name="cp" maxlength="5" pattern="[0-9]{5}" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'cp')) : ''; ?>" required>
+                                    <input type="text" class="form-control" id="cp" name="cp" maxlength="5" value="<?php echo htmlspecialchars(getValue($persona, 'cp')); ?>" required>
                                     <div class="form-text">Ingresa el código postal para autocompletar</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="calle" class="form-label">Calle y número *</label>
-                                    <input type="text" class="form-control" id="calle" name="calle" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'calle')) : ''; ?>" required>
+                                    <input type="text" class="form-control" id="calle" name="calle" value="<?php echo htmlspecialchars(getValue($persona, 'calle')); ?>" required>
                                 </div>
                             </div>
                         </div>
@@ -310,76 +390,87 @@ function getValue($array, $key, $default = '') {
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="estado" class="form-label">Estado *</label>
-                                    <input type="text" class="form-control" id="estado" name="estado" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'estado')) : ''; ?>" <?php echo $modo_edicion ? '' : 'readonly'; ?> required>
+                                    <input type="text" class="form-control" id="estado" name="estado" value="<?php echo htmlspecialchars(getValue($persona, 'estado')); ?>" readonly required>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="municipio" class="form-label">Municipio *</label>
-                                    <input type="text" class="form-control" id="municipio" name="municipio" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'municipio')) : ''; ?>" <?php echo $modo_edicion ? '' : 'readonly'; ?> required>
+                                    <input type="text" class="form-control" id="municipio" name="municipio" value="<?php echo htmlspecialchars(getValue($persona, 'municipio')); ?>" readonly required>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="colonia" class="form-label">Colonia *</label>
                                     <select class="form-control" id="colonia" name="colonia" required>
-                                        <?php if ($modo_edicion): ?>
+                                        <?php if ($existe_persona): ?>
                                             <option value="<?php echo htmlspecialchars(getValue($persona, 'colonia')); ?>" selected><?php echo htmlspecialchars(getValue($persona, 'colonia')); ?></option>
                                         <?php else: ?>
                                             <option value="">Selecciona una colonia</option>
                                         <?php endif; ?>
                                     </select>
-                                    <input type="hidden" id="colonia-actual" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'colonia')) : ''; ?>">
+                                    <input type="hidden" id="colonia-actual" value="<?php echo htmlspecialchars(getValue($persona, 'colonia')); ?>">
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
+                <hr>
                 <div class="row">
                     <div class="col-md-12">
-                        <h5 class="text-secondary">Información Laboral</h5>
+                        <h5 class="text-secondary">Información Laboral / Financiera</h5>
                         <div class="row">
+                            <?php if ($tipo_persona === 'fisica'): ?>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="imss" class="form-label">IMSS</label>
-                                    <input type="text" class="form-control" id="imss" name="imss" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'imss')) : ''; ?>">
+                                    <input type="text" class="form-control" id="imss" name="imss" value="<?php echo htmlspecialchars(getValue($persona, 'imss')); ?>">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="infonavit" class="form-label">Infonavit</label>
-                                    <input type="text" class="form-control" id="infonavit" name="infonavit" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'infonavit')) : ''; ?>">
+                                    <input type="text" class="form-control" id="infonavit" name="infonavit" value="<?php echo htmlspecialchars(getValue($persona, 'infonavit')); ?>">
                                 </div>
                             </div>
+                            <?php endif; ?>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="capital" class="form-label">Capital Contable</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <input type="text" class="form-control text-end" id="capital" name="capital" placeholder="0.00" value="<?php echo $modo_edicion ? number_format((float)getValue($persona, 'capital'), 2, '.', ',') : ''; ?>">
+                                        <input type="text" class="form-control text-end" id="capital" name="capital" placeholder="0.00" value="<?php echo number_format((float)getValue($persona, 'capital'), 2, '.', ','); ?>">
                                     </div>
                                     <div class="form-text">Ejemplo: 1,000,000.00</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="regCmic" class="form-label">Registro CMIC</label>
-                            <input type="text" class="form-control" id="regCmic" name="regCmic" value="<?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'regCmic')) : ''; ?>">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="regCmic" class="form-label">Registro CMIC</label>
+                                    <input type="text" class="form-control" id="regCmic" name="<?php echo ($tipo_persona === 'moral' ? 'reg_cmic' : 'regCmic'); ?>" value="<?php echo htmlspecialchars(getValue($persona, ($tipo_persona === 'moral' ? 'reg_cmic' : 'regCmic'))); ?>">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="descripcion" class="form-label">Descripción</label>
-                    <textarea class="form-control" id="descripcion" name="descripcion" rows="4"><?php echo $modo_edicion ? htmlspecialchars(getValue($persona, 'descripcion')) : ''; ?></textarea>
+                    <label for="descripcion" class="form-label"><?php echo ($tipo_persona === 'moral' ? 'Descripción del Objeto Social' : 'Descripción general'); ?></label>
+                    <textarea class="form-control" id="descripcion" name="descripcion" rows="4"><?php echo htmlspecialchars(getValue($persona, 'descripcion')); ?></textarea>
                 </div>
                 
-                <div class="d-flex justify-content-between">
-                    <button type="submit" class="btn btn-primary"><?php echo $modo_edicion ? 'Guardar cambios' : 'Guardar información'; ?></button>
-                    <?php if ($modo_edicion): ?>
-                        <a href="dashboard.php" class="btn btn-secondary">Cancelar</a>
-                    <?php endif; ?>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="submit" class="btn btn-primary">Guardar información</button>
+                        <?php if ($modo_edicion): ?>
+                            <a href="dashboard.php" class="btn btn-secondary ms-2">Cancelar</a>
+                        <?php endif; ?>
+                        <?php if ($existe_persona): ?>
+                            <a href="generar_hoja_registro.php" class="btn btn-success ms-2" target="_blank">Hoja de Registro</a>
+                            <a href="documentacion.php" class="btn btn-info text-white ms-2">Documentación</a>
+                        <?php endif; ?>
+                    </div>
                     <a href="logout.php" class="btn btn-danger">Cerrar sesión</a>
                 </div>
             </form>
