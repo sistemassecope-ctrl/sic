@@ -214,6 +214,23 @@ switch ($route) {
         include 'app/views/layouts/wrapper.php';
         break;
 
+    // --- RUTAS DE FIRMA DIGITAL ---
+    case 'perfil/firma':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Configuración de Firma Digital';
+        $content_view = 'modulos/perfil/firma.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'firmas/bandeja':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Bandeja de Firmas';
+        $content_view = 'modulos/firmas/bandeja.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
     default:
         // 404
         header("HTTP/1.0 404 Not Found");

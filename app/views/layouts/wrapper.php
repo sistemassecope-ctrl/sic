@@ -32,20 +32,25 @@
                     <?php echo $page_title ?? 'SIS-PAO'; ?>
                 </h4>
 
-                <div class="collapse navbar-collapse justify-content-end">
-                    <ul class="navbar-nav">
+                <div class="ms-auto">
+                    <ul class="navbar-nav flex-row">
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                                 data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle"></i>
-                                <?php echo $_SESSION['user_name'] ?? 'Usuario'; ?>
+                                <span
+                                    class="d-none d-sm-inline ms-1"><?php echo $_SESSION['user_name'] ?? 'Usuario'; ?></span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end position-absolute">
+                                <li><a class="dropdown-item"
+                                        href="<?php echo BASE_URL; ?>/index.php?route=perfil/firma"><i
+                                            class="bi bi-pen"></i> Configurar Firma</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Perfil</a></li>
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>
-                                <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/index.php?route=logout"><i
+                                <li><a class="dropdown-item text-danger"
+                                        href="<?php echo BASE_URL; ?>/index.php?route=logout"><i
                                             class="bi bi-box-arrow-right"></i> Salir</a></li>
                             </ul>
                         </li>

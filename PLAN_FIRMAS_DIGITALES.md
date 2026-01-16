@@ -85,8 +85,8 @@ Una vez que todas las firmas requeridas están listas (o tras cada firma, según
 ## 6. Hoja de Ruta de Implementación (Fases)
 
 ### Fase A: Preparación de Usuarios (Semana 1)
--   [ ] Crear tabla `usuarios_config_firma` (PIN, Ruta Imagen Rúbrica).
--   [ ] Crear vista "Mi Firma Digital" para que los usuarios suban su imagen y definan PIN.
+-   [x] Crear tabla `usuarios_config_firma` (PIN, Ruta Imagen Rúbrica).
+-   [x] Crear vista "Mi Firma Digital" para que los usuarios suban su imagen y definan PIN.
 
 ### Fase B: Lógica de Firma (Semana 2)
 -   [ ] Endpoint para validar PIN.

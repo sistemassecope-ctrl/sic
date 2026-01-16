@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nuevos_docs_ids = [];
 
         // Simulación de usuario actual (temporal, ajustar con sesión real)
-        $id_usuario_actual = $_SESSION['id_usuario'] ?? 1; // Default a 1 si no hay session
+        $id_usuario_actual = $_SESSION['user_id'] ?? 1; // Default a 1 si no hay session
 
         if (isset($_FILES['documentos_adjuntos']) && !empty($_FILES['documentos_adjuntos']['name'][0])) {
             // Reorganizar array de $_FILES para iterar más fácil

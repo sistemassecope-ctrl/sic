@@ -27,7 +27,7 @@ class DigitalArchiveService
     public function saveDocument($fileInfo, $metadata)
     {
         try {
-            $this->db->beginTransaction();
+            // Transaction managed by caller
 
             // 1. Validaciones básicas
             if ($fileInfo['error'] !== UPLOAD_ERR_OK) {
@@ -84,14 +84,12 @@ class DigitalArchiveService
 
             $idDocumento = $this->db->lastInsertId();
 
-            $this->db->commit();
+            // Transaction managed by caller
             return $idDocumento;
 
         } catch (Exception $e) {
-            $this->db->rollBack();
-            // Log error
-            error_log("DigitalArchiveService Error: " . $e->getMessage());
-            return false; // O lanzar la excepción según se prefiera
+            // Re-throw to caller (guardar.php) can handle rollback and display error
+            throw new Exception("Error en DigitalArchiveService: " . $e->getMessage());
         }
     }
 

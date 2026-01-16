@@ -2,6 +2,7 @@
 // admin_certificados.php - Panel de administración de certificados (Padrón de Contratistas)
 include("proteger_admin.php");
 include("conexion.php");
+require_once "../../../includes/services/SignatureService.php";
 
 $mensaje = '';
 $usuario_sistema = $_SESSION['user_username'] ?? 'Admin';
@@ -15,9 +16,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (isset($_POST['crear_certificado'])) {
-        $rfc_certificado = $_POST['rfc_certificado'];
-        $numero_certificado = $_POST['numero_certificado'];
-        $numero_registro = $_POST['numero_registro'] ?? '';
+        // --- VALIDACIÓN DE FIRMA DIGITAL ---
+        $pin_firma = $_POST['pin'] ?? '';
+        $id_usuario_firma = $_SESSION['user_id'];
+        
+        $sigService = new SignatureService();
+        if (!$sigService->validatePin($id_usuario_firma, $pin_firma)) {
+             $mensaje = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: El PIN de firma digital es incorrecto. No se generó el certificado.</div>';
+        } else {
+            // PIN Correcto, Proceder
+            $rfc_certificado = $_POST['rfc_certificado'];
+            $numero_certificado = $_POST['numero_certificado'];
+            $numero_registro = $_POST['numero_registro'] ?? '';
         $nombre_razon_social = $_POST['nombre_razon_social'];
         $representante_apoderado = $_POST['representante_apoderado'] ?? '';
         $telefono = $_POST['telefono'] ?? '';
@@ -34,20 +44,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO certificados 
             (rfc, numero_certificado, numero_registro, nombre_razon_social, representante_apoderado, 
              telefono, capital_contable, fecha_emision, fecha_vigencia, refrendo, papeleria_correcta, 
-             hash_validacion, fecha_expedicion, vigente) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+             hash_validacion, fecha_expedicion, vigente, id_usuario_firma) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ");
         
-        $stmt->bind_param("sssssssdsssss", 
+        $stmt->bind_param("sssssssdsssssi", 
             $rfc_certificado, $numero_certificado, $numero_registro, $nombre_razon_social, 
             $representante_apoderado, $telefono, $capital_contable, $fecha_emision, 
-            $fecha_vigencia, $refrendo, $papeleria_correcta, $hash_validacion, $fecha_emision);
+            $fecha_vigencia, $refrendo, $papeleria_correcta, $hash_validacion, $fecha_emision, $id_usuario_firma);
         
-        if ($stmt->execute()) {
-            $mensaje = '<div class="alert alert-success">Certificado del Padrón de Contratistas creado exitosamente.</div>';
-        } else {
-            $mensaje = '<div class="alert alert-danger">Error al crear el certificado: ' . $conexion->error . '</div>';
+        try {
+            if ($stmt->execute()) {
+                $mensaje = '<div class="alert alert-success">Certificado del Padrón de Contratistas creado exitosamente.</div>';
+            } else {
+                $mensaje = '<div class="alert alert-danger">Error al crear el certificado: ' . $conexion->error . '</div>';
+            }
+        } catch (mysqli_sql_exception $e) {
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                 $mensaje = '<div class="alert alert-danger">Error: El Número de Certificado ya existe. Por favor verifique.</div>';
+            } else {
+                 $mensaje = '<div class="alert alert-danger">Error de Base de Datos: ' . $e->getMessage() . '</div>';
+            }
         }
+      } // End else validacion PIN
     }
 }
 
@@ -164,7 +183,7 @@ $certificados = $stmt->get_result();
                         <h5>Crear Nuevo Certificado - PADRÓN DE CONTRATISTAS</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" id="formCrearCertificado">
                             <!-- Datos básicos -->
                             <h6 class="text-primary mb-3">Datos Básicos</h6>
                             <div class="row">
@@ -296,9 +315,12 @@ $certificados = $stmt->get_result();
                                 </div>
                             </div>
                             
+                            <!-- Hidden PIN input -->
+                            <input type="hidden" name="pin" id="input_pin">
+
                             <div class="d-grid gap-2 d-md-block">
-                                <button type="submit" name="crear_certificado" class="btn btn-success">
-                                    <i class="fas fa-certificate"></i> Generar y Guardar Certificado
+                                <button type="button" id="btn-verify-sign" class="btn btn-success">
+                                    <i class="fas fa-file-signature"></i> Firmar y Generar Certificado
                                 </button>
                                 <a href="admin_certificados.php" class="btn btn-outline-secondary">Cancelar</a>
                             </div>
@@ -379,7 +401,76 @@ $certificados = $stmt->get_result();
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
 
+    <!-- Modal de Firma -->
+    <div class="modal fade" id="signModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h6 class="modal-title fw-bold">Autorizar Emisión</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <p class="small text-muted mb-2 text-center">Para emitir este certificado oficial, ingrese su PIN de firma digital:</p>
+                    
+                    <div class="mb-3 mt-4">
+                        <input type="password" id="modal_pin" class="form-control form-control-lg text-center letter-spacing-2" 
+                               maxlength="6" inputmode="numeric" placeholder="******" autocomplete="off">
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" id="btn-confirm-pin" class="btn btn-success btn-lg shadow-sm">
+                            <i class="bi bi-check-circle-fill me-2"></i> CONFIRMAR
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnVerify = document.getElementById('btn-verify-sign');
+            const btnConfirm = document.getElementById('btn-confirm-pin');
+            const modalPin = document.getElementById('modal_pin');
+            const inputPin = document.getElementById('input_pin');
+            
+            // Trigger Modal
+            if(btnVerify) {
+                btnVerify.addEventListener('click', function() {
+                    const myModal = new bootstrap.Modal(document.getElementById('signModal'));
+                    myModal.show();
+                    setTimeout(() => modalPin.focus(), 500);
+                });
+            }
+
+            // Confirm Pin
+            if(btnConfirm) {
+                btnConfirm.addEventListener('click', function() {
+                    const pin = modalPin.value;
+                    if(pin.length < 6) {
+                        alert("Por favor ingrese su PIN de 6 dígitos.");
+                        return;
+                    }
+                    
+                    // Pass PIN to form and submit
+                    inputPin.value = pin;
+                    
+                    // Create hidden input to simulate the original submit button name
+                    const form = document.getElementById('formCrearCertificado');
+                    const hiddenSubmit = document.createElement('input');
+                    hiddenSubmit.type = 'hidden';
+                    hiddenSubmit.name = 'crear_certificado';
+                    hiddenSubmit.value = '1';
+                    form.appendChild(hiddenSubmit);
+
+                    form.submit();
+                });
+            }
+        });
+    </script>
+    <style>
+        .letter-spacing-2 { letter-spacing: 5px; }
+    </style>
+</body>
 </html>

@@ -90,13 +90,13 @@ $pdf->SetFont('helvetica', '', 11);
 
 // Nombre o razón social
 $pdf->SetFont('helvetica', 'B', 11);
-$pdf->Cell(50, 7, 'NOMBRE O RAZÓN SOCIAL:', 0, 0);
+$pdf->Cell(60, 7, 'NOMBRE O RAZÓN SOCIAL:', 0, 0);
 $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(0, 7, strtoupper($certificado['nombre_razon_social']), 0, 1);
 
 // Representante
 $pdf->SetFont('helvetica', 'B', 11);
-$pdf->Cell(50, 7, 'REPRESENTANTE LEGAL:', 0, 0);
+$pdf->Cell(60, 7, 'REPRESENTANTE LEGAL:', 0, 0);
 $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(0, 7, strtoupper($certificado['representante_apoderado']), 0, 1);
 
@@ -104,9 +104,9 @@ $pdf->Ln(2);
 
 // Fila 1: RFC, IMSS, INFONAVIT
 $pdf->SetFont('helvetica', 'B', 11);
-$pdf->Cell(15, 7, 'R.F.C.:', 0, 0);
+$pdf->Cell(20, 7, 'R.F.C.:', 0, 0);
 $pdf->SetFont('helvetica', '', 11);
-$pdf->Cell(40, 7, $certificado['rfc'], 0, 0);
+$pdf->Cell(45, 7, $certificado['rfc'], 0, 0);
 
 $pdf->SetFont('helvetica', 'B', 11);
 $pdf->Cell(20, 7, 'I.M.S.S.:', 0, 0);
@@ -114,7 +114,7 @@ $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(45, 7, $certificado['imss'] ?? 'N/A', 0, 0);
 
 $pdf->SetFont('helvetica', 'B', 11);
-$pdf->Cell(25, 7, 'INFONAVIT:', 0, 0);
+$pdf->Cell(28, 7, 'INFONAVIT:', 0, 0);
 $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(0, 7, $certificado['infonavit'] ?? 'N/A', 0, 1);
 
@@ -151,37 +151,97 @@ $pdf->SetTextColor(0, 0, 0);
 
 $pdf->Ln(10);
 
-// ===== QR Y VALIDACIÓN =====
-// Generar URL para validación
-$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
-            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'];
-$url_validacion = $protocol . '://' . $host . '/pao/validar_certificado.php?hash=' . $certificado['hash_validacion'];
+// ===== QR Y VALIDACIÓN (Posicionado a la derecha) =====
+$url_validacion = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]/pao/validar_certificado.php?hash=" . $certificado['hash_validacion'];
 
-// Código QR
-$style = array(
-    'border' => 1,
-    'vpadding' => 'auto',
-    'hpadding' => 'auto',
-    'fgcolor' => array(0,0,0),
-    'bgcolor' => false,
-    'module_width' => 1,
-    'module_height' => 1
-);
-$pdf->write2DBarcode($url_validacion, 'QRCODE,L', 200, $pdf->GetY() - 30, 50, 50, $style, 'N');
+$style = array('border' => 0, 'vpadding' => 'auto', 'hpadding' => 'auto', 'fgcolor' => array(0, 0, 0), 'bgcolor' => false, 'module_width' => 1, 'module_height' => 1);
 
-$pdf->Ln(15);
-$pdf->SetFont('helvetica', 'I', 8);
-$pdf->MultiCell(150, 4, 'Para validar la autenticidad de este documento, escanee el código QR o visite: ' . $url_validacion, 0, 'L');
+// Coordenadas fijas para el QR (Lado derecho, alineado con sección de Datos)
+// Ajustamos Y para que quede a la derecha de los datos fiscales.
+$qr_x = 220;
+$qr_y = 100;
+$pdf->write2DBarcode($url_validacion, 'QRCODE,L', $qr_x, $qr_y, 35, 35, $style, 'N');
+
+// Texto bajo el QR
+$pdf->SetXY($qr_x - 5, $qr_y + 36);
+$pdf->SetFont('helvetica', '', 7);
+$pdf->MultiCell(45, 3, 'Escanee para validar autenticidad', 0, 'C');
+
 
 // ===== PIE DE PÁGINA / FIRMA =====
-$pdf->SetY(-40);
-$pdf->SetFont('helvetica', '', 10);
-$pdf->Cell(0, 5, 'DURANGO, DGO., A ' . date('d', strtotime($certificado['fecha_expedicion'])) . ' DE ' . strtoupper(date('F', strtotime($certificado['fecha_expedicion']))) . ' DE ' . date('Y', strtotime($certificado['fecha_expedicion'])), 0, 1, 'C');
+// Mover al fondo de la página
+$pdf->SetY(-75);
+
+if (!empty($certificado['id_usuario_firma'])) {
+    $id_firmante = $certificado['id_usuario_firma'];
+
+    // Nombre
+    $stmtUser = $conexion->prepare("SELECT nombre_completo FROM usuarios WHERE id_usuario = ?");
+    $stmtUser->bind_param("i", $id_firmante);
+    $stmtUser->execute();
+    $resU = $stmtUser->get_result();
+    $nombre_firmante = ($resU->num_rows > 0) ? $resU->fetch_assoc()['nombre_completo'] : '';
+
+    // Firma Imagen
+    $stmtFirma = $conexion->prepare("SELECT firma_blob FROM usuarios_config_firma WHERE id_usuario = ?");
+    $stmtFirma->bind_param("i", $id_firmante);
+    $stmtFirma->execute();
+    $resF = $stmtFirma->get_result();
+
+    $y_sig = $pdf->GetY();
+
+    // Centrar firma: (Ancho Página - Ancho Firma) / 2
+    // A4 Landscape Width ~ 297mm
+    $sig_w = 50;
+    $sig_h = 25;
+    $x_sig = ($pdf->GetPageWidth() - $sig_w) / 2;
+
+    if ($resF->num_rows > 0) {
+        $blob = $resF->fetch_assoc()['firma_blob'];
+        if ($blob) {
+            try {
+                $t = tempnam(sys_get_temp_dir(), 's');
+                file_put_contents($t, $blob);
+                if (getimagesize($t)) {
+                    $pdf->Image($t, $x_sig, $y_sig, $sig_w, $sig_h, 'PNG');
+                }
+                unlink($t);
+            } catch (Exception $e) {
+            }
+        }
+    }
+
+    // Texto debajo de la firma
+    $pdf->SetY($y_sig + 25);
+
+    // Nombre y Cargo
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->Cell(0, 5, strtoupper($nombre_firmante), 0, 1, 'C');
+    $pdf->SetFont('helvetica', '', 9);
+    $pdf->Cell(0, 4, 'DIRECTOR DE LICITACIONES Y CONTRATOS', 0, 1, 'C');
+
+} else {
+    $pdf->Ln(25);
+    $pdf->SetFont('helvetica', 'T', 10);
+    $pdf->Cell(0, 5, '______________________________________', 0, 1, 'C');
+    $pdf->Cell(0, 5, 'FIRMA DE AUTORIZACIÓN', 0, 1, 'C');
+}
 
 $pdf->Ln(5);
-$pdf->SetFont('helvetica', 'B', 9);
+$fecha_exp = strtotime($certificado['fecha_expedicion']);
+$meses = ['January' => 'ENERO', 'February' => 'FEBRERO', 'March' => 'MARZO', 'April' => 'ABRIL', 'May' => 'MAYO', 'June' => 'JUNIO', 'July' => 'JULIO', 'August' => 'AGOSTO', 'September' => 'SEPTIEMBRE', 'October' => 'OCTUBRE', 'November' => 'NOVIEMBRE', 'December' => 'DICIEMBRE'];
+$mes_nombre = $meses[date('F', $fecha_exp)];
+
+$pdf->SetFont('helvetica', '', 9);
+$pdf->Cell(0, 5, 'DURANGO, DGO., A ' . date('d', $fecha_exp) . ' DE ' . $mes_nombre . ' DE ' . date('Y', $fecha_exp), 0, 1, 'C');
+
+$pdf->Ln(2);
+$pdf->SetFont('helvetica', 'B', 8);
 $pdf->Cell(0, 5, 'ESTE DOCUMENTO NO SERÁ VÁLIDO SI PRESENTA TACHADURAS, ENMENDADURAS O RASPADURAS', 0, 1, 'C');
+
+// Leyenda Validacion final
+$pdf->SetFont('helvetica', 'I', 7);
+$pdf->Cell(0, 4, 'Validar documento en: ' . $url_validacion, 0, 1, 'C');
 
 // Salida del PDF
 $pdf->Output('Certificado_' . $certificado['rfc'] . '.pdf', 'I');
