@@ -55,9 +55,11 @@ include("conexion.php");
             <small class="text-muted fst-italic" style="font-size: 0.75rem;">Powered by GUSATI</small>
         </div>
     </div>
+    <?php include("aviso_privacidad.php"); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // ... existing uppercase logic ...
             const textInputs = document.querySelectorAll('input:not([type="email"]):not([type="password"]):not([type="hidden"]):not([type="file"]), textarea');
             textInputs.forEach(input => {
                 input.addEventListener('input', function() {
@@ -69,6 +71,25 @@ include("conexion.php");
                     }
                 });
             });
+
+            // Intercept form submission
+            const formRegistro = document.querySelector('form[action="registro.php"]');
+            if (formRegistro) {
+                formRegistro.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // Basic validation check (HTML5 does this but preventing default might skip it if triggered programmatically, 
+                    // but here we are in the submit event so it's valid)
+                    
+                    if (window.solicitarPrivacidad) {
+                        window.solicitarPrivacidad(function() {
+                            formRegistro.submit();
+                        });
+                    } else {
+                        // Fallback if modal script failed
+                        formRegistro.submit();
+                    }
+                });
+            }
         });
     </script>
 </body>

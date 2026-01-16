@@ -41,13 +41,11 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    // Variables globales para control
+    window.modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoPrivacidad'));
     const checkAcepto = document.getElementById('checkAceptoAviso');
     const btnAceptar = document.getElementById('btnAceptarPrivacidad');
-    const modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoPrivacidad'));
-    
-    // Mostrar el modal si no se ha aceptado (podríamos usar localStorage si quisiéramos persistencia simple)
-    modalAviso.show();
+    let onPrivacyAccepted = null;
     
     checkAcepto.addEventListener('change', function() {
         btnAceptar.disabled = !this.checked;
@@ -55,6 +53,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     btnAceptar.addEventListener('click', function() {
         modalAviso.hide();
+        if (typeof onPrivacyAccepted === 'function') {
+            onPrivacyAccepted();
+        }
     });
+
+    // Función global para invocar la privacidad
+    window.solicitarPrivacidad = function(callback) {
+        onPrivacyAccepted = callback;
+        // Reset state
+        checkAcepto.checked = false;
+        btnAceptar.disabled = true;
+        modalAviso.show();
+    };
 });
+
 </script>

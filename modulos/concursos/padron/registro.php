@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <?php include("aviso_privacidad.php"); ?>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -201,23 +201,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const error = document.getElementById('passwordError');
             const btnSubmit = document.getElementById('btnSubmit');
 
-            function validarMatch() {
-                if (confirm.value && password.value !== confirm.value) {
-                    error.classList.remove('d-none');
-                } else {
-                    error.classList.add('d-none');
+            if (password && confirm) {
+                function validarMatch() {
+                    if (confirm.value && password.value !== confirm.value) {
+                        error.classList.remove('d-none');
+                    } else {
+                        error.classList.add('d-none');
+                    }
                 }
-            }
 
-            password.addEventListener('input', validarMatch);
-            confirm.addEventListener('input', validarMatch);
+                password.addEventListener('input', validarMatch);
+                confirm.addEventListener('input', validarMatch);
 
-            document.querySelector('form').addEventListener('submit', function(e) {
-                if (password.value !== confirm.value) {
+                const form = document.querySelector('form');
+                form.addEventListener('submit', function(e) {
+                    if (password.value !== confirm.value) {
+                        e.preventDefault();
+                        alert('Las contraseñas no coinciden.');
+                        return;
+                    }
+                    
+                    // Intercept for privacy check
                     e.preventDefault();
-                    alert('Las contraseñas no coinciden.');
-                }
-            });
+                     if (window.solicitarPrivacidad) {
+                        window.solicitarPrivacidad(function() {
+                            form.submit();
+                        });
+                    } else {
+                        form.submit();
+                    }
+                });
+            }
         });
     </script>
 </body>

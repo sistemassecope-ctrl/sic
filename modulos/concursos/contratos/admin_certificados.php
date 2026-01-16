@@ -58,7 +58,7 @@ if (isset($_GET['rfc'])) {
     $is_moral = (strlen($rfc_sel) === 12);
     
     if ($is_moral) {
-        $stmt = $conexion->prepare("SELECT rfc, nombre_empresa as nombre, rep_nombre as representante, calle, colonia, municipio, estado, cp, telefono, capital, imss, infonavit, reg_cmic as regCmic, especialidad, 'moral' as tipo FROM persona_moral WHERE rfc = ?");
+        $stmt = $conexion->prepare("SELECT rfc, nombre_empresa as nombre, rep_nombre as representante, calle, colonia, municipio, estado, cp, telefono, capital, '' as imss, '' as infonavit, reg_cmic as regCmic, especialidad, 'moral' as tipo FROM persona_moral WHERE rfc = ?");
     } else {
         $stmt = $conexion->prepare("SELECT rfc, nombre, nombre as representante, calle, colonia, municipio, estado, cp, telefono, capital, imss, infonavit, regCmic, especialidad, 'fisica' as tipo FROM persona_fisica WHERE rfc = ?");
     }
