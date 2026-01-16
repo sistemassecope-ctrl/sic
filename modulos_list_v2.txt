@@ -1,0 +1,54 @@
+[id]: 1
+[nombre]: Dashboard
+[descripcion]: Panel principal del sistema
+[icono]: fas fa-tachometer-alt
+[ruta]: index.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2025-10-24 13:42:52
+--------------------
+[id]: 2
+[nombre]: Empleados
+[descripcion]: Gestión de empleados
+[icono]: fas fa-users
+[ruta]: empleados.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2025-10-24 13:42:52
+--------------------
+[id]: 3
+[nombre]: Areas
+[descripcion]: Gestión de dependencias
+[icono]: fas fa-building
+[ruta]: areas.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2026-01-06 16:08:34
+--------------------
+[id]: 4
+[nombre]: Puestos de Trabajo
+[descripcion]: Gestión de puestos de trabajo
+[icono]: fas fa-briefcase
+[ruta]: puestos.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2025-10-24 13:42:52
+--------------------
+[id]: 5
+[nombre]: Usuarios
+[descripcion]: Gestión de usuarios del sistema
+[icono]: fas fa-user-cog
+[ruta]: usuarios.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2025-10-24 13:42:52
+--------------------
+[id]: 6
+[nombre]: Reportes
+[descripcion]: Generación de reportes
+[icono]: fas fa-chart-bar
+[ruta]: reportes.php
+[activo]: 1
+[fecha_creacion]: 2025-10-24 13:42:52
+[fecha_actualizacion]: 2025-10-24 13:42:52
+--------------------

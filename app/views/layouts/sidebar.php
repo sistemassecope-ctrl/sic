@@ -43,6 +43,24 @@
             </a>
         </li>
 
+        <!-- Módulo: Concursos y Contratos -->
+        <li class="nav-item">
+            <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+                href="#concursosSubmenu" role="button" aria-expanded="false" aria-controls="concursosSubmenu">
+                <span><i class="bi bi-briefcase"></i> Concursos y Contratos</span>
+                <i class="bi bi-chevron-down small"></i>
+            </a>
+            <div class="collapse <?php echo (strpos($route, 'concursos') !== false) ? 'show' : ''; ?>" id="concursosSubmenu">
+                <ul class="nav flex-column ms-3">
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo BASE_URL; ?>/modulos/concursos/contratos/admin_certificados.php">
+                            <i class="bi bi-award"></i> Certificados
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+
         <!-- Módulo: Configuración Sistema -->
         <li class="nav-item">
             <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"

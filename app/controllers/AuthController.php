@@ -35,6 +35,7 @@ class AuthController
                     $_SESSION['user_id'] = $this->user->id_usuario;
                     $_SESSION['user_name'] = $this->user->nombre_completo;
                     $_SESSION['user_rol'] = $this->user->nombre_rol;
+                    $_SESSION['user_nivel'] = $this->user->id_rol; // Mapear rol a nivel para compatibilidad con módulos legacy
                     $_SESSION['user_permisos'] = $this->user->permisos;
 
                     // Log acceso exitoso

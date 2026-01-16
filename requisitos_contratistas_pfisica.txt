@@ -1,0 +1,24 @@
+Ahora pon un link para que lo dirija a otro forMulario donde pueda subir los siguientes datos (formtato jpeg o pdf)
+
+PERSONA FISICA (RFC DE 13 CARACTERES DE LONGITUD)
+1 Solicitud de inscripción por escrito en original y firma autógrafa dirigida a la C. Arq. Ana Rosa Hernández Rentería, Secretaria de Comunicaciones y Obras Públicas del Estado (SECOPE).
+2 Copia comprobante de domicilio fiscal actualizado. EN CASO DE TENER DOMICILIO FISCAL FUERA DE LA CIUDAD DE DURANGO, SE TENDRÁ QUE PRESENTAR OFICIO DONDE MANIFIESTE UN DOMICILIO EN ESTA CAPITAL PARA OIR Y RECIBIR NOTIFICACIONES.
+3 Hoja de registro al padrón de contratistas.
+4 Acta de nacimiento copia simple y original
+4 Identificación de la persona física
+6 Constancia de situación fiscal reciente.
+7 Declaración anual fiscal.
+8 Estados financieros en original con firma autógrafa
+9 Registro actualizado de la Cámara Mexicana de la Industria de la Construcción.
+10 Curriculum personal en original y firma autógrafa del interesado y del responsable Técnico.
+11 Registro del Instituto Mexicano del Seguro Social e Instituto del Fondo Nacional para la Vivienda de los Trabajadores.
+12 Relación de contratos en original y firma autógrafa de “obras y/o servicios en vigor”.
+13 Constancia de validación de las dependencias y/o empresas con las que haya trabajado el año anterior a la solicitud.
+14 Relación de maquinaria y equipo en original y firma autógrafa acompañada del soporte que acredite la propiedad de la misma.
+15 Declaración escrita y bajo protesta de decir verdad de no encontrarse en los supuestos del artículo 63 de la Ley de Obra Pública y servicios relacionados con la misma para el Estado de Durango.
+16 Declaración por escrito y bajo protesta de decir verdad que ha presentado en tiempo y forma las declaraciones del ejercicio por impuestos federales. (no mencionar artículo 32 D).
+17 Manifestación por escrito si pertenece o no, a algún colegio, cámara o asociación relacionada con la construcción.
+18 Escrito en donde manifieste bajo protesta de decir verdad, que la documentación e información proporcionada por el interesado es veraz.
+
+
+Podran subir de forma parcial los documentos. Es decir, se guardan de forma automatica.
