@@ -36,16 +36,7 @@ foreach ($proyectos as $p) {
 }
 ?>
 
-<style>
-    /* Sticky Header - Window Level */
-    .sticky-header-th th {
-        position: sticky;
-        top: 0;
-        z-index: 1020;
-        background-color: #f8f9fa !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-</style>
+
 
 <div class="row mb-3">
     <div class="col-12">
@@ -111,12 +102,13 @@ foreach ($proyectos as $p) {
     });
 </script>
 
-<div class="card shadow border-0">
+
+
+<div class="card shadow-sm border-0">
     <div class="card-body p-0">
-        <!-- Removed table-responsive to allow window scroll adhesion -->
-        <div>
-            <table class="table table-hover align-middle mb-0 sticky-header-th">
-                <thead class="bg-light">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase border-bottom border-dark">
                     <tr>
                         <th class="ps-3">ID</th>
                         <th>Nombre del Proyecto</th>
@@ -138,14 +130,17 @@ foreach ($proyectos as $p) {
                         <?php foreach ($proyectos as $p): ?>
                             <?php
                             $monto_total = $p['monto_federal'] + $p['monto_estatal'] + $p['monto_municipal'] + $p['monto_otros'];
+
+                            // Semáforo logic
+                            $tiene_movimientos = ($p['num_fuas'] > 0);
+                            $semaforo_color = $tiene_movimientos ? 'text-danger' : 'text-secondary';
+                            $semaforo_titulo = $tiene_movimientos ? 'Tiene Movimientos (FUAs)' : 'Sin Movimientos';
                             ?>
                             <tr style="cursor: pointer;" onclick="if(event.target.closest('.btn-group')) return;"
                                 ondblclick="window.location.href='/pao/index.php?route=recursos_financieros/proyectos/editar&id=<?php echo $p['id_proyecto']; ?>'">
-                                <td class="ps-3 fw-bold">#
-                                    <?php echo $p['id_proyecto']; ?>
-                                </td>
+                                <td class="ps-3 fw-bold text-secondary">#<?php echo $p['id_proyecto']; ?></td>
                                 <td style="max-width: 300px;">
-                                    <div class="text-truncate fw-bold"
+                                    <div class="text-truncate fw-bold text-dark"
                                         title="<?php echo htmlspecialchars($p['nombre_proyecto']); ?>">
                                         <?php echo htmlspecialchars($p['nombre_proyecto']); ?>
                                     </div>
@@ -154,7 +149,7 @@ foreach ($proyectos as $p) {
                                     </small>
                                 </td>
                                 <td>
-                                    <div class="small fw-bold">
+                                    <div class="small fw-bold text-dark">
                                         <?php echo htmlspecialchars($p['nombre_municipio'] ?? 'N/A'); ?>
                                     </div>
                                     <div class="small text-muted">
@@ -165,14 +160,6 @@ foreach ($proyectos as $p) {
                                     $<?php echo number_format($monto_total, 2); ?>
                                 </td>
                                 <td class="text-center">
-                                    <?php
-                                    // Semáforo: Rojo si tiene FUAs asociados (num_fuas > 0)
-                                    // Ignoramos FUAs cancelados en el conteo (ver QUERY)
-                                    $tiene_movimientos = ($p['num_fuas'] > 0);
-
-                                    $semaforo_color = $tiene_movimientos ? 'text-danger' : 'text-secondary';
-                                    $semaforo_titulo = $tiene_movimientos ? 'Tiene Movimientos (FUAs)' : 'Sin Movimientos';
-                                    ?>
                                     <i class="bi bi-circle-fill <?php echo $semaforo_color; ?> fs-5"
                                         title="<?php echo $semaforo_titulo; ?>" data-bs-toggle="tooltip"></i>
                                 </td>
@@ -197,4 +184,5 @@ foreach ($proyectos as $p) {
             </table>
         </div>
     </div>
+</div>
 </div>
