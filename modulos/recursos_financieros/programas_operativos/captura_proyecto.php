@@ -6,6 +6,19 @@ $db = (new Database())->getConnection();
 // Just in case we need them, though CSV overrides logic.
 // $cat_municipios = $db->query("SELECT * FROM cat_municipios")->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch Unidades Responsables (From Areas)
+$stmtUnidades = $db->query("SELECT id, nombre, tipo FROM areas WHERE activo = 1 AND tipo IN ('Secretaria', 'Subsecretaria', 'Direccion') ORDER BY nombre ASC");
+$cat_unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch Prioridades, Ejes, Objetivos
+$cat_prioridades = $db->query("SELECT * FROM cat_prioridades WHERE activo = 1 ORDER BY nombre_prioridad")->fetchAll(PDO::FETCH_ASSOC);
+$cat_ejes = $db->query("SELECT * FROM cat_ejes WHERE activo = 1 ORDER BY nombre_eje")->fetchAll(PDO::FETCH_ASSOC);
+$cat_objetivos = $db->query("SELECT * FROM cat_objetivos WHERE activo = 1 ORDER BY nombre_objetivo")->fetchAll(PDO::FETCH_ASSOC);
+$cat_ramos = $db->query("SELECT * FROM cat_ramos WHERE activo = 1 ORDER BY nombre_ramo")->fetchAll(PDO::FETCH_ASSOC);
+$cat_tipos = $db->query("SELECT * FROM cat_tipos_proyecto WHERE activo = 1 ORDER BY nombre_tipo")->fetchAll(PDO::FETCH_ASSOC);
+
+
+
 // --- Load CSV Data for Municipios and Localidades ---
 $csvFile = $_SERVER['DOCUMENT_ROOT'] . '/pao/comun/municipios.csv';
 $municipios_csv = [];
@@ -18,8 +31,12 @@ if (file_exists($csvFile) && ($handle = fopen($csvFile, "r")) !== FALSE) {
         $nom_mun = trim($data[1]);
         $nom_loc = trim($data[2]);
         $municipios_csv[$id_mun] = $nom_mun;
-        if (!isset($localidades_map[$id_mun])) { $localidades_map[$id_mun] = []; }
-        if (!in_array($nom_loc, $localidades_map[$id_mun])) { $localidades_map[$id_mun][] = $nom_loc; }
+        if (!isset($localidades_map[$id_mun])) {
+            $localidades_map[$id_mun] = [];
+        }
+        if (!in_array($nom_loc, $localidades_map[$id_mun])) {
+            $localidades_map[$id_mun][] = $nom_loc;
+        }
     }
     fclose($handle);
 }
@@ -29,7 +46,7 @@ foreach ($municipios_csv as $id => $nombre) {
 }
 
 // Sort alphabetically by name
-usort($cat_municipios, function($a, $b) {
+usort($cat_municipios, function ($a, $b) {
     return strcmp($a['nombre_municipio'], $b['nombre_municipio']);
 });
 
@@ -37,8 +54,8 @@ $localidades_json = json_encode($localidades_map);
 
 
 // --- Edit Mode vs New Mode Logic ---
-$id_proyecto = isset($_GET['id']) ? (int)$_GET['id'] : null;
-$id_programa_parent = isset($_GET['id_programa']) ? (int)$_GET['id_programa'] : 0;
+$id_proyecto = isset($_GET['id']) ? (int) $_GET['id'] : null;
+$id_programa_parent = isset($_GET['id_programa']) ? (int) $_GET['id_programa'] : 0;
 
 $proyecto = null;
 $is_editing = false;
@@ -63,155 +80,353 @@ if (!$id_programa_parent) {
 $stmt_prog = $db->prepare("SELECT nombre, ejercicio FROM programas_anuales WHERE id_programa = ?");
 $stmt_prog->execute([$id_programa_parent]);
 $prog_info = $stmt_prog->fetch(PDO::FETCH_ASSOC);
+$nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
 ?>
 
 <div class="row mb-4">
     <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/pao/index.php?route=recursos_financieros/programas_operativos">Programas Operativos</a></li>
-                <li class="breadcrumb-item"><a href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $id_programa_parent; ?>"><?php echo htmlspecialchars($prog_info['nombre'] ?? 'POA'); ?></a></li>
-                <li class="breadcrumb-item active" aria-current="page"><?php echo $is_editing ? 'Editar Proyecto' : 'Nuevo Proyecto'; ?></li>
+                <li class="breadcrumb-item"><a
+                        href="/pao/index.php?route=recursos_financieros/programas_operativos">Programas Operativos</a>
+                </li>
+                <li class="breadcrumb-item"><a
+                        href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $id_programa_parent; ?>"><?php echo htmlspecialchars($prog_info['nombre'] ?? 'POA'); ?></a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <?php echo $is_editing ? 'Editar Proyecto' : 'Nuevo Proyecto'; ?>
+                </li>
             </ol>
         </nav>
-        <h2 class="text-primary fw-bold"><i class="bi bi-bricks"></i> <?php echo $is_editing ? 'Editar' : 'Captura de'; ?> Proyecto de Obra</h2>
+        <h2 class="text-primary fw-bold"><i class="bi bi-bricks"></i>
+            <?php echo $is_editing ? 'Editar' : 'Captura de'; ?> Proyecto de Obra</h2>
         <p class="text-muted border-bottom pb-2">
             Programado en el Ejercicio: <strong><?php echo $prog_info['ejercicio'] ?? 'N/A'; ?></strong>
         </p>
     </div>
 </div>
 
+<style>
+    body {
+        background-color: #e9ecef; /* Fondo escritorio */
+    }
+    .hoja-papel {
+        background: #fff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #d1d5db;
+        border-radius: 0; /* Bordes rectos como papel */
+        padding: 40px 50px; /* Márgenes internos tipo documento */
+        max-width: 1000px;
+        margin: 0 auto;
+        min-height: 800px; /* Altura mínima de hoja */
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        background: transparent;
+        padding: 12px 25px;
+        border-radius: 5px;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs .nav-link:hover {
+         background-color: #f1f3f5;
+         color: #212529;
+    }
+    .nav-tabs .nav-link.active {
+        color: #ffffff !important;
+        background-color: #6c757d !important; /* Gris */
+        font-weight: 700;
+        box-shadow: 0 4px 6px rgba(108, 117, 125, 0.3);
+        transform: translateY(-2px);
+    }
+    .nav-tabs {
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 30px;
+        justify-content: center; /* Centrar tabs */
+        gap: 10px; /* Espacio entre tabs */
+    }
+    .form-label {
+        color: #374151; /* Gris oscuro para texto */
+        font-weight: 600;
+    }
+    .form-control, .form-select {
+        border-radius: 0; /* Inputs cuadrados para look técnico */
+        border-color: #ced4da;
+        background-color: #fcfcfc;
+    }
+    .form-control:focus, .form-select:focus {
+        box-shadow: none;
+        border-color: #86b7fe;
+        background-color: #fff;
+    }
+    .sheet-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 15px;
+    }
+    .badge-total {
+        font-size: 2rem; /* Tamaño más controlado, no gigante */
+        padding: 10px 40px;
+        border: 2px solid #adb5bd; /* Borde Gris */
+        color: #495057; /* Texto Gris Oscuro */
+        background: #f8f9fa; /* Fondo Gris Muy Claro */
+        border-radius: 8px;
+        display: inline-block; /* El recuadro se ajusta al contenido */
+        font-family: 'Courier New', monospace; /* Fuente tipo número contable */
+    }
+</style>
+
 <form action="/pao/index.php?route=recursos_financieros/proyectos/guardar" method="POST" class="needs-validation" novalidate>
     <input type="hidden" name="id_programa" value="<?php echo $id_programa_parent; ?>">
     <?php if ($is_editing): ?>
-        <input type="hidden" name="id_proyecto" value="<?php echo $proyecto['id_proyecto']; ?>">
+            <input type="hidden" name="id_proyecto" value="<?php echo $proyecto['id_proyecto']; ?>">
     <?php endif; ?>
 
-    <!-- ================= SECCIÓN 1: DATOS GENERALES ================= -->
-    <div class="card shadow-sm mb-4 border-0 rounded-3">
-        <div class="card-header bg-gradient bg-light text-dark fw-bold py-3">
-            <i class="bi bi-info-circle-fill me-2 text-primary"></i> Información del Proyecto
+    <!-- Contenedor Hoja -->
+    <div class="hoja-papel position-relative">
+        
+        <!-- Encabezado Tipo Documento -->
+        <div class="sheet-header">
+            <h4 class="text-uppercase fw-bold mb-1">Cédula de Proyecto de Obra</h4>
+            <span class="text-muted small">Ejercicio Fiscal <?php echo $prog_info['ejercicio'] ?? '2024'; ?></span>
         </div>
-        <div class="card-body p-4">
-            <div class="row g-3">
+
+        <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs" id="projectTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active text-uppercase small" id="cedula-tab" data-bs-toggle="tab" data-bs-target="#cedula" type="button" role="tab">1. Cédula Técnica</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-uppercase small" id="finanzas-tab" data-bs-toggle="tab" data-bs-target="#finanzas" type="button" role="tab">2. Estructura Financiera</button>
+        </li>
+    </ul>
+
+    <div class="tab-content pt-2" id="projectTabsContent">
+        
+        <!-- CARPETA 1: CÉDULA TÉCNICA (Datos + Ubicación) -->
+        <div class="tab-pane fade show active" id="cedula" role="tabpanel">
+            
+            <h5 class="text-secondary border-bottom pb-2 mb-4"><i class="bi bi-info-circle me-2"></i>Información General y Ubicación</h5>
+            
+            <div class="row g-4">
                 
-                <!-- Nombre del Proyecto -->
+                <!-- 1. Unidad Responsable -->
                 <div class="col-12">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Nombre del Proyecto / Acción</label>
-                    <textarea name="nombre_proyecto" class="form-control" rows="2" required placeholder="Nombre oficial..."><?php echo $is_editing ? htmlspecialchars($proyecto['nombre_proyecto']) : ''; ?></textarea>
-                </div>
-
-                <!-- Breve Descripción -->
-                <div class="col-12">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Breve Descripción</label>
-                    <textarea name="breve_descripcion" class="form-control" rows="2" placeholder="Detalles adicionales..."><?php echo $is_editing ? htmlspecialchars($proyecto['breve_descripcion']) : ''; ?></textarea>
-                </div>
-
-                <!-- Clave SHCP -->
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Clave Cartera SHCP</label>
-                    <input type="text" name="clave_cartera_shcp" class="form-control font-monospace" placeholder="Ej. 2024-..."
-                        value="<?php echo $is_editing ? htmlspecialchars($proyecto['clave_cartera_shcp']) : ''; ?>">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= SECCIÓN 2: UBICACIÓN Y BENEFICIOS ================= -->
-    <div class="card shadow-sm mb-4 border-0 rounded-3">
-        <div class="card-header bg-gradient bg-light text-dark fw-bold py-3">
-            <i class="bi bi-geo-alt-fill me-2 text-success"></i> Ubicación e Impacto
-        </div>
-        <div class="card-body p-4">
-            <div class="row g-3">
-                <!-- Municipio -->
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Municipio</label>
-                    <select name="id_municipio" class="form-select" required id="select_municipio">
-                        <option value="">-- Seleccione --</option>
-                        <?php foreach ($cat_municipios as $item): ?>
-                            <option value="<?php echo $item['id_municipio']; ?>" 
-                                <?php echo ($is_editing && $proyecto['id_municipio'] == $item['id_municipio']) ? 'selected' : ''; ?>>
-                                <?php echo $item['nombre_municipio']; ?>
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">1. Unidad Responsable</label>
+                    <select name="id_unidad_responsable" class="form-select form-select-lg">
+                        <option value="">-- SELECCIONE UNIDAD --</option>
+                        <?php foreach ($cat_unidades as $u): ?>
+                            <option value="<?php echo $u['id']; ?>" 
+                                <?php echo ($is_editing && isset($proyecto['id_unidad_responsable']) && $proyecto['id_unidad_responsable'] == $u['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($u['nombre']); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <!-- Localidad -->
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Localidad</label>
+                <!-- 2. Nombre del Proyecto -->
+                <div class="col-12">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">2. Nombre del Proyecto / Acción</label>
+                    <textarea name="nombre_proyecto" class="form-control" rows="2" style="resize: none;" required placeholder="Nombre oficial..."><?php echo $is_editing ? htmlspecialchars($proyecto['nombre_proyecto']) : ''; ?></textarea>
+                </div>
+
+                <!-- 3. Breve Descripción -->
+                <div class="col-12">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">3. Breve Descripción</label>
+                    <textarea name="breve_descripcion" class="form-control" rows="3" style="resize: none;" placeholder="Descripción ejecutiva..."><?php echo $is_editing ? htmlspecialchars($proyecto['breve_descripcion']) : ''; ?></textarea>
+                </div>
+
+                <!-- SECCIÓN UBICACIÓN (Integrada aquí) -->
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">4. Municipio</label>
+                    <select name="id_municipio" class="form-select" required id="select_municipio">
+                        <option value="">-- Seleccione --</option>
+                        <?php foreach ($cat_municipios as $item): ?>
+                            <option value="<?php echo $item['id_municipio']; ?>" <?php echo ($is_editing && $proyecto['id_municipio'] == $item['id_municipio']) ? 'selected' : ''; ?>>
+                                <?php echo $item['nombre_municipio']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">5. Localidad</label>
                     <select name="localidad" id="select_localidad" class="form-select" required>
-                        <option value="">-- Seleccione Municipio Primero --</option>
-                        <!-- Populated by JS -->
+                        <option value="">-- Seleccione --</option>
                         <?php if ($is_editing): ?>
                             <option value="<?php echo $proyecto['localidad']; ?>" selected><?php echo $proyecto['localidad']; ?></option>
                         <?php endif; ?>
                     </select>
                 </div>
-
-                <!-- Impacto -->
-                <div class="col-md-8">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Impacto del Proyecto</label>
-                    <textarea name="impacto_proyecto" class="form-control" rows="1"><?php echo $is_editing ? htmlspecialchars($proyecto['impacto_proyecto']) : ''; ?></textarea>
+                
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">6. Impacto</label>
+                    <select name="impacto_proyecto" class="form-select">
+                        <option value="">-- SELECCIONE --</option>
+                        <option value="MUNICIPAL" <?php echo ($is_editing && $proyecto['impacto_proyecto'] == 'MUNICIPAL') ? 'selected' : ''; ?>>MUNICIPAL</option>
+                        <option value="REGIONAL" <?php echo ($is_editing && $proyecto['impacto_proyecto'] == 'REGIONAL') ? 'selected' : ''; ?>>REGIONAL</option>
+                        <option value="ESTATAL" <?php echo ($is_editing && $proyecto['impacto_proyecto'] == 'ESTATAL') ? 'selected' : ''; ?>>ESTATAL</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">7. Núm. Beneficiarios</label>
+                    <input type="number" name="num_beneficiarios" class="form-control" value="<?php echo $is_editing ? $proyecto['num_beneficiarios'] : '0'; ?>">
                 </div>
 
-                <!-- Beneficiarios -->
+                <div class="col-12 my-2"><hr class="text-secondary"></div>
+                <h6 class="text-uppercase small fw-bold text-muted mb-2">Clasificación Administrativa</h6>
+
                 <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase text-secondary">Núm. Beneficiarios</label>
-                    <input type="number" name="num_beneficiarios" class="form-control text-end" min="0"
-                        value="<?php echo $is_editing ? $proyecto['num_beneficiarios'] : '0'; ?>">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">8. Prioridad</label>
+                    <select name="id_prioridad" class="form-select">
+                        <option value="">-- SELECCIONE --</option>
+                        <?php foreach ($cat_prioridades as $cp): ?>
+                            <option value="<?php echo $cp['id_prioridad']; ?>" <?php echo ($is_editing && isset($proyecto['id_prioridad']) && $proyecto['id_prioridad'] == $cp['id_prioridad']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cp['nombre_prioridad']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-            </div>
-        </div>
-    </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">9. Tipo de Proyecto</label>
+                    <select name="id_tipo_proyecto" class="form-select">
+                        <option value="">-- SELECCIONE --</option>
+                        <?php foreach ($cat_tipos as $ct): ?>
+                            <option value="<?php echo $ct['id_tipo_proyecto']; ?>" <?php echo ($is_editing && isset($proyecto['id_tipo_proyecto']) && $proyecto['id_tipo_proyecto'] == $ct['id_tipo_proyecto']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ct['nombre_tipo']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">10. Clave SHCP</label>
+                    <input type="text" name="clave_cartera_shcp" class="form-control" value="<?php echo $is_editing ? htmlspecialchars($proyecto['clave_cartera_shcp']) : ''; ?>">
+                </div>
 
-    <!-- ================= SECCIÓN 3: ESTRUCTURA FINANCIERA ================= -->
-    <div class="card shadow-lg mb-4 border-0 rounded-3">
-        <div class="card-header bg-gradient bg-primary text-white fw-bold py-3 d-flex justify-content-between">
-            <span><i class="bi bi-currency-dollar me-2"></i> Estructura Financiera</span>
-            <span class="badge bg-light text-primary fs-6" id="badgeTotal">$0.00</span>
-        </div>
-        <div class="card-body p-4 bg-light bg-opacity-10">
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-3">
-                    <label class="form-label fw-bold text-secondary">Federal</label>
-                    <input type="number" step="0.01" name="monto_federal" class="form-control text-end monto-input" 
-                        value="<?php echo $is_editing ? $proyecto['monto_federal'] : ''; ?>" placeholder="0.00">
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label class="form-label fw-bold text-secondary">Estatal</label>
-                    <input type="number" step="0.01" name="monto_estatal" class="form-control text-end monto-input" 
-                        value="<?php echo $is_editing ? $proyecto['monto_estatal'] : ''; ?>" placeholder="0.00">
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label class="form-label fw-bold text-secondary">Municipal</label>
-                    <input type="number" step="0.01" name="monto_municipal" class="form-control text-end monto-input" 
-                        value="<?php echo $is_editing ? $proyecto['monto_municipal'] : ''; ?>" placeholder="0.00">
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <label class="form-label fw-bold text-secondary">Otros</label>
-                    <input type="number" step="0.01" name="monto_otros" class="form-control text-end monto-input" 
-                        value="<?php echo $is_editing ? $proyecto['monto_otros'] : ''; ?>" placeholder="0.00">
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-12 d-flex justify-content-end">
-                    <div class="form-check form-switch fs-5">
-                        <input class="form-check-input" type="checkbox" role="switch" id="es_multianual" name="es_multianual" value="1"
-                            <?php echo ($is_editing && $proyecto['es_multianual']) ? 'checked' : ''; ?>>
-                        <label class="form-check-label ms-2" for="es_multianual">¿Es un Proyecto Multianual?</label>
+                <!-- Eje y Objetivo -->
+                <div class="col-12">
+                    <div class="p-3 bg-light border">
+                        <h6 class="text-uppercase small fw-bold text-muted mb-3">Alineación Estratégica</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small">11. Eje del P. Estado</label>
+                                <select name="id_eje" id="selectEje" class="form-select" onchange="filtrarObjetivos()">
+                                    <option value="">-- SELECCIONE EJE --</option>
+                                    <?php foreach ($cat_ejes as $ce): ?>
+                                        <option value="<?php echo $ce['id_eje']; ?>" <?php echo ($is_editing && isset($proyecto['id_eje']) && $proyecto['id_eje'] == $ce['id_eje']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($ce['nombre_eje']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">12. Objetivo Estratégico</label>
+                                <select name="id_objetivo" id="selectObjetivo" class="form-select">
+                                    <option value="">-- SELECCIONE OBJETIVO --</option>
+                                    <?php foreach ($cat_objetivos as $co): ?>
+                                        <option value="<?php echo $co['id_objetivo']; ?>" data-eje="<?php echo $co['id_eje']; ?>" <?php echo ($is_editing && isset($proyecto['id_objetivo']) && $proyecto['id_objetivo'] == $co['id_objetivo']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($co['nombre_objetivo']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Programa y Ramo -->
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">13. Programa</label>
+                    <input type="text" class="form-control bg-light" value="<?php echo htmlspecialchars($nombre_programa_parent); ?>" disabled readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block text-uppercase small text-muted mb-1">14. Ramo</label>
+                    <select name="id_ramo" class="form-select">
+                        <option value="">-- SELECCIONE RAMO --</option>
+                        <?php foreach ($cat_ramos as $cr): ?>
+                            <option value="<?php echo $cr['id_ramo']; ?>" <?php echo ($is_editing && isset($proyecto['id_ramo']) && $proyecto['id_ramo'] == $cr['id_ramo']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($cr['nombre_ramo']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
             </div>
         </div>
+
+        <!-- CARPETA 2: ESTRUCTURA FINANCIERA -->
+        <div class="tab-pane fade" id="finanzas" role="tabpanel">
+            <h5 class="text-secondary border-bottom pb-2 mb-4"><i class="bi bi-cash-stack me-2"></i>Presupuesto y Multianualidad</h5>
+
+            <div class="text-center mb-5 mt-4">
+                <span class="d-block text-muted text-uppercase small mb-2">Presupuesto Total Estimado</span>
+                <!-- Eliminado display-4, el tamaño ahora lo controla CSS .badge-total -->
+                <span class="badge-total fw-bold" id="badgeTotal">$0.00</span>
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light text-center small text-uppercase">
+                        <tr>
+                            <th width="25%">15. Federal</th>
+                            <th width="25%">16. Estatal</th>
+                            <th width="25%">17. Municipal</th>
+                            <th width="25%">18. Otros</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="input-group">
+                                    <span class="input-group-text border-0 bg-transparent">$</span>
+                                    <input type="number" step="0.01" name="monto_federal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_federal'] : ''; ?>">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group">
+                                    <span class="input-group-text border-0 bg-transparent">$</span>
+                                    <input type="number" step="0.01" name="monto_estatal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_estatal'] : ''; ?>">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group">
+                                    <span class="input-group-text border-0 bg-transparent">$</span>
+                                    <input type="number" step="0.01" name="monto_municipal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_municipal'] : ''; ?>">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group">
+                                    <span class="input-group-text border-0 bg-transparent">$</span>
+                                    <input type="number" step="0.01" name="monto_otros" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_otros'] : ''; ?>">
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-center mt-5">
+                <div class="form-check form-switch p-3 border rounded bg-light">
+                    <input class="form-check-input" type="checkbox" role="switch" id="es_multianual" name="es_multianual" value="1" <?php echo ($is_editing && $proyecto['es_multianual']) ? 'checked' : ''; ?>>
+                    <label class="form-check-label fw-bold ms-2" for="es_multianual">19. ¿Proyecto Multianual?</label>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End Tab Content -->
+
+    <!-- Action Buttons (Bottom of Sheet) -->
+    <div class="mt-5 pt-4 border-top text-end">
+        <a href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $id_programa_parent; ?>" class="btn btn-outline-secondary px-4 me-2">
+            CANCELAR
+        </a>
+        <button type="submit" class="btn btn-dark px-5">
+            GUARDAR CÉDULA
+        </button>
     </div>
 
-    <!-- Botones -->
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
-        <a href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $id_programa_parent; ?>" class="btn btn-secondary btn-lg px-4 me-md-2">Cancelar</a>
-        <button type="submit" class="btn btn-primary btn-lg px-5 shadow"><i class="bi bi-save2"></i> Guardar Proyecto</button>
-    </div>
+    </div> <!-- End Hoja Papel -->
 </form>
 
 <script>
@@ -263,4 +478,25 @@ $prog_info = $stmt_prog->fetch(PDO::FETCH_ASSOC);
         selectMunicipio.addEventListener('change', actualizarLocalidades);
         if (selectMunicipio.value) actualizarLocalidades();
     });
+    function filtrarObjetivos() {
+        const ejeId = document.getElementById('selectEje').value;
+        const opts = document.getElementById('selectObjetivo').options;
+        let count = 0;
+        
+        for (let i = 1; i < opts.length; i++) { // Skip placeholder
+            const optEje = opts[i].getAttribute('data-eje');
+            if (!ejeId || optEje == ejeId) {
+                opts[i].style.display = '';
+                count++;
+            } else {
+                opts[i].style.display = 'none';
+            }
+        }
+        // Deseleccionar si el actual está oculto (opcional, mejor dejar que el usuario cambie)
+        if(ejeId && count > 0 && opts[document.getElementById('selectObjetivo').selectedIndex].style.display === 'none') {
+             document.getElementById('selectObjetivo').value = "";
+        }
+    }
+    // Init filter on load
+    document.addEventListener('DOMContentLoaded', filtrarObjetivos);
 </script>

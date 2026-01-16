@@ -47,8 +47,8 @@ foreach ($proyectos as $p) {
     }
 </style>
 
-<div class="row mb-4">
-    <div class="col-md-8">
+<div class="row mb-3">
+    <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a
@@ -74,13 +74,42 @@ foreach ($proyectos as $p) {
             </span>
         </p>
     </div>
-    <div class="col-md-4 text-end">
-        <a href="/pao/index.php?route=recursos_financieros/proyectos/nuevo&id_programa=<?php echo $id_programa; ?>"
-            class="btn btn-success">
-            <i class="bi bi-plus-lg"></i> Agregar Proyecto
-        </a>
-    </div>
 </div>
+
+<!-- Toolbar: Buscador (Izq) y Boton (Der) -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="input-group" style="max-width: 300px;">
+        <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Buscar proyecto..."
+            autocomplete="off">
+    </div>
+
+    <a href="/pao/index.php?route=recursos_financieros/proyectos/nuevo&id_programa=<?php echo $id_programa; ?>"
+        class="btn btn-success shadow-sm">
+        <i class="bi bi-plus-lg"></i> Agregar Proyecto
+    </a>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchInput');
+        const table = document.querySelector('table tbody');
+
+        searchInput.addEventListener('keyup', function () {
+            const searchTerm = this.value.toLowerCase().trim();
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 
 <div class="card shadow border-0">
     <div class="card-body p-0">
@@ -110,7 +139,8 @@ foreach ($proyectos as $p) {
                             <?php
                             $monto_total = $p['monto_federal'] + $p['monto_estatal'] + $p['monto_municipal'] + $p['monto_otros'];
                             ?>
-                            <tr>
+                            <tr style="cursor: pointer;" onclick="if(event.target.closest('.btn-group')) return;"
+                                ondblclick="window.location.href='/pao/index.php?route=recursos_financieros/proyectos/editar&id=<?php echo $p['id_proyecto']; ?>'">
                                 <td class="ps-3 fw-bold">#
                                     <?php echo $p['id_proyecto']; ?>
                                 </td>
@@ -149,14 +179,14 @@ foreach ($proyectos as $p) {
                                 <td class="text-end pe-3">
                                     <div class="btn-group">
                                         <a href="/pao/index.php?route=recursos_financieros/fuas&id_proyecto=<?php echo $p['id_proyecto']; ?>"
-                                            class="btn btn-sm btn-outline-info" title="Ver FUAs"><i
-                                                class="bi bi-file-earmark-text"></i></a>
+                                            class="btn btn-sm btn-outline-info" title="Ver FUAs"
+                                            onclick="event.stopPropagation();"><i class="bi bi-file-earmark-text"></i></a>
                                         <a href="/pao/index.php?route=recursos_financieros/proyectos/editar&id=<?php echo $p['id_proyecto']; ?>"
-                                            class="btn btn-sm btn-outline-secondary" title="Editar Proyecto"><i
-                                                class="bi bi-pencil"></i></a>
+                                            class="btn btn-sm btn-outline-secondary" title="Editar Proyecto"
+                                            onclick="event.stopPropagation();"><i class="bi bi-pencil"></i></a>
                                         <a href="/pao/index.php?route=recursos_financieros/proyectos/eliminar&id=<?php echo $p['id_proyecto']; ?>&id_programa=<?php echo $id_programa; ?>"
                                             class="btn btn-sm btn-outline-danger" title="Eliminar Proyecto"
-                                            onclick="return confirm('¿Confirma eliminar este proyecto?');"><i
+                                            onclick="event.stopPropagation(); return confirm('¿Confirma eliminar este proyecto?');"><i
                                                 class="bi bi-trash"></i></a>
                                     </div>
                                 </td>

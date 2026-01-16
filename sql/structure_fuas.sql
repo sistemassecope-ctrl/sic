@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS fuas (
     id_proyecto INT DEFAULT NULL, -- Campo "Proyecto (Catalogo)"
     
     -- Campos solicitados
-    estatus ENUM('CANCELADO', 'ACTIVO', 'CONTROL') DEFAULT 'ACTIVO',
+    estatus ENUM('CANCELADO', 'ACTIVO') DEFAULT 'ACTIVO',
     nombre_proyecto_accion TEXT, -- "Nombre Del Proyecto O Acción"
-    tipo_fua ENUM('NUEVA', 'SALDO POR EJERCER', 'CONTROL') DEFAULT 'NUEVA',
+    tipo_suficiencia ENUM('NUEVA', 'REFRENDO', 'SALDO POR EJERCER', 'CONTROL') DEFAULT 'NUEVA',
     
     no_oficio_entrada VARCHAR(100) DEFAULT NULL,
     fecha_ingreso_admvo DATE DEFAULT NULL,

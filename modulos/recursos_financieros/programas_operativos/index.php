@@ -4,7 +4,8 @@ $stmt = $db->query("
     SELECT pa.*, 
            (SELECT SUM(monto_federal + monto_estatal + monto_municipal + monto_otros) 
             FROM proyectos_obra po 
-            WHERE po.id_programa = pa.id_programa) as inversion_programada
+            WHERE po.id_programa = pa.id_programa) as inversion_programada,
+           (SELECT COUNT(*) FROM proyectos_obra po WHERE po.id_programa = pa.id_programa) as num_proyectos
     FROM programas_anuales pa 
     ORDER BY pa.ejercicio DESC
 ");
@@ -52,7 +53,8 @@ $programas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     <?php else: ?>
                         <?php foreach ($programas as $p): ?>
-                            <tr>
+                            <tr style="cursor: pointer;"
+                                ondblclick="<?php echo ($p['num_proyectos'] > 0) ? "window.location.href='/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa={$p['id_programa']}'" : "alert('Este Programa Operativo no contiene proyectos registrados.');"; ?>">
                                 <td class="ps-3 fw-bold">#
                                     <?php echo $p['id_programa']; ?>
                                 </td>
@@ -87,17 +89,14 @@ $programas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </span>
                                 </td>
                                 <td class="text-end pe-3">
-                                    <a href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $p['id_programa']; ?>"
-                                        class="btn btn-sm btn-outline-primary" title="Ver Proyectos">
-                                        <i class="bi bi-eye"></i> Ver Proyectos
-                                    </a>
                                     <a href="/pao/index.php?route=recursos_financieros/programas_operativos/editar&id=<?php echo $p['id_programa']; ?>"
-                                        class="btn btn-sm btn-outline-secondary" title="Editar">
+                                        class="btn btn-sm btn-outline-secondary" title="Editar"
+                                        onclick="event.stopPropagation();">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <a href="/pao/index.php?route=recursos_financieros/programas_operativos/eliminar&id=<?php echo $p['id_programa']; ?>"
                                         class="btn btn-sm btn-outline-danger" title="Eliminar"
-                                        onclick="return confirm('¿Está seguro de eliminar este Programa Anual? Esto borrará también todos sus proyectos asociados.');">
+                                        onclick="event.stopPropagation(); return confirm('¿Está seguro de eliminar este Programa Anual? Esto borrará también todos sus proyectos asociados.');">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </td>

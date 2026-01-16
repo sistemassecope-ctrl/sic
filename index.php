@@ -137,6 +137,14 @@ switch ($route) {
         include 'app/views/layouts/wrapper.php';
         break;
 
+    case 'recursos_financieros/fuas/captura_carpeta':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Captura de FUA (Vista Carpeta)';
+        $content_view = 'modulos/recursos_financieros/fuas/captura_carpeta.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
     case 'recursos_financieros/fuas/guardar':
         if (!isset($_SESSION['user_id']))
             header("Location: " . BASE_URL . "/index.php?route=login");
@@ -147,6 +155,38 @@ switch ($route) {
         if (!isset($_SESSION['user_id']))
             header("Location: " . BASE_URL . "/index.php?route=login");
         require 'modulos/recursos_financieros/fuas/eliminar.php';
+        break;
+
+    // --- RUTAS DE CATALOGOS DE PROYECTO ---
+    case 'recursos_financieros/catalogos':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Gestión de Catálogos';
+        $content_view = 'modulos/recursos_financieros/catalogos/index.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    // --- RUTAS DE CATALOGO DE FUENTES ---
+    case 'recursos_financieros/cat_fuentes':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Catálogo Fuentes Financiamiento';
+        $content_view = 'modulos/recursos_financieros/cat_fuentes/index.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'recursos_financieros/cat_fuentes/captura':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Alta/Edición de Fuente';
+        $content_view = 'modulos/recursos_financieros/cat_fuentes/captura.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'recursos_financieros/cat_fuentes/guardar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        require 'modulos/recursos_financieros/cat_fuentes/guardar.php';
         break;
 
 
