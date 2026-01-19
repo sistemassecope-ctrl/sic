@@ -50,8 +50,8 @@ if (!$tiene_permisos) {
     // Debug adicional: verificar qué módulos existen
     try {
         if (isset($pdo)) {
-            $stmt = $pdo->prepare("SELECT id, nombre, url, ruta FROM modulos WHERE (url = ? OR ruta = ?) AND activo = TRUE");
-            $stmt->execute(['empleados.php', 'empleados.php']);
+            $stmt = $pdo->prepare("SELECT id, nombre, ruta FROM modulos WHERE ruta = ? AND activo = TRUE");
+            $stmt->execute(['empleados.php']);
             $modulo = $stmt->fetch(PDO::FETCH_ASSOC);
             
             // Verificar permisos directamente
@@ -81,7 +81,6 @@ if (!$tiene_permisos) {
             'is_authenticated' => isAuthenticated(),
             'modulo_encontrado' => $modulo ? true : false,
             'modulo_id' => $modulo['id'] ?? 'N/A',
-            'modulo_url' => $modulo['url'] ?? 'N/A',
             'modulo_ruta' => $modulo['ruta'] ?? 'N/A',
             'permisos_directos' => $permisos_directos ? 'Existen' : 'No existen',
             'columnas_permisos' => $permisos_directos ? array_keys($permisos_directos) : []

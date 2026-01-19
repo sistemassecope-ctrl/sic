@@ -1,14 +1,14 @@
 <?php
 ob_start(); // Start buffering to catch any stray whitespace
-require_once 'auth.php';
-require_once 'functions.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/functions.php';
 
 // Verificar autenticación
 requireAuth();
 
 // Verificar expiración de sesión
 if (!checkSessionExpiry()) {
-    redirectWithMessage('login.php', 'warning', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+    redirectWithMessage(BASE_URL . 'index.php?route=login', 'warning', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
 }
 
 $currentUser = getCurrentUser();
@@ -31,6 +31,8 @@ echo '<!DOCTYPE html>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
@@ -44,48 +46,12 @@ if (isset($extraCSS)) {
 echo '</head>
 <body>';
 ?>
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <img src="<?php echo BASE_URL; ?>img/logo_secope.png" alt="SECOPE Logo" class="img-fluid">
-        <h5 class="mb-0">SIC</h5>
-        <small>Sistema Integral SECOPE</small>
-    </div>
-
-    <nav class="sidebar-menu">
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link <?php echo $currentPage == 'index' ? 'active' : ''; ?>"
-                    href="<?php echo BASE_URL; ?>index.php">
-                    <i class="fas fa-home"></i>Inicio
-                </a>
-            </li>
-
-            <?php
-            // Obtener módulos permitidos dinámicamente
-            $modulosPermitidos = getModulosDisponibles();
-
-            foreach ($modulosPermitidos as $modulo) {
-                // Determinar si el módulo actual está activo (basado en la URL)
-                $isActive = (strpos($_SERVER['PHP_SELF'], $modulo['url']) !== false) ||
-                    ($currentPage . '.php' == basename($modulo['url']));
-
-                // Icono por defecto si no viene en DB (aunque debería)
-                $icono = $modulo['icono'] ?? 'fas fa-circle';
-                ?>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo $isActive ? 'active' : ''; ?>"
-                        href="<?php echo BASE_URL . $modulo['url']; ?>">
-                        <i
-                            class="<?php echo htmlspecialchars($icono); ?>"></i><?php echo htmlspecialchars($modulo['nombre']); ?>
-                    </a>
-                </li>
-                <?php
-            }
-            ?>
-        </ul>
-    </nav>
-</div>
+<!-- Include Unified Sidebar -->
+<?php 
+// Set $route variable for sidebar compatibility
+$route = $route ?? '';
+include __DIR__ . '/../app/views/layouts/sidebar.php'; 
+?>
 
 <!-- Main Content -->
 <div class="main-content">

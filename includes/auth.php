@@ -8,7 +8,15 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_secure', 0); // Cambiar a 1 en producción con HTTPS
 
+// Forzar path de cookie a la raíz para evitar problemas en subdirectorios
+session_set_cookie_params(0, '/');
+
 session_start();
+
+// Debug log function
+function debugLog($message) {
+    file_put_contents('C:/wamp64/www/pao/debug_auth_v2.log', date('Y-m-d H:i:s') . " - " . $message . "\n", FILE_APPEND);
+}
 
 // Inicializar conexión a la base de datos
 $pdo = conectarDB();
@@ -18,6 +26,11 @@ $pdo = conectarDB();
  */
 function authenticate($identificador, $password) {
     global $pdo;
+    
+    // ... (authenticate logic stays mostly same, omitting for brevity in tool call if not modifying internal logic, but here replacing block so check carefully)
+    // Actually I should only replace the top session part and isAuthenticated part to preserve authenticate. 
+    // Wait, replace_file_content works on chunks. I will target specific chunks.
+    // This tool call is checking the start of the file.
     
     try {
         $identificador = trim($identificador);
@@ -91,10 +104,15 @@ function authenticate($identificador, $password) {
  * Verificar si el usuario está autenticado
  */
 function isAuthenticated() {
-    return isset($_SESSION['user_id']) && 
+    $isAuth = isset($_SESSION['user_id']) && 
            !empty($_SESSION['user_id']) && 
            isset($_SESSION['user_nivel']) && 
            !empty($_SESSION['user_nivel']);
+    
+    if (!$isAuth) {
+        debugLog("Auth Check Failed. Session: " . json_encode($_SESSION));
+    }
+    return $isAuth;
 }
 
 /**
@@ -173,9 +191,9 @@ function canAccessModule($modulo_url, $permiso = 'leer') {
                 SELECT pm.puede_ver, pm.puede_crear, pm.puede_editar, pm.puede_eliminar
                 FROM permisos_modulos pm
                 JOIN modulos m ON pm.modulo_id = m.id
-                WHERE (m.ruta = ? OR m.url = ?) AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
+                WHERE m.ruta = ? AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
             ");
-            $stmt->execute([$modulo_url, $modulo_url, $user_nivel]);
+            $stmt->execute([$modulo_url, $user_nivel]);
             $permisos = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($permisos && isset($permisos['puede_ver'])) {
@@ -205,9 +223,9 @@ function canAccessModule($modulo_url, $permiso = 'leer') {
                 SELECT pm.puede_leer, pm.puede_escribir, pm.puede_eliminar, pm.puede_administrar
                 FROM permisos_modulos pm
                 JOIN modulos m ON pm.modulo_id = m.id
-                WHERE (m.ruta = ? OR m.url = ?) AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
+                WHERE m.ruta = ? AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
             ");
-            $stmt->execute([$modulo_url, $modulo_url, $user_nivel]);
+            $stmt->execute([$modulo_url, $user_nivel]);
             $permisos = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($permisos && isset($permisos['puede_leer'])) {
@@ -236,9 +254,9 @@ function canAccessModule($modulo_url, $permiso = 'leer') {
                 SELECT pm.*
                 FROM permisos_modulos pm
                 JOIN modulos m ON pm.modulo_id = m.id
-                WHERE (m.ruta = ? OR m.url = ?) AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
+                WHERE m.ruta = ? AND pm.nivel_usuario_id = ? AND pm.activo = TRUE
             ");
-            $stmt->execute([$modulo_url, $modulo_url, $user_nivel]);
+            $stmt->execute([$modulo_url, $user_nivel]);
             $permisos = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$permisos) {
@@ -352,7 +370,7 @@ function logout() {
  */
 function requireAuth() {
     if (!isAuthenticated()) {
-        header('Location: login.php');
+        header('Location: ' . BASE_URL . 'index.php?route=login');
         exit;
     }
 }
@@ -389,6 +407,7 @@ function checkSessionExpiry() {
         $session_duration = 8 * 60 * 60; // 8 horas en segundos
         
         if (($current_time - $login_time) > $session_duration) {
+            debugLog("Session Expired. Duration: " . ($current_time - $login_time));
             logout();
             return false;
         }
@@ -398,6 +417,7 @@ function checkSessionExpiry() {
         return true;
     }
     
+    debugLog("checkSessionExpiry: User not authenticated");
     return false;
 }
 
