@@ -27,7 +27,7 @@
                 <ul class="nav flex-column ms-3">
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($route == 'recursos_financieros/programas_operativos') ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>index.php?route=recursos_financieros/programas_operativos">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=recursos_financieros/programas_operativos">
                             <i class="bi bi-list-check"></i> Prog. Operativos
                         </a>
                     </li>
