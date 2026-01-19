@@ -1,5 +1,8 @@
 <?php
-require_once __DIR__ . '/../../../../config/db.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
+require_once __DIR__ . '/../../../config/db.php';
 
 header('Content-Type: application/json');
 
@@ -48,6 +51,9 @@ try {
 
     // 3. Calcular Saldo
     $saldo_disponible = $total_proyecto - $total_comprometido;
+
+    // DEBUG LOG
+    file_put_contents('debug_log.txt', date('Y-m-d H:i:s') . " - ID Proy: $id_proyecto, Total Proy: $total_proyecto, Comprometido: $total_comprometido, Saldo: $saldo_disponible\n", FILE_APPEND);
 
     echo json_encode([
         'total_proyecto' => $total_proyecto,

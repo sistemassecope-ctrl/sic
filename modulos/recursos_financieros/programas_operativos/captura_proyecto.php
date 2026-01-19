@@ -8,16 +8,7 @@ $db = (new Database())->getConnection();
 
 // Fetch Unidades Responsables (From Areas)
 // Fetch Unidades Responsables (From Areas)
-// Table is 'area' (singular) based on recent schema updates
-// Fetch Unidades Responsables (Configured in Areas PAO module)
-$stmtUnidades = $db->query("
-    SELECT a.id, a.nombre, a.tipo 
-    FROM area a 
-    INNER JOIN area_pao ap ON a.id = ap.area_id 
-    WHERE a.activo = 1 
-      AND ap.deleted_at IS NULL 
-    ORDER BY a.nombre ASC
-");
+$stmtUnidades = $db->query("SELECT id, nombre, tipo FROM area WHERE activo = 1 AND tipo IN ('Secretaria', 'Subsecretaria', 'Direccion') ORDER BY nombre ASC");
 $cat_unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Prioridades, Ejes, Objetivos
@@ -96,6 +87,15 @@ $stmt_prog = $db->prepare("SELECT nombre, ejercicio FROM programas_anuales WHERE
 $stmt_prog->execute([$id_programa_parent]);
 $prog_info = $stmt_prog->fetch(PDO::FETCH_ASSOC);
 $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
+
+// --- Validation Logic: Fetch Committed Amount (if editing) ---
+$total_comprometido = 0;
+if ($is_editing) {
+    $stmtComp = $db->prepare("SELECT SUM(importe) as total_comprometido FROM fuas WHERE id_proyecto = ? AND estatus != 'CANCELADO'");
+    $stmtComp->execute([$proyecto['id_proyecto']]);
+    $resComp = $stmtComp->fetch(PDO::FETCH_ASSOC);
+    $total_comprometido = (float)($resComp['total_comprometido'] ?? 0);
+}
 ?>
 
 <div class="row mb-4">
@@ -209,19 +209,7 @@ $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
         </div>
 
         <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs" id="projectTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active text-uppercase small" id="cedula-tab" data-bs-toggle="tab" data-bs-target="#cedula" type="button" role="tab">1. Cédula Técnica</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link text-uppercase small" id="finanzas-tab" data-bs-toggle="tab" data-bs-target="#finanzas" type="button" role="tab">2. Estructura Financiera</button>
-        </li>
-    </ul>
-
-    <div class="tab-content pt-2" id="projectTabsContent">
-        
-        <!-- CARPETA 1: CÉDULA TÉCNICA (Datos + Ubicación) -->
-        <div class="tab-pane fade show active" id="cedula" role="tabpanel">
+    <!-- Form Content -->
             
             <h5 class="text-secondary border-bottom pb-2 mb-4"><i class="bi bi-info-circle me-2"></i>Información General y Ubicación</h5>
             
@@ -287,6 +275,67 @@ $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
                 <div class="col-md-6">
                     <label class="form-label d-block text-uppercase small text-muted mb-1">7. Núm. Beneficiarios</label>
                     <input type="number" name="num_beneficiarios" class="form-control" value="<?php echo $is_editing ? $proyecto['num_beneficiarios'] : '0'; ?>">
+                </div>
+
+
+                <!-- SECCIÓN FINANCIERA (MOVIDA) -->
+                <div class="col-12 mt-4 mb-4">
+                     <div class="p-4 border rounded bg-white shadow-sm">
+                        <h5 class="text-secondary border-bottom pb-2 mb-4"><i class="bi bi-cash-stack me-2"></i>Presupuesto y Multianualidad</h5>
+
+                        <div class="text-center mb-5 mt-4">
+                            <span class="d-block text-muted text-uppercase small mb-2">Presupuesto Total Estimado</span>
+                            <span class="badge-total fw-bold" id="badgeTotal">$0.00</span>
+                        </div>
+
+                        <div class="table-responsive mb-4">
+                            <table class="table table-bordered">
+                                <thead class="table-light text-center small text-uppercase">
+                                    <tr>
+                                        <th width="25%">15. Federal</th>
+                                        <th width="25%">16. Estatal</th>
+                                        <th width="25%">17. Municipal</th>
+                                        <th width="25%">18. Otros</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text border-0 bg-transparent">$</span>
+                                                <input type="text" name="monto_federal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? number_format($proyecto['monto_federal'], 2) : ''; ?>" oninput="formatCurrency(this)">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text border-0 bg-transparent">$</span>
+                                                <input type="text" name="monto_estatal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? number_format($proyecto['monto_estatal'], 2) : ''; ?>" oninput="formatCurrency(this)">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text border-0 bg-transparent">$</span>
+                                                <input type="text" name="monto_municipal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? number_format($proyecto['monto_municipal'], 2) : ''; ?>" oninput="formatCurrency(this)">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text border-0 bg-transparent">$</span>
+                                                <input type="text" name="monto_otros" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? number_format($proyecto['monto_otros'], 2) : ''; ?>" oninput="formatCurrency(this)">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-center mt-5">
+                            <div class="form-check form-switch p-3 border rounded bg-light">
+                                <input class="form-check-input" type="checkbox" role="switch" id="es_multianual" name="es_multianual" value="1" <?php echo ($is_editing && $proyecto['es_multianual']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label fw-bold ms-2" for="es_multianual">19. ¿Proyecto Multianual?</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-12 my-2"><hr class="text-secondary"></div>
@@ -368,69 +417,6 @@ $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
                 </div>
 
             </div>
-        </div>
-
-        <!-- CARPETA 2: ESTRUCTURA FINANCIERA -->
-        <div class="tab-pane fade" id="finanzas" role="tabpanel">
-            <h5 class="text-secondary border-bottom pb-2 mb-4"><i class="bi bi-cash-stack me-2"></i>Presupuesto y Multianualidad</h5>
-
-            <div class="text-center mb-5 mt-4">
-                <span class="d-block text-muted text-uppercase small mb-2">Presupuesto Total Estimado</span>
-                <!-- Eliminado display-4, el tamaño ahora lo controla CSS .badge-total -->
-                <span class="badge-total fw-bold" id="badgeTotal">$0.00</span>
-            </div>
-
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered">
-                    <thead class="table-light text-center small text-uppercase">
-                        <tr>
-                            <th width="25%">15. Federal</th>
-                            <th width="25%">16. Estatal</th>
-                            <th width="25%">17. Municipal</th>
-                            <th width="25%">18. Otros</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="input-group">
-                                    <span class="input-group-text border-0 bg-transparent">$</span>
-                                    <input type="number" step="0.01" name="monto_federal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_federal'] : ''; ?>">
-                                </div>
-                            </td>
-                            <td>
-                                <div class="input-group">
-                                    <span class="input-group-text border-0 bg-transparent">$</span>
-                                    <input type="number" step="0.01" name="monto_estatal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_estatal'] : ''; ?>">
-                                </div>
-                            </td>
-                            <td>
-                                <div class="input-group">
-                                    <span class="input-group-text border-0 bg-transparent">$</span>
-                                    <input type="number" step="0.01" name="monto_municipal" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_municipal'] : ''; ?>">
-                                </div>
-                            </td>
-                            <td>
-                                <div class="input-group">
-                                    <span class="input-group-text border-0 bg-transparent">$</span>
-                                    <input type="number" step="0.01" name="monto_otros" class="form-control border-0 text-end fw-bold monto-input" placeholder="0.00" value="<?php echo $is_editing ? $proyecto['monto_otros'] : ''; ?>">
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-flex justify-content-center mt-5">
-                <div class="form-check form-switch p-3 border rounded bg-light">
-                    <input class="form-check-input" type="checkbox" role="switch" id="es_multianual" name="es_multianual" value="1" <?php echo ($is_editing && $proyecto['es_multianual']) ? 'checked' : ''; ?>>
-                    <label class="form-check-label fw-bold ms-2" for="es_multianual">19. ¿Proyecto Multianual?</label>
-                </div>
-            </div>
-        </div>
-
-    </div> <!-- End Tab Content -->
-
     <!-- Action Buttons (Bottom of Sheet) -->
     <div class="mt-5 pt-4 border-top text-end">
         <a href="/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $id_programa_parent; ?>" class="btn btn-outline-secondary px-4 me-2">
@@ -456,10 +442,38 @@ $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
         // Totals
         const inputs = document.querySelectorAll('.monto-input');
         const badgeTotal = document.getElementById('badgeTotal');
+        // Validation data
+        const totalComprometido = <?php echo $total_comprometido; ?>;
+        
         function calcularTotal() {
             let total = 0;
-            inputs.forEach(input => { total += parseFloat(input.value) || 0; });
+            inputs.forEach(input => { total += parseFloat(input.value.replace(/,/g, '')) || 0; });
             badgeTotal.textContent = '$' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            // Check if total is less than committed
+            const container = badgeTotal.closest('.p-4'); // Container div
+            const warningId = 'warning-budget-low';
+            let warningEl = document.getElementById(warningId);
+            
+            if (total < totalComprometido) {
+                badgeTotal.classList.remove('text-secondary');
+                badgeTotal.classList.add('text-danger', 'border-danger');
+                
+                if (!warningEl) {
+                    warningEl = document.createElement('div');
+                    warningEl.id = warningId;
+                    warningEl.className = 'alert alert-danger mt-3 mb-0';
+                    warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Precaución:</strong> El presupuesto total ($${total.toLocaleString('es-MX')}) es menor a la suma de FUAs comprometidos ($${totalComprometido.toLocaleString('es-MX')}). No podrá guardar los cambios.`;
+                    
+                    // Insert after badge container
+                    const badgeContainer = badgeTotal.parentElement;
+                    if(badgeContainer) badgeContainer.parentElement.insertBefore(warningEl, badgeContainer.nextSibling);
+                }
+            } else {
+                badgeTotal.classList.remove('text-danger', 'border-danger');
+                badgeTotal.classList.add('text-secondary'); // Default gray/dark
+                if (warningEl) warningEl.remove();
+            }
         }
         inputs.forEach(input => { input.addEventListener('input', calcularTotal); });
         calcularTotal(); // Init
@@ -514,4 +528,22 @@ $nombre_programa_parent = $prog_info['nombre'] ?? 'Desconocido';
     }
     // Init filter on load
     document.addEventListener('DOMContentLoaded', filtrarObjetivos);
+
+    function formatCurrency(input) {
+        let value = input.value.replace(/[^0-9.]/g, ''); // strip non-numeric
+        // Prevent multiple dots
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // Split integer and decimal
+        const numberParts = value.split('.');
+        const integerPart = numberParts[0];
+        const decimalPart = numberParts.length > 1 ? '.' + numberParts[1].substring(0, 2) : '';
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        input.value = formattedInteger + decimalPart;
+        // Recalculate total immediately
+        // The event listener on input will fire too, but safer to have consistent state
+    }
 </script>

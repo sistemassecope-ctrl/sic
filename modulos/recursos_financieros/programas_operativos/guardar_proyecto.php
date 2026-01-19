@@ -30,14 +30,29 @@ $id_municipio = !empty($_POST['id_municipio']) ? $_POST['id_municipio'] : null; 
 $localidad = mb_strtoupper(trim($_POST['localidad'] ?? ''));
 $impacto_proyecto = mb_strtoupper(trim($_POST['impacto_proyecto'] ?? ''));
 $num_beneficiarios = (int) ($_POST['num_beneficiarios'] ?? 0);
-$monto_federal = (float) ($_POST['monto_federal'] ?? 0);
-$monto_estatal = (float) ($_POST['monto_estatal'] ?? 0);
-$monto_municipal = (float) ($_POST['monto_municipal'] ?? 0);
-$monto_otros = (float) ($_POST['monto_otros'] ?? 0);
+$monto_federal = (float) str_replace(',', '', $_POST['monto_federal'] ?? '0');
+$monto_estatal = (float) str_replace(',', '', $_POST['monto_estatal'] ?? '0');
+$monto_municipal = (float) str_replace(',', '', $_POST['monto_municipal'] ?? '0');
+$monto_otros = (float) str_replace(',', '', $_POST['monto_otros'] ?? '0');
 $es_multianual = isset($_POST['es_multianual']) ? 1 : 0;
+
+// --- VALIDATION: Ensure New Budget >= Committed Amount (FUAs) ---
+if ($id_proyecto) {
+    $stmtComprometido = $db->prepare("SELECT SUM(importe) as total_comprometido FROM fuas WHERE id_proyecto = ? AND estatus != 'CANCELADO'");
+    $stmtComprometido->execute([$id_proyecto]);
+    $comprometido = $stmtComprometido->fetch(PDO::FETCH_ASSOC);
+    $total_comprometido = (float) ($comprometido['total_comprometido'] ?? 0);
+
+    $nuevo_total = $monto_federal + $monto_estatal + $monto_municipal + $monto_otros;
+
+    if ($nuevo_total < $total_comprometido) {
+        die("Error de Validación: El nuevo presupuesto total ($" . number_format($nuevo_total, 2) . ") no puede ser menor a la suma de FUAs comprometidos ($" . number_format($total_comprometido, 2) . "). Por favor ajuste los montos.");
+    }
+}
 
 try {
     if ($id_proyecto) {
+
         // UPDATE
         $sql = "UPDATE proyectos_obra SET
             nombre_proyecto = ?, 

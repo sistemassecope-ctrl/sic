@@ -215,3 +215,48 @@ if ($id_proyecto) {
         </div>
     </div>
 </div>
+
+<div class="fixed-bottom bg-white shadow-lg border-top p-3" style="z-index: 1050;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" class="form-control bg-light border-0 ps-2" id="searchFUA" placeholder="Buscar FUA (Folio, Proyecto...)" onkeyup="filterTable()">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterTable() {
+        var input = document.getElementById("searchFUA");
+        var filter = input.value.toUpperCase();
+        var table = document.querySelector(".table");
+        var tr = table.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) { // Start at 1 to skip header
+            var found = false;
+            // Search in ID (0), Folio (1), and Project (2) columns
+            var columns = [0, 1, 2];
+
+            for (var j = 0; j < columns.length; j++) {
+                var td = tr[i].getElementsByTagName("td")[columns[j]];
+                if (td) {
+                    var txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (found) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+</script>
