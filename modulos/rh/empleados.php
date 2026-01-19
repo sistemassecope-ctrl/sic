@@ -38,11 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $dependencia_id = $_POST['dependencia_id'] ?: null;
                 $fecha_ingreso = $_POST['fecha_ingreso'] ?: null;
                 $salario = $_POST['salario'] ?: 0.00;
-                
+
                 // Obtener RFC y CURP del formulario
                 $rfc = $_POST['rfc'] ?? '';
                 $curp = $_POST['curp'] ?? '';
-                
+
                 // Nuevos campos agregados
                 $foto = $_POST['foto'] ?? null;
                 $categoria = $_POST['categoria'] ?? null;
@@ -78,19 +78,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $nombramiento = $_POST['nombramiento'] ?? null;
                 $puesto_finanzas = $_POST['puesto_finanzas'] ?? null;
                 $adscripcion_finanzas = $_POST['adscripcion_finanzas'] ?? null;
-                
+
                 // Mapear genero al campo sexo para compatibilidad con DB
                 $sexo = null;
-                if ($genero == 'Hombre') $sexo = 'Masculino';
-                if ($genero == 'Mujer') $sexo = 'Femenino';
-                
+                if ($genero == 'Hombre')
+                    $sexo = 'Masculino';
+                if ($genero == 'Mujer')
+                    $sexo = 'Femenino';
+
                 try {
                     file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Iniciando transacción para agregar empleado\n", FILE_APPEND);
                     $pdo->beginTransaction();
-                    
+
                     // Concatenar apellidos para la columna apellido
                     $apellido = trim($apellido_paterno . ' ' . $apellido_materno);
-                    
+
                     // Insert dinámico según columnas existentes en producción
                     $colsStmt = $pdo->query("SHOW COLUMNS FROM empleados");
                     $colsArr = $colsStmt ? $colsStmt->fetchAll(PDO::FETCH_COLUMN) : [];
@@ -172,9 +174,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $sql = 'INSERT INTO empleados (' . implode(', ', $insertCols) . ') VALUES (' . implode(', ', $placeholders) . ')';
                     $stmt = $pdo->prepare($sql);
                     $stmt->execute($values);
-                    
+
                     $empleado_id = $pdo->lastInsertId();
-                    
+
                     // Confirmar empleado creado
                     $pdo->commit();
 
@@ -203,17 +205,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Error creando usuario (no crítico): " . $eUsr->getMessage() . "\n", FILE_APPEND);
                     }
                     file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Transacción completada exitosamente\n", FILE_APPEND);
-                    
+
                     // Registrar auditoría
                     logActivity('empleado_agregado', "Empleado agregado: $nombres $apellido_paterno $apellido_materno (ID: $empleado_id)", $_SESSION['user_id']);
-                    
+
                 } catch (Exception $e) {
                     file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Error en transacción: " . $e->getMessage() . "\n", FILE_APPEND);
                     $pdo->rollBack();
                     file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Error al crear empleado y usuario: " . $e->getMessage() . "\n", FILE_APPEND);
                 }
                 break;
-                
+
             case 'editar':
                 $id = $_POST['id'];
                 $numero_empleado = $_POST['numero_empleado'];
@@ -231,11 +233,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $dependencia_id = $_POST['dependencia_id'] ?: null;
                 $fecha_ingreso = $_POST['fecha_ingreso'] ?: null;
                 $salario = $_POST['salario'] ?: 0.00;
-                
+
                 // Obtener RFC y CURP del formulario
                 $rfc = $_POST['rfc'] ?? '';
                 $curp = $_POST['curp'] ?? '';
-                
+
                 // Nuevos campos agregados
                 $foto = $_POST['foto'] ?? null;
                 $categoria = $_POST['categoria'] ?? null;
@@ -271,12 +273,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $nombramiento = $_POST['nombramiento'] ?? null;
                 $puesto_finanzas = $_POST['puesto_finanzas'] ?? null;
                 $adscripcion_finanzas = $_POST['adscripcion_finanzas'] ?? null;
-                
+
                 // Mapear genero al campo sexo para compatibilidad con DB
                 $sexo = null;
-                if ($genero == 'Hombre') $sexo = 'Masculino';
-                if ($genero == 'Mujer') $sexo = 'Femenino';
-                
+                if ($genero == 'Hombre')
+                    $sexo = 'Masculino';
+                if ($genero == 'Mujer')
+                    $sexo = 'Femenino';
+
                 // Procesar foto
                 $nombre_foto = null;
                 if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
@@ -288,16 +292,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         exit;
                     }
                 }
-                
+
                 try {
                     $pdo->beginTransaction();
-                    
+
                     // Concatenar apellidos para la columna apellido
                     $apellido = trim($apellido_paterno . ' ' . $apellido_materno);
-                    
+
                     // Usar nombre de foto si existe, de lo contrario la existente
                     $foto_final = $nombre_foto ? $nombre_foto : $foto;
-                    
+
                     // UPDATE dinámico según columnas existentes
                     $colsStmt = $pdo->query("SHOW COLUMNS FROM empleados");
                     $colsArr = $colsStmt ? $colsStmt->fetchAll(PDO::FETCH_COLUMN) : [];
@@ -361,14 +365,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $sets = [];
                     $params = [];
                     foreach ($fieldMap as $col => $val) {
-                        if (isset($colsSet[$col])) { $sets[] = "$col = ?"; $params[] = $val; }
+                        if (isset($colsSet[$col])) {
+                            $sets[] = "$col = ?";
+                            $params[] = $val;
+                        }
                     }
-                    if (empty($sets)) { throw new Exception('No hay columnas para actualizar en empleados'); }
+                    if (empty($sets)) {
+                        throw new Exception('No hay columnas para actualizar en empleados');
+                    }
                     $sql = 'UPDATE empleados SET ' . implode(', ', $sets) . ' WHERE id = ?';
                     $params[] = $id;
                     $stmt = $pdo->prepare($sql);
                     $stmt->execute($params);
-                    
+
                     // Sincronizar usuario vinculado al empleado
                     try {
                         $datosEmpleado = [
@@ -393,24 +402,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     } catch (Throwable $eSync) {
                         file_put_contents('debug.log', date('Y-m-d H:i:s') . " - Error sincronizando usuario en editar: " . $eSync->getMessage() . "\n", FILE_APPEND);
                     }
-                    
+
                     $pdo->commit();
-                    
+
                     // Registrar auditoría
                     logActivity('empleado_editado', "Empleado editado: ID $id", $_SESSION['user_id']);
-                    
+
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     error_log("Error al actualizar empleado y usuario: " . $e->getMessage());
                 }
                 break;
-                
+
             case 'eliminar':
                 $id = $_POST['id'];
                 $sql = "UPDATE empleados SET activo = FALSE WHERE id = ?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$id]);
-                
+
                 // Registrar auditoría
                 logActivity('empleado_eliminado', "Empleado eliminado: ID $id", $_SESSION['user_id']);
                 break;
@@ -422,35 +431,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Obtener estadísticas
-function procesarFoto($archivo, $nombre_archivo = null) {
+function procesarFoto($archivo, $nombre_archivo = null)
+{
     if (!isset($archivo) || $archivo['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-    
+
     // Validar tipo de archivo
     $tipos_permitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!in_array($archivo['type'], $tipos_permitidos)) {
         throw new Exception('Tipo de archivo no permitido. Solo se permiten JPG, PNG, GIF y WebP.');
     }
-    
+
     // Validar tamaño (máximo 5MB)
     if ($archivo['size'] > 5 * 1024 * 1024) {
         throw new Exception('El archivo es demasiado grande. Máximo 5MB.');
     }
-    
+
     // Generar nombre único si no se proporciona
     if (!$nombre_archivo) {
         $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
         $nombre_archivo = uniqid('foto_') . '_' . time() . '.' . $extension;
     }
-    
+
     $ruta_destino = '../../fotos_empleados/' . $nombre_archivo;
-    
+
     // Crear directorio si no existe
     if (!is_dir('../../fotos_empleados')) {
         mkdir('../../fotos_empleados', 0755, true);
     }
-    
+
     // Mover archivo
     if (move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
         return $nombre_archivo;
@@ -459,36 +469,38 @@ function procesarFoto($archivo, $nombre_archivo = null) {
     }
 }
 
-function eliminarFoto($nombre_archivo) {
+function eliminarFoto($nombre_archivo)
+{
     if ($nombre_archivo && file_exists('../../fotos_empleados/' . $nombre_archivo)) {
         unlink('../../fotos_empleados/' . $nombre_archivo);
     }
 }
 
-function obtenerEstadisticasEmpleados() {
+function obtenerEstadisticasEmpleados()
+{
     global $pdo;
     $stats = [];
-    
+
     // Total empleados
     $sql = "SELECT COUNT(*) as total FROM empleados WHERE activo = TRUE";
     $stmt = $pdo->query($sql);
     $stats['total'] = $stmt->fetch()['total'];
-    
+
     // Por género
     $sql = "SELECT genero, COUNT(*) as cantidad FROM empleados WHERE activo = TRUE GROUP BY genero";
     $stmt = $pdo->query($sql);
     $stats['por_genero'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Por dependencia
-            $sql = "SELECT d.nombre, COUNT(*) as cantidad 
+    $sql = "SELECT d.nombre, COUNT(*) as cantidad 
             FROM empleados e 
-            LEFT JOIN areas d ON e.dependencia_id = d.id 
+            LEFT JOIN area d ON e.dependencia_id = d.id 
             WHERE e.activo = TRUE 
             GROUP BY d.nombre 
             ORDER BY cantidad DESC";
     $stmt = $pdo->query($sql);
     $stats['por_dependencia'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     return $stats;
 }
 
@@ -512,7 +524,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
         <p class="mb-0"><small>El usuario puede cambiar su contraseña desde el módulo de usuarios del sistema.</small></p>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>';
-    
+
     // Limpiar las variables de sesión
     unset($_SESSION['password_temp']);
     unset($_SESSION['email_temp']);
@@ -522,6 +534,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -533,11 +546,13 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             position: relative;
             margin-bottom: 20px;
         }
+
         .search-input-group .form-control {
             border-radius: 20px 0 0 20px;
             border: 2px solid #e9ecef;
             padding-left: 15px;
         }
+
         .search-input-group .btn {
             border-radius: 0 20px 20px 0;
             border: 2px solid #ffc107;
@@ -545,71 +560,83 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             color: white;
             border-left: none;
         }
+
         .search-input-group .btn:hover {
             background: linear-gradient(135deg, #ff8c00, #ffc107);
         }
+
         .no-results {
             text-align: center;
             padding: 40px;
             color: #6c757d;
             font-style: italic;
         }
+
         .stats-card {
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
         }
+
         .table-responsive {
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         .modal-header {
             background: linear-gradient(135deg, #007bff, #0056b3);
             color: white;
         }
+
         .btn-primary {
             background: linear-gradient(135deg, #007bff, #0056b3);
             border: none;
         }
+
         .btn-warning {
             background: linear-gradient(135deg, #ffc107, #ff8c00);
             border: none;
         }
+
         .btn-danger {
             background: linear-gradient(135deg, #dc3545, #c82333);
             border: none;
         }
-        
+
         /* Estilos para los resultados de búsqueda */
-        #resultadosPuesto, #resultadosDependencia {
+        #resultadosPuesto,
+        #resultadosDependencia {
             border: 1px solid #dee2e6;
             border-radius: 0.375rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
             background: white;
         }
-        
-        #resultadosPuesto .list-group-item, #resultadosDependencia .list-group-item {
+
+        #resultadosPuesto .list-group-item,
+        #resultadosDependencia .list-group-item {
             border: none;
             border-bottom: 1px solid #dee2e6;
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        
-        #resultadosPuesto .list-group-item:hover, #resultadosDependencia .list-group-item:hover {
+
+        #resultadosPuesto .list-group-item:hover,
+        #resultadosDependencia .list-group-item:hover {
             background-color: #f8f9fa;
         }
-        
-        #resultadosPuesto .list-group-item:last-child, #resultadosDependencia .list-group-item:last-child {
+
+        #resultadosPuesto .list-group-item:last-child,
+        #resultadosDependencia .list-group-item:last-child {
             border-bottom: none;
         }
-        
+
         /* Estilos para la foto del empleado */
         .photo-container {
             position: relative;
             display: inline-block;
             margin: 20px 0;
         }
-        
+
         .photo-placeholder {
             width: 150px;
             height: 150px;
@@ -623,12 +650,12 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .photo-placeholder:hover {
             border-color: #007bff;
             background-color: #e3f2fd;
         }
-        
+
         .photo-input {
             position: absolute;
             top: 0;
@@ -639,21 +666,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             cursor: pointer;
             border-radius: 50%;
         }
-        
+
         .photo-preview {
             position: relative;
             display: inline-block;
         }
-        
+
         .employee-photo {
             width: 150px;
             height: 150px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid #007bff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         .photo-remove-btn {
             position: absolute;
             top: -5px;
@@ -667,18 +694,18 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             justify-content: center;
             z-index: 10;
         }
-        
+
         /* Estilos para ficha laboral */
         .ficha-laboral {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         /* Modal responsivo en móvil */
         #modalFichaLaboral .modal-dialog {
             margin: 10px;
             max-width: calc(100% - 20px);
         }
-        
+
         #modalFichaLaboral .modal-body {
             max-height: calc(100vh - 200px);
             overflow-y: auto;
@@ -686,26 +713,26 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             -webkit-overflow-scrolling: touch;
             padding: 15px;
         }
-        
+
         @media (max-width: 768px) {
             #modalFichaLaboral .modal-dialog {
                 margin: 0;
                 max-width: 100%;
                 height: 100vh;
             }
-            
+
             #modalFichaLaboral .modal-content {
                 height: 100vh;
                 border-radius: 0;
                 display: flex;
                 flex-direction: column;
             }
-            
+
             #modalFichaLaboral .modal-header {
                 flex-shrink: 0;
                 padding: 15px;
             }
-            
+
             #modalFichaLaboral .modal-body {
                 flex: 1;
                 overflow-y: auto;
@@ -713,52 +740,52 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 max-height: calc(100vh - 140px);
                 padding: 10px;
             }
-            
+
             #modalFichaLaboral .modal-footer {
                 flex-shrink: 0;
                 padding: 10px;
             }
-            
+
             .ficha-laboral-print {
                 padding: 10px;
             }
-            
+
             .ficha-section {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
             }
-            
+
             .ficha-section table {
                 min-width: 600px;
                 width: max-content;
             }
-            
+
             .ficha-label {
                 min-width: 120px;
                 width: auto;
                 white-space: nowrap;
             }
-            
+
             .ficha-value {
                 min-width: 100px;
                 width: auto;
             }
         }
-        
+
         /* Contenedor para tablas con scroll horizontal en móvil */
         .table-responsive-ficha {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             margin: 10px 0;
         }
-        
+
         @media (max-width: 768px) {
             .table-responsive-ficha {
                 display: block;
                 width: 100%;
             }
         }
-        
+
         .ficha-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -766,51 +793,51 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             border-radius: 10px 10px 0 0;
             margin-bottom: 20px;
         }
-        
+
         .ficha-section {
             margin-bottom: 25px;
             page-break-inside: avoid;
         }
-        
+
         .ficha-section h5 {
             color: #667eea;
             border-bottom: 2px solid #667eea;
             padding-bottom: 8px;
             margin-bottom: 15px;
         }
-        
+
         .ficha-section table {
             width: 100%;
             border-collapse: collapse;
             margin: 10px 0;
         }
-        
+
         .ficha-row {
             page-break-inside: avoid;
         }
-        
+
         .ficha-row td {
             padding: 8px 12px;
             border-bottom: 1px solid #e9ecef;
             vertical-align: top;
         }
-        
+
         .ficha-label {
             font-weight: 600;
             color: #495057;
             width: 35%;
             background-color: #f8f9fa;
         }
-        
+
         .ficha-value {
             color: #212529;
             width: 15%;
         }
-        
+
         .ficha-value[colspan="3"] {
             width: 65%;
         }
-        
+
         .ficha-photo {
             width: 150px;
             height: 150px;
@@ -820,35 +847,35 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             margin: 0 auto 20px;
             display: block;
         }
-        
+
         @media (max-width: 480px) {
             .ficha-photo {
                 width: 100px;
                 height: 100px;
             }
-            
+
             .ficha-section h5 {
                 font-size: 1rem;
             }
-            
+
             .ficha-row td {
                 padding: 6px 8px;
                 font-size: 0.9rem;
             }
-            
+
             .ficha-label {
                 font-size: 0.85rem;
             }
-            
+
             .ficha-value {
                 font-size: 0.85rem;
             }
         }
-        
+
         .empleado-row:hover {
             background-color: #f8f9fa;
         }
-        
+
         /* Botón de compartir */
         .btn-compartir {
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -859,17 +886,17 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .btn-compartir:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        
+
         .dropdown-compartir {
             position: relative;
             display: inline-block;
         }
-        
+
         .dropdown-menu-compartir {
             display: none;
             position: absolute;
@@ -877,17 +904,17 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             bottom: 100%;
             background: white;
             min-width: 200px;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
             padding: 8px;
             z-index: 1000;
             margin-bottom: 5px;
         }
-        
+
         .dropdown-menu-compartir.show {
             display: block;
         }
-        
+
         .dropdown-menu-compartir a {
             display: block;
             padding: 10px 15px;
@@ -896,57 +923,58 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             border-radius: 4px;
             transition: background 0.2s;
         }
-        
+
         .dropdown-menu-compartir a:hover {
             background: #f8f9fa;
         }
-        
+
         .dropdown-menu-compartir a i {
             margin-right: 8px;
             width: 20px;
         }
-        
+
         @media (max-width: 768px) {
             .dropdown-menu-compartir {
                 right: 0;
                 left: auto;
                 min-width: 180px;
             }
-            
+
             .btn-compartir {
                 font-size: 0.85rem;
                 padding: 6px 12px;
             }
         }
-        
+
         /* Estilos para impresión - Nota: La impresión se realiza desde ver_ficha_laboral.php */
         @media print {
+
             /* Estos estilos son solo como respaldo si se imprime desde el modal */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
-            
+
             @page {
                 size: letter portrait;
                 margin: 0.5in;
             }
-            
+
             body {
                 background: white !important;
             }
-            
+
             .navbar,
             .sidebar,
-            .container-fluid > *:not(#modalFichaLaboral),
+            .container-fluid>*:not(#modalFichaLaboral),
             .modal-backdrop,
             .modal-header,
             .modal-footer,
             .no-print {
                 display: none !important;
             }
-            
+
             #modalFichaLaboral {
                 display: block !important;
                 position: absolute !important;
@@ -956,37 +984,37 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            
+
             .modal-dialog {
                 max-width: 100% !important;
                 margin: 0 !important;
             }
-            
+
             .modal-content {
                 border: none !important;
                 box-shadow: none !important;
             }
-            
+
             .modal-body {
                 padding: 0 !important;
             }
-            
+
             .ficha-laboral-print {
                 display: block !important;
                 visibility: visible !important;
             }
-            
+
             .ficha-laboral-print * {
                 visibility: visible !important;
             }
-            
+
             .ficha-laboral-print .text-center {
                 text-align: center !important;
                 border-bottom: 3px solid #000 !important;
                 padding-bottom: 15pt !important;
                 margin-bottom: 20pt !important;
             }
-            
+
             .ficha-laboral-print h3 {
                 font-size: 18pt !important;
                 font-weight: bold !important;
@@ -994,12 +1022,12 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 color: #000 !important;
                 page-break-after: avoid !important;
             }
-            
+
             .ficha-laboral-print .text-muted {
                 color: #333 !important;
                 font-size: 10pt !important;
             }
-            
+
             .ficha-laboral-print .ficha-photo {
                 width: 120px !important;
                 height: 120px !important;
@@ -1013,7 +1041,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 max-width: 120px !important;
                 max-height: 120px !important;
             }
-            
+
             /* Asegurar que las imágenes se impriman */
             .ficha-laboral-print img {
                 display: block !important;
@@ -1022,7 +1050,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            
+
             .ficha-section {
                 margin-bottom: 25pt !important;
                 page-break-inside: avoid !important;
@@ -1031,7 +1059,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 border-radius: 0 !important;
                 background: white !important;
             }
-            
+
             .ficha-section h5 {
                 font-size: 14pt !important;
                 font-weight: bold !important;
@@ -1042,37 +1070,37 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 margin-top: 0 !important;
                 page-break-after: avoid !important;
             }
-            
+
             .ficha-section h5 i {
                 margin-right: 6pt !important;
             }
-            
+
             .ficha-section table {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 margin: 0 !important;
                 border: 1px solid #ccc !important;
             }
-            
+
             .ficha-section table tr:first-child td {
                 border-top: none !important;
             }
-            
+
             .ficha-row {
                 page-break-inside: avoid !important;
             }
-            
+
             .ficha-row td {
                 padding: 7pt 10pt !important;
                 border-bottom: 1px solid #ddd !important;
                 border-right: 1px solid #ddd !important;
                 vertical-align: top !important;
             }
-            
+
             .ficha-row td:last-child {
                 border-right: none !important;
             }
-            
+
             .ficha-label {
                 font-weight: 600 !important;
                 color: #000 !important;
@@ -1082,87 +1110,89 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            
+
             .ficha-value {
                 color: #000 !important;
                 width: 15% !important;
                 font-size: 10pt !important;
             }
-            
+
             .ficha-value[colspan="3"] {
                 width: 65% !important;
             }
-            
+
             .row {
                 margin: 0 !important;
                 display: block !important;
             }
-            
+
             .col-md-6 {
                 width: 100% !important;
                 float: none !important;
                 margin-bottom: 15pt !important;
                 page-break-inside: avoid !important;
             }
-            
+
             .ficha-laboral-print .border-top {
                 border-top: 2px solid #333 !important;
                 margin-top: 20pt !important;
                 padding-top: 10pt !important;
             }
-            
+
             .ficha-laboral-print small {
                 font-size: 9pt !important;
                 color: #666 !important;
             }
-            
+
             .mb-4 {
                 margin-bottom: 15pt !important;
             }
-            
+
             .mb-2 {
                 margin-bottom: 8pt !important;
             }
-            
+
             .mt-4 {
                 margin-top: 15pt !important;
             }
-            
+
             .pt-4 {
                 padding-top: 15pt !important;
             }
-            
+
             /* Evitar saltos de página en lugares inadecuados */
             .ficha-section:first-child {
                 page-break-before: auto !important;
             }
-            
+
             .ficha-row:first-child {
                 page-break-before: auto !important;
             }
-            
+
             /* Asegurar que los iconos no se impriman como imágenes rotas */
-            .fas, .fa, i {
+            .fas,
+            .fa,
+            i {
                 font-family: "Font Awesome 6 Free" !important;
             }
-            
+
             @page {
                 size: letter portrait;
                 margin: 0.5in;
             }
-            
+
             /* Para múltiples páginas */
             .ficha-section {
                 orphans: 3;
                 widows: 3;
             }
         }
-        
+
         @media (max-width: 768px) {
             .ficha-row {
                 flex-direction: column;
             }
-            
+
             .ficha-label {
                 min-width: auto;
                 margin-bottom: 5px;
@@ -1170,9 +1200,12 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
         }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
-        <?php if (!empty($password_notification)) { echo $password_notification; } ?>
+        <?php if (!empty($password_notification)) {
+            echo $password_notification;
+        } ?>
         <div class="row">
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -1203,7 +1236,9 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     <div class="col-md-3">
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
-                                <h3><?php echo count(array_filter($estadisticas['por_genero'], function($g) { return $g['genero'] == 'Hombre'; })); ?></h3>
+                                <h3><?php echo count(array_filter($estadisticas['por_genero'], function ($g) {
+                                    return $g['genero'] == 'Hombre'; })); ?>
+                                </h3>
                                 <p class="mb-0">Hombres</p>
                             </div>
                         </div>
@@ -1211,7 +1246,9 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     <div class="col-md-3">
                         <div class="card bg-warning text-white">
                             <div class="card-body text-center">
-                                <h3><?php echo count(array_filter($estadisticas['por_genero'], function($g) { return $g['genero'] == 'Mujer'; })); ?></h3>
+                                <h3><?php echo count(array_filter($estadisticas['por_genero'], function ($g) {
+                                    return $g['genero'] == 'Mujer'; })); ?>
+                                </h3>
                                 <p class="mb-0">Mujeres</p>
                             </div>
                         </div>
@@ -1231,7 +1268,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     <div class="card-body">
                         <div class="search-input-group">
                             <div class="input-group">
-                                <input type="text" id="buscarEmpleado" class="form-control" placeholder="Buscar empleado por nombre, número, RFC o CURP...">
+                                <input type="text" id="buscarEmpleado" class="form-control"
+                                    placeholder="Buscar empleado por nombre, número, RFC o CURP...">
                                 <button class="btn" type="button" onclick="limpiarBusqueda()">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -1260,29 +1298,34 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                 </thead>
                                 <tbody id="tablaEmpleados">
                                     <?php foreach ($empleados as $empleado): ?>
-                                    <tr class="empleado-row" 
-                                        data-empleado='<?php echo htmlspecialchars(json_encode($empleado), ENT_QUOTES, 'UTF-8'); ?>'
-                                        data-nombre="<?php echo strtolower($empleado['nombre_completo']); ?>" 
-                                        data-numero="<?php echo strtolower($empleado['numero_empleado']); ?>"
-                                        data-rfc="<?php echo strtolower($empleado['rfc'] ?? ''); ?>"
-                                        data-curp="<?php echo strtolower($empleado['curp'] ?? ''); ?>"
-                                        style="cursor: pointer;">
-                                        <td><?php echo htmlspecialchars($empleado['numero_empleado'] ?? ''); ?></td>
-                                        <td><?php echo htmlspecialchars($empleado['nombre_completo'] ?? ''); ?></td>
-                                        <td><?php echo htmlspecialchars($empleado['genero'] ?? ''); ?></td>
-                                        <td><?php echo htmlspecialchars($empleado['telefono_celular'] ?? ''); ?></td>
-                                        <td><?php echo htmlspecialchars($empleado['puesto_nombre'] ?? 'Sin asignar'); ?></td>
-                                        <td><?php echo htmlspecialchars($empleado['dependencia_nombre'] ?? 'Sin asignar'); ?></td>
-                                        <td><?php echo $empleado['fecha_ingreso'] ? date('d/m/Y', strtotime($empleado['fecha_ingreso'])) : 'Sin fecha'; ?></td>
-                                        <td class="text-center" onclick="event.stopPropagation();">
-                                            <button class="btn btn-sm btn-warning" onclick="editarEmpleado(<?php echo htmlspecialchars(json_encode($empleado), ENT_QUOTES, 'UTF-8'); ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="eliminarEmpleado(<?php echo $empleado['id']; ?>)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        <tr class="empleado-row"
+                                            data-empleado='<?php echo htmlspecialchars(json_encode($empleado), ENT_QUOTES, 'UTF-8'); ?>'
+                                            data-nombre="<?php echo strtolower($empleado['nombre_completo']); ?>"
+                                            data-numero="<?php echo strtolower($empleado['numero_empleado']); ?>"
+                                            data-rfc="<?php echo strtolower($empleado['rfc'] ?? ''); ?>"
+                                            data-curp="<?php echo strtolower($empleado['curp'] ?? ''); ?>"
+                                            style="cursor: pointer;">
+                                            <td><?php echo htmlspecialchars($empleado['numero_empleado'] ?? ''); ?></td>
+                                            <td><?php echo htmlspecialchars($empleado['nombre_completo'] ?? ''); ?></td>
+                                            <td><?php echo htmlspecialchars($empleado['genero'] ?? ''); ?></td>
+                                            <td><?php echo htmlspecialchars($empleado['telefono_celular'] ?? ''); ?></td>
+                                            <td><?php echo htmlspecialchars($empleado['puesto_nombre'] ?? 'Sin asignar'); ?>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($empleado['dependencia_nombre'] ?? 'Sin asignar'); ?>
+                                            </td>
+                                            <td><?php echo $empleado['fecha_ingreso'] ? date('d/m/Y', strtotime($empleado['fecha_ingreso'])) : 'Sin fecha'; ?>
+                                            </td>
+                                            <td class="text-center" onclick="event.stopPropagation();">
+                                                <button class="btn btn-sm btn-warning"
+                                                    onclick="editarEmpleado(<?php echo htmlspecialchars(json_encode($empleado), ENT_QUOTES, 'UTF-8'); ?>)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger"
+                                                    onclick="eliminarEmpleado(<?php echo $empleado['id']; ?>)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -1304,14 +1347,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 <form method="POST" enctype="multipart/form-data">
                     <div class="modal-body">
                         <input type="hidden" name="accion" value="agregar">
-                        
+
                         <!-- Foto del Empleado -->
                         <div class="row">
                             <div class="col-12 text-center mb-4">
                                 <div class="photo-container">
                                     <div id="photo_preview_container" class="photo-preview" style="display: none;">
                                         <img id="photo_preview" src="" alt="Foto del empleado" class="employee-photo">
-                                        <button type="button" class="btn btn-sm btn-danger photo-remove-btn" onclick="removePhoto()">
+                                        <button type="button" class="btn btn-sm btn-danger photo-remove-btn"
+                                            onclick="removePhoto()">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -1319,40 +1363,45 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <i class="fas fa-camera fa-3x text-muted"></i>
                                         <p class="text-muted mt-2">Foto del empleado</p>
                                     </div>
-                                    <input type="file" name="foto" id="foto" class="form-control photo-input" accept="image/*" onchange="previewPhoto(this)">
-                                    <button type="button" class="btn btn-primary btn-sm mt-2" onclick="document.getElementById('foto').click()">
+                                    <input type="file" name="foto" id="foto" class="form-control photo-input"
+                                        accept="image/*" onchange="previewPhoto(this)">
+                                    <button type="button" class="btn btn-primary btn-sm mt-2"
+                                        onclick="document.getElementById('foto').click()">
                                         <i class="fas fa-camera"></i> Seleccionar Foto
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-3">
-                                 <div class="mb-3">
-                                     <label class="form-label">Número de Empleado *</label>
-                                     <input type="number" name="numero_empleado" class="form-control" required min="1">
-                                 </div>
-                             </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Empleado *</label>
+                                    <input type="number" name="numero_empleado" class="form-control" required min="1">
+                                </div>
+                            </div>
                             <div class="col-md-3">
-                                 <div class="mb-3">
+                                <div class="mb-3">
                                     <label class="form-label">Apellido Paterno *</label>
-                                    <input type="text" name="apellido_paterno" id="apellido_paterno" class="form-control" required 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
-                                 </div>
-                             </div>
+                                    <input type="text" name="apellido_paterno" id="apellido_paterno"
+                                        class="form-control" required style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
+                                </div>
+                            </div>
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Apellido Materno</label>
-                                    <input type="text" name="apellido_materno" id="apellido_materno" class="form-control" 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+                                    <input type="text" name="apellido_materno" id="apellido_materno"
+                                        class="form-control" style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Nombre(s) *</label>
-                                    <input type="text" name="nombres" id="nombres" class="form-control" required 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+                                    <input type="text" name="nombres" id="nombres" class="form-control" required
+                                        style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
                                 </div>
                             </div>
                         </div>
@@ -1361,51 +1410,52 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Correo Electrónico *</label>
-                                    <input type="email" name="email" id="email" class="form-control" required 
-                                           placeholder="ejemplo@secope.gob.mx">
-                                    <small class="text-muted">Se creará automáticamente un usuario del sistema con este correo</small>
+                                    <input type="email" name="email" id="email" class="form-control" required
+                                        placeholder="ejemplo@secope.gob.mx">
+                                    <small class="text-muted">Se creará automáticamente un usuario del sistema con este
+                                        correo</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label class="form-label">Estado de Nacimiento</label>
-                                     <select name="estado_nacimiento" id="estado_nacimiento" class="form-control">
-                                         <option value="">Seleccionar estado...</option>
-                                         <option value="AGUASCALIENTES">Aguascalientes</option>
-                                         <option value="BAJA CALIFORNIA">Baja California</option>
-                                         <option value="BAJA CALIFORNIA SUR">Baja California Sur</option>
-                                         <option value="CAMPECHE">Campeche</option>
-                                         <option value="COAHUILA">Coahuila</option>
-                                         <option value="COLIMA">Colima</option>
-                                         <option value="CHIAPAS">Chiapas</option>
-                                         <option value="CHIHUAHUA">Chihuahua</option>
-                                         <option value="CIUDAD DE MEXICO">Ciudad de México</option>
-                                         <option value="DURANGO">Durango</option>
-                                         <option value="GUANAJUATO">Guanajuato</option>
-                                         <option value="GUERRERO">Guerrero</option>
-                                         <option value="HIDALGO">Hidalgo</option>
-                                         <option value="JALISCO">Jalisco</option>
-                                         <option value="MEXICO">México</option>
-                                         <option value="MICHOACAN">Michoacán</option>
-                                         <option value="MORELOS">Morelos</option>
-                                         <option value="NAYARIT">Nayarit</option>
-                                         <option value="NUEVO LEON">Nuevo León</option>
-                                         <option value="OAXACA">Oaxaca</option>
-                                         <option value="PUEBLA">Puebla</option>
-                                         <option value="QUERETARO">Querétaro</option>
-                                         <option value="QUINTANA ROO">Quintana Roo</option>
-                                         <option value="SAN LUIS POTOSI">San Luis Potosí</option>
-                                         <option value="SINALOA">Sinaloa</option>
-                                         <option value="SONORA">Sonora</option>
-                                         <option value="TABASCO">Tabasco</option>
-                                         <option value="TAMAULIPAS">Tamaulipas</option>
-                                         <option value="TLAXCALA">Tlaxcala</option>
-                                         <option value="VERACRUZ">Veracruz</option>
-                                         <option value="YUCATAN">Yucatán</option>
-                                         <option value="ZACATECAS">Zacatecas</option>
-                                     </select>
-                                 </div>
-                             </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Estado de Nacimiento</label>
+                                    <select name="estado_nacimiento" id="estado_nacimiento" class="form-control">
+                                        <option value="">Seleccionar estado...</option>
+                                        <option value="AGUASCALIENTES">Aguascalientes</option>
+                                        <option value="BAJA CALIFORNIA">Baja California</option>
+                                        <option value="BAJA CALIFORNIA SUR">Baja California Sur</option>
+                                        <option value="CAMPECHE">Campeche</option>
+                                        <option value="COAHUILA">Coahuila</option>
+                                        <option value="COLIMA">Colima</option>
+                                        <option value="CHIAPAS">Chiapas</option>
+                                        <option value="CHIHUAHUA">Chihuahua</option>
+                                        <option value="CIUDAD DE MEXICO">Ciudad de México</option>
+                                        <option value="DURANGO">Durango</option>
+                                        <option value="GUANAJUATO">Guanajuato</option>
+                                        <option value="GUERRERO">Guerrero</option>
+                                        <option value="HIDALGO">Hidalgo</option>
+                                        <option value="JALISCO">Jalisco</option>
+                                        <option value="MEXICO">México</option>
+                                        <option value="MICHOACAN">Michoacán</option>
+                                        <option value="MORELOS">Morelos</option>
+                                        <option value="NAYARIT">Nayarit</option>
+                                        <option value="NUEVO LEON">Nuevo León</option>
+                                        <option value="OAXACA">Oaxaca</option>
+                                        <option value="PUEBLA">Puebla</option>
+                                        <option value="QUERETARO">Querétaro</option>
+                                        <option value="QUINTANA ROO">Quintana Roo</option>
+                                        <option value="SAN LUIS POTOSI">San Luis Potosí</option>
+                                        <option value="SINALOA">Sinaloa</option>
+                                        <option value="SONORA">Sonora</option>
+                                        <option value="TABASCO">Tabasco</option>
+                                        <option value="TAMAULIPAS">Tamaulipas</option>
+                                        <option value="TLAXCALA">Tlaxcala</option>
+                                        <option value="VERACRUZ">Veracruz</option>
+                                        <option value="YUCATAN">Yucatán</option>
+                                        <option value="ZACATECAS">Zacatecas</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
@@ -1451,14 +1501,16 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">RFC</label>
-                                    <input type="text" name="rfc" id="rfc" class="form-control" placeholder="Ingresa el RFC">
+                                    <input type="text" name="rfc" id="rfc" class="form-control"
+                                        placeholder="Ingresa el RFC">
                                     <small class="text-muted">Ingresa el RFC del empleado</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">CURP</label>
-                                    <input type="text" name="curp" id="curp" class="form-control" placeholder="Ingresa el CURP">
+                                    <input type="text" name="curp" id="curp" class="form-control"
+                                        placeholder="Ingresa el CURP">
                                     <small class="text-muted">Ingresa el CURP del empleado</small>
                                 </div>
                             </div>
@@ -1469,17 +1521,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                 <div class="mb-3">
                                     <label class="form-label">Puesto de Trabajo</label>
                                     <div class="input-group">
-                                        <input type="text" id="buscarPuesto" class="form-control" placeholder="Buscar puesto..." autocomplete="off">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="limpiarBusquedaPuesto()">
+                                        <input type="text" id="buscarPuesto" class="form-control"
+                                            placeholder="Buscar puesto..." autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="limpiarBusquedaPuesto()">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
-                                    <div id="resultadosPuesto" class="list-group mt-2" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1000; width: 100%;">
+                                    <div id="resultadosPuesto" class="list-group mt-2"
+                                        style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1000; width: 100%;">
                                     </div>
                                     <select name="puesto_trabajo_id" id="selectPuesto" class="form-control mt-2">
                                         <option value="">Seleccionar puesto...</option>
                                         <?php foreach ($puestos as $puesto): ?>
-                                        <option value="<?php echo $puesto['id']; ?>"><?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
+                                            <option value="<?php echo $puesto['id']; ?>">
+                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -1488,17 +1544,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                 <div class="mb-3">
                                     <label class="form-label">Dependencia</label>
                                     <div class="input-group">
-                                        <input type="text" id="buscarDependencia" class="form-control" placeholder="Buscar dependencia..." autocomplete="off">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="limpiarBusquedaDependencia()">
+                                        <input type="text" id="buscarDependencia" class="form-control"
+                                            placeholder="Buscar dependencia..." autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="limpiarBusquedaDependencia()">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
-                                    <div id="resultadosDependencia" class="list-group mt-2" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1000; width: 100%;">
+                                    <div id="resultadosDependencia" class="list-group mt-2"
+                                        style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1000; width: 100%;">
                                     </div>
                                     <select name="dependencia_id" id="selectDependencia" class="form-control mt-2">
                                         <option value="">Seleccionar dependencia...</option>
                                         <?php foreach ($dependencias as $dependencia): ?>
-                                        <option value="<?php echo $dependencia['id']; ?>"><?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
+                                            <option value="<?php echo $dependencia['id']; ?>">
+                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -1581,7 +1641,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Horario</label>
-                                    <input type="text" name="horario" class="form-control" placeholder="Horario de trabajo">
+                                    <input type="text" name="horario" class="form-control"
+                                        placeholder="Horario de trabajo">
                                 </div>
                             </div>
                         </div>
@@ -1602,7 +1663,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Lugar de Nacimiento</label>
-                                    <input type="text" name="lugar_nacimiento" class="form-control" placeholder="Lugar de nacimiento">
+                                    <input type="text" name="lugar_nacimiento" class="form-control"
+                                        placeholder="Lugar de nacimiento">
                                 </div>
                             </div>
                         </div>
@@ -1611,7 +1673,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label">Email Institucional</label>
-                                    <input type="email" name="email_institucional" class="form-control" placeholder="Email institucional">
+                                    <input type="email" name="email_institucional" class="form-control"
+                                        placeholder="Email institucional">
                                 </div>
                             </div>
                         </div>
@@ -1620,7 +1683,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Último Grado de Estudios</label>
-                                    <input type="text" name="ultimo_grado_estudios" class="form-control" placeholder="Último grado de estudios">
+                                    <input type="text" name="ultimo_grado_estudios" class="form-control"
+                                        placeholder="Último grado de estudios">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1643,7 +1707,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <!-- Información Salarial -->
                         <div class="row">
                             <div class="col-12">
-                                <h5 class="text-primary mb-3"><i class="fas fa-money-bill-wave"></i> Información Salarial</h5>
+                                <h5 class="text-primary mb-3"><i class="fas fa-money-bill-wave"></i> Información
+                                    Salarial</h5>
                             </div>
                         </div>
 
@@ -1657,7 +1722,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Renta y Transporte</label>
-                                    <input type="number" name="renta_transporte" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="renta_transporte" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -1681,7 +1747,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fondo de Pensiones</label>
-                                    <input type="number" name="fondo_pensiones" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="fondo_pensiones" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1696,13 +1763,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Seguro Colectivo</label>
-                                    <input type="number" name="seguro_colectivo" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="seguro_colectivo" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Otros Descuentos</label>
-                                    <input type="number" name="otros_descuentos" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="otros_descuentos" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -1718,7 +1787,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Padre/Madre</label>
-                                    <input type="text" name="padre_madre" class="form-control" placeholder="Información de padre/madre">
+                                    <input type="text" name="padre_madre" class="form-control"
+                                        placeholder="Información de padre/madre">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1733,13 +1803,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Edad de los Hijos</label>
-                                    <input type="text" name="edad_hijos" class="form-control" placeholder="Edades de los hijos">
+                                    <input type="text" name="edad_hijos" class="form-control"
+                                        placeholder="Edades de los hijos">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Vulnerabilidad</label>
-                                    <input type="text" name="vulnerabilidad" class="form-control" placeholder="Vulnerabilidad">
+                                    <input type="text" name="vulnerabilidad" class="form-control"
+                                        placeholder="Vulnerabilidad">
                                 </div>
                             </div>
                         </div>
@@ -1747,7 +1819,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <!-- Información Adicional -->
                         <div class="row">
                             <div class="col-12">
-                                <h5 class="text-primary mb-3"><i class="fas fa-info-circle"></i> Información Adicional</h5>
+                                <h5 class="text-primary mb-3"><i class="fas fa-info-circle"></i> Información Adicional
+                                </h5>
                             </div>
                         </div>
 
@@ -1755,13 +1828,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Motivo</label>
-                                    <textarea name="motivo" class="form-control" rows="2" placeholder="Motivo"></textarea>
+                                    <textarea name="motivo" class="form-control" rows="2"
+                                        placeholder="Motivo"></textarea>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Discapacidad</label>
-                                    <input type="text" name="discapacidad" class="form-control" placeholder="Discapacidad">
+                                    <input type="text" name="discapacidad" class="form-control"
+                                        placeholder="Discapacidad">
                                 </div>
                             </div>
                         </div>
@@ -1770,13 +1845,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Identificación con Etnia</label>
-                                    <input type="text" name="identificacion_etnia" class="form-control" placeholder="Identificación con etnia">
+                                    <input type="text" name="identificacion_etnia" class="form-control"
+                                        placeholder="Identificación con etnia">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Obligación Civil o Mercantil</label>
-                                    <input type="text" name="obligacion_civil_mercantil" class="form-control" placeholder="Obligación civil o mercantil">
+                                    <input type="text" name="obligacion_civil_mercantil" class="form-control"
+                                        placeholder="Obligación civil o mercantil">
                                 </div>
                             </div>
                         </div>
@@ -1785,13 +1862,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Nombramiento</label>
-                                    <input type="text" name="nombramiento" class="form-control" placeholder="Nombramiento">
+                                    <input type="text" name="nombramiento" class="form-control"
+                                        placeholder="Nombramiento">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Puesto Finanzas</label>
-                                    <input type="text" name="puesto_finanzas" class="form-control" placeholder="Puesto en finanzas">
+                                    <input type="text" name="puesto_finanzas" class="form-control"
+                                        placeholder="Puesto en finanzas">
                                 </div>
                             </div>
                         </div>
@@ -1800,7 +1879,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Adscripción Finanzas</label>
-                                    <input type="text" name="adscripcion_finanzas" class="form-control" placeholder="Adscripción en finanzas">
+                                    <input type="text" name="adscripcion_finanzas" class="form-control"
+                                        placeholder="Adscripción en finanzas">
                                 </div>
                             </div>
                         </div>
@@ -1827,14 +1907,16 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <input type="hidden" name="accion" value="editar">
                         <input type="hidden" name="id" id="edit_id">
                         <input type="hidden" name="foto_actual" id="edit_foto_actual" value="">
-                        
+
                         <!-- Foto del Empleado -->
                         <div class="row">
                             <div class="col-12 text-center mb-4">
                                 <div class="photo-container">
                                     <div id="edit_photo_preview_container" class="photo-preview" style="display: none;">
-                                        <img id="edit_photo_preview" src="" alt="Foto del empleado" class="employee-photo">
-                                        <button type="button" class="btn btn-sm btn-danger photo-remove-btn" onclick="removeEditPhoto()">
+                                        <img id="edit_photo_preview" src="" alt="Foto del empleado"
+                                            class="employee-photo">
+                                        <button type="button" class="btn btn-sm btn-danger photo-remove-btn"
+                                            onclick="removeEditPhoto()">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -1842,40 +1924,46 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <i class="fas fa-camera fa-3x text-muted"></i>
                                         <p class="text-muted mt-2">Foto del empleado</p>
                                     </div>
-                                    <input type="file" name="foto" id="edit_foto" class="form-control photo-input" accept="image/*" onchange="previewEditPhoto(this)">
-                                    <button type="button" class="btn btn-primary btn-sm mt-2" onclick="document.getElementById('edit_foto').click()">
+                                    <input type="file" name="foto" id="edit_foto" class="form-control photo-input"
+                                        accept="image/*" onchange="previewEditPhoto(this)">
+                                    <button type="button" class="btn btn-primary btn-sm mt-2"
+                                        onclick="document.getElementById('edit_foto').click()">
                                         <i class="fas fa-camera"></i> Seleccionar Foto
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-3">
-                                 <div class="mb-3">
-                                     <label class="form-label">Número de Empleado *</label>
-                                     <input type="number" name="numero_empleado" id="edit_numero_empleado" class="form-control" required min="1">
-                                 </div>
-                             </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Empleado *</label>
+                                    <input type="number" name="numero_empleado" id="edit_numero_empleado"
+                                        class="form-control" required min="1">
+                                </div>
+                            </div>
                             <div class="col-md-3">
-                                 <div class="mb-3">
+                                <div class="mb-3">
                                     <label class="form-label">Apellido Paterno *</label>
-                                    <input type="text" name="apellido_paterno" id="edit_apellido_paterno" class="form-control" required 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
-                                 </div>
-                             </div>
+                                    <input type="text" name="apellido_paterno" id="edit_apellido_paterno"
+                                        class="form-control" required style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
+                                </div>
+                            </div>
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Apellido Materno</label>
-                                    <input type="text" name="apellido_materno" id="edit_apellido_materno" class="form-control" 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+                                    <input type="text" name="apellido_materno" id="edit_apellido_materno"
+                                        class="form-control" style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Nombre(s) *</label>
-                                    <input type="text" name="nombres" id="edit_nombres" class="form-control" required 
-                                           style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+                                    <input type="text" name="nombres" id="edit_nombres" class="form-control" required
+                                        style="text-transform: uppercase;"
+                                        oninput="this.value = this.value.toUpperCase()">
                                 </div>
                             </div>
                         </div>
@@ -1884,17 +1972,19 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Correo Electrónico *</label>
-                                    <input type="email" name="email" id="edit_email" class="form-control" required 
-                                           placeholder="ejemplo@secope.gob.mx">
-                                    <small class="text-muted">Se actualizará automáticamente el usuario del sistema</small>
+                                    <input type="email" name="email" id="edit_email" class="form-control" required
+                                        placeholder="ejemplo@secope.gob.mx">
+                                    <small class="text-muted">Se actualizará automáticamente el usuario del
+                                        sistema</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label class="form-label">Fecha de Nacimiento *</label>
-                                     <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento" class="form-control" required>
-                                 </div>
-                             </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Nacimiento *</label>
+                                    <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento"
+                                        class="form-control" required>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
@@ -1909,45 +1999,45 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label class="form-label">Estado de Nacimiento</label>
-                                     <select name="estado_nacimiento" id="edit_estado_nacimiento" class="form-control">
-                                         <option value="">Seleccionar estado...</option>
-                                         <option value="AGUASCALIENTES">Aguascalientes</option>
-                                         <option value="BAJA CALIFORNIA">Baja California</option>
-                                         <option value="BAJA CALIFORNIA SUR">Baja California Sur</option>
-                                         <option value="CAMPECHE">Campeche</option>
-                                         <option value="COAHUILA">Coahuila</option>
-                                         <option value="COLIMA">Colima</option>
-                                         <option value="CHIAPAS">Chiapas</option>
-                                         <option value="CHIHUAHUA">Chihuahua</option>
-                                         <option value="CIUDAD DE MEXICO">Ciudad de México</option>
-                                         <option value="DURANGO">Durango</option>
-                                         <option value="GUANAJUATO">Guanajuato</option>
-                                         <option value="GUERRERO">Guerrero</option>
-                                         <option value="HIDALGO">Hidalgo</option>
-                                         <option value="JALISCO">Jalisco</option>
-                                         <option value="MEXICO">México</option>
-                                         <option value="MICHOACAN">Michoacán</option>
-                                         <option value="MORELOS">Morelos</option>
-                                         <option value="NAYARIT">Nayarit</option>
-                                         <option value="NUEVO LEON">Nuevo León</option>
-                                         <option value="OAXACA">Oaxaca</option>
-                                         <option value="PUEBLA">Puebla</option>
-                                         <option value="QUERETARO">Querétaro</option>
-                                         <option value="QUINTANA ROO">Quintana Roo</option>
-                                         <option value="SAN LUIS POTOSI">San Luis Potosí</option>
-                                         <option value="SINALOA">Sinaloa</option>
-                                         <option value="SONORA">Sonora</option>
-                                         <option value="TABASCO">Tabasco</option>
-                                         <option value="TAMAULIPAS">Tamaulipas</option>
-                                         <option value="TLAXCALA">Tlaxcala</option>
-                                         <option value="VERACRUZ">Veracruz</option>
-                                         <option value="YUCATAN">Yucatán</option>
-                                         <option value="ZACATECAS">Zacatecas</option>
-                                     </select>
-                                 </div>
-                             </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Estado de Nacimiento</label>
+                                    <select name="estado_nacimiento" id="edit_estado_nacimiento" class="form-control">
+                                        <option value="">Seleccionar estado...</option>
+                                        <option value="AGUASCALIENTES">Aguascalientes</option>
+                                        <option value="BAJA CALIFORNIA">Baja California</option>
+                                        <option value="BAJA CALIFORNIA SUR">Baja California Sur</option>
+                                        <option value="CAMPECHE">Campeche</option>
+                                        <option value="COAHUILA">Coahuila</option>
+                                        <option value="COLIMA">Colima</option>
+                                        <option value="CHIAPAS">Chiapas</option>
+                                        <option value="CHIHUAHUA">Chihuahua</option>
+                                        <option value="CIUDAD DE MEXICO">Ciudad de México</option>
+                                        <option value="DURANGO">Durango</option>
+                                        <option value="GUANAJUATO">Guanajuato</option>
+                                        <option value="GUERRERO">Guerrero</option>
+                                        <option value="HIDALGO">Hidalgo</option>
+                                        <option value="JALISCO">Jalisco</option>
+                                        <option value="MEXICO">México</option>
+                                        <option value="MICHOACAN">Michoacán</option>
+                                        <option value="MORELOS">Morelos</option>
+                                        <option value="NAYARIT">Nayarit</option>
+                                        <option value="NUEVO LEON">Nuevo León</option>
+                                        <option value="OAXACA">Oaxaca</option>
+                                        <option value="PUEBLA">Puebla</option>
+                                        <option value="QUERETARO">Querétaro</option>
+                                        <option value="QUINTANA ROO">Quintana Roo</option>
+                                        <option value="SAN LUIS POTOSI">San Luis Potosí</option>
+                                        <option value="SINALOA">Sinaloa</option>
+                                        <option value="SONORA">Sonora</option>
+                                        <option value="TABASCO">Tabasco</option>
+                                        <option value="TAMAULIPAS">Tamaulipas</option>
+                                        <option value="TLAXCALA">Tlaxcala</option>
+                                        <option value="VERACRUZ">Veracruz</option>
+                                        <option value="YUCATAN">Yucatán</option>
+                                        <option value="ZACATECAS">Zacatecas</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -1959,30 +2049,34 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Teléfono Celular</label>
-                                    <input type="tel" name="telefono_celular" id="edit_telefono_celular" class="form-control">
+                                    <input type="tel" name="telefono_celular" id="edit_telefono_celular"
+                                        class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Teléfono Particular</label>
-                                    <input type="tel" name="telefono_particular" id="edit_telefono_particular" class="form-control">
+                                    <input type="tel" name="telefono_particular" id="edit_telefono_particular"
+                                        class="form-control">
                                 </div>
                             </div>
                         </div>
 
                         <div class="row">
-                             <div class="col-md-4">
-                                 <div class="mb-3">
-                                     <label class="form-label">RFC</label>
-                                     <input type="text" name="rfc" id="edit_rfc" class="form-control" placeholder="Ingresa el RFC">
-                                 </div>
-                             </div>
-                             <div class="col-md-4">
-                                 <div class="mb-3">
-                                     <label class="form-label">CURP</label>
-                                     <input type="text" name="curp" id="edit_curp" class="form-control" placeholder="Ingresa el CURP">
-                                 </div>
-                             </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">RFC</label>
+                                    <input type="text" name="rfc" id="edit_rfc" class="form-control"
+                                        placeholder="Ingresa el RFC">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">CURP</label>
+                                    <input type="text" name="curp" id="edit_curp" class="form-control"
+                                        placeholder="Ingresa el CURP">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
@@ -1992,7 +2086,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                     <select name="puesto_trabajo_id" id="edit_puesto_trabajo_id" class="form-control">
                                         <option value="">Seleccionar puesto...</option>
                                         <?php foreach ($puestos as $puesto): ?>
-                                        <option value="<?php echo $puesto['id']; ?>"><?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
+                                            <option value="<?php echo $puesto['id']; ?>">
+                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -2003,7 +2098,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                     <select name="dependencia_id" id="edit_dependencia_id" class="form-control">
                                         <option value="">Seleccionar dependencia...</option>
                                         <?php foreach ($dependencias as $dependencia): ?>
-                                        <option value="<?php echo $dependencia['id']; ?>"><?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
+                                            <option value="<?php echo $dependencia['id']; ?>">
+                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -2014,13 +2110,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fecha de Ingreso</label>
-                                    <input type="date" name="fecha_ingreso" id="edit_fecha_ingreso" class="form-control">
+                                    <input type="date" name="fecha_ingreso" id="edit_fecha_ingreso"
+                                        class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Salario</label>
-                                    <input type="number" name="salario" id="edit_salario" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="salario" id="edit_salario" class="form-control"
+                                        step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -2044,7 +2142,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Ingreso Oficial</label>
-                                    <input type="date" name="ingreso_oficial" id="edit_ingreso_oficial" class="form-control">
+                                    <input type="date" name="ingreso_oficial" id="edit_ingreso_oficial"
+                                        class="form-control">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -2065,13 +2164,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Sueldo Bruto</label>
-                                    <input type="number" name="sueldo_bruto" id="edit_sueldo_bruto" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="sueldo_bruto" id="edit_sueldo_bruto" class="form-control"
+                                        step="0.01" min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Sueldo Neto</label>
-                                    <input type="number" name="sueldo_neto" id="edit_sueldo_neto" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="sueldo_neto" id="edit_sueldo_neto" class="form-control"
+                                        step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -2086,7 +2187,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Horario</label>
-                                    <input type="text" name="horario" id="edit_horario" class="form-control" placeholder="Horario de trabajo">
+                                    <input type="text" name="horario" id="edit_horario" class="form-control"
+                                        placeholder="Horario de trabajo">
                                 </div>
                             </div>
                         </div>
@@ -2107,7 +2209,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Lugar de Nacimiento</label>
-                                    <input type="text" name="lugar_nacimiento" id="edit_lugar_nacimiento" class="form-control" placeholder="Lugar de nacimiento">
+                                    <input type="text" name="lugar_nacimiento" id="edit_lugar_nacimiento"
+                                        class="form-control" placeholder="Lugar de nacimiento">
                                 </div>
                             </div>
                         </div>
@@ -2116,7 +2219,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label">Email Institucional</label>
-                                    <input type="email" name="email_institucional" id="edit_email_institucional" class="form-control" placeholder="Email institucional">
+                                    <input type="email" name="email_institucional" id="edit_email_institucional"
+                                        class="form-control" placeholder="Email institucional">
                                 </div>
                             </div>
                         </div>
@@ -2125,13 +2229,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Último Grado de Estudios</label>
-                                    <input type="text" name="ultimo_grado_estudios" id="edit_ultimo_grado_estudios" class="form-control" placeholder="Último grado de estudios">
+                                    <input type="text" name="ultimo_grado_estudios" id="edit_ultimo_grado_estudios"
+                                        class="form-control" placeholder="Último grado de estudios">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Profesión</label>
-                                    <input type="text" name="profesion" id="edit_profesion" class="form-control" placeholder="Profesión">
+                                    <input type="text" name="profesion" id="edit_profesion" class="form-control"
+                                        placeholder="Profesión">
                                 </div>
                             </div>
                         </div>
@@ -2140,7 +2246,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label">P01</label>
-                                    <input type="text" name="p01" id="edit_p01" class="form-control" placeholder="Código P01">
+                                    <input type="text" name="p01" id="edit_p01" class="form-control"
+                                        placeholder="Código P01">
                                 </div>
                             </div>
                         </div>
@@ -2148,7 +2255,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <!-- Información Salarial -->
                         <div class="row">
                             <div class="col-12">
-                                <h5 class="text-primary mb-3"><i class="fas fa-money-bill-wave"></i> Información Salarial</h5>
+                                <h5 class="text-primary mb-3"><i class="fas fa-money-bill-wave"></i> Información
+                                    Salarial</h5>
                             </div>
                         </div>
 
@@ -2156,13 +2264,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Bono por Desempeño</label>
-                                    <input type="number" name="bono_desempeno" id="edit_bono_desempeno" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="bono_desempeno" id="edit_bono_desempeno"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Renta y Transporte</label>
-                                    <input type="number" name="renta_transporte" id="edit_renta_transporte" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="renta_transporte" id="edit_renta_transporte"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -2171,13 +2281,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Otros Ingresos</label>
-                                    <input type="number" name="otros_ingresos" id="edit_otros_ingresos" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="otros_ingresos" id="edit_otros_ingresos"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">ISR</label>
-                                    <input type="number" name="isr" id="edit_isr" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="isr" id="edit_isr" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -2186,13 +2298,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fondo de Pensiones</label>
-                                    <input type="number" name="fondo_pensiones" id="edit_fondo_pensiones" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="fondo_pensiones" id="edit_fondo_pensiones"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">ISSSTE</label>
-                                    <input type="number" name="issste" id="edit_issste" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="issste" id="edit_issste" class="form-control" step="0.01"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -2201,13 +2315,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Seguro Colectivo</label>
-                                    <input type="number" name="seguro_colectivo" id="edit_seguro_colectivo" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="seguro_colectivo" id="edit_seguro_colectivo"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Otros Descuentos</label>
-                                    <input type="number" name="otros_descuentos" id="edit_otros_descuentos" class="form-control" step="0.01" min="0">
+                                    <input type="number" name="otros_descuentos" id="edit_otros_descuentos"
+                                        class="form-control" step="0.01" min="0">
                                 </div>
                             </div>
                         </div>
@@ -2223,13 +2339,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Padre/Madre</label>
-                                    <input type="text" name="padre_madre" id="edit_padre_madre" class="form-control" placeholder="Información de padre/madre">
+                                    <input type="text" name="padre_madre" id="edit_padre_madre" class="form-control"
+                                        placeholder="Información de padre/madre">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Número de Hijos</label>
-                                    <input type="number" name="numero_hijos" id="edit_numero_hijos" class="form-control" min="0">
+                                    <input type="number" name="numero_hijos" id="edit_numero_hijos" class="form-control"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -2238,13 +2356,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Edad de los Hijos</label>
-                                    <input type="text" name="edad_hijos" id="edit_edad_hijos" class="form-control" placeholder="Edades de los hijos">
+                                    <input type="text" name="edad_hijos" id="edit_edad_hijos" class="form-control"
+                                        placeholder="Edades de los hijos">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Vulnerabilidad</label>
-                                    <input type="text" name="vulnerabilidad" id="edit_vulnerabilidad" class="form-control" placeholder="Vulnerabilidad">
+                                    <input type="text" name="vulnerabilidad" id="edit_vulnerabilidad"
+                                        class="form-control" placeholder="Vulnerabilidad">
                                 </div>
                             </div>
                         </div>
@@ -2252,7 +2372,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <!-- Información Adicional -->
                         <div class="row">
                             <div class="col-12">
-                                <h5 class="text-primary mb-3"><i class="fas fa-info-circle"></i> Información Adicional</h5>
+                                <h5 class="text-primary mb-3"><i class="fas fa-info-circle"></i> Información Adicional
+                                </h5>
                             </div>
                         </div>
 
@@ -2260,13 +2381,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Motivo</label>
-                                    <textarea name="motivo" id="edit_motivo" class="form-control" rows="2" placeholder="Motivo"></textarea>
+                                    <textarea name="motivo" id="edit_motivo" class="form-control" rows="2"
+                                        placeholder="Motivo"></textarea>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Discapacidad</label>
-                                    <input type="text" name="discapacidad" id="edit_discapacidad" class="form-control" placeholder="Discapacidad">
+                                    <input type="text" name="discapacidad" id="edit_discapacidad" class="form-control"
+                                        placeholder="Discapacidad">
                                 </div>
                             </div>
                         </div>
@@ -2275,13 +2398,16 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Identificación con Etnia</label>
-                                    <input type="text" name="identificacion_etnia" id="edit_identificacion_etnia" class="form-control" placeholder="Identificación con etnia">
+                                    <input type="text" name="identificacion_etnia" id="edit_identificacion_etnia"
+                                        class="form-control" placeholder="Identificación con etnia">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Obligación Civil o Mercantil</label>
-                                    <input type="text" name="obligacion_civil_mercantil" id="edit_obligacion_civil_mercantil" class="form-control" placeholder="Obligación civil o mercantil">
+                                    <input type="text" name="obligacion_civil_mercantil"
+                                        id="edit_obligacion_civil_mercantil" class="form-control"
+                                        placeholder="Obligación civil o mercantil">
                                 </div>
                             </div>
                         </div>
@@ -2290,13 +2416,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Nombramiento</label>
-                                    <input type="text" name="nombramiento" id="edit_nombramiento" class="form-control" placeholder="Nombramiento">
+                                    <input type="text" name="nombramiento" id="edit_nombramiento" class="form-control"
+                                        placeholder="Nombramiento">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Puesto Finanzas</label>
-                                    <input type="text" name="puesto_finanzas" id="edit_puesto_finanzas" class="form-control" placeholder="Puesto en finanzas">
+                                    <input type="text" name="puesto_finanzas" id="edit_puesto_finanzas"
+                                        class="form-control" placeholder="Puesto en finanzas">
                                 </div>
                             </div>
                         </div>
@@ -2305,7 +2433,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Adscripción Finanzas</label>
-                                    <input type="text" name="adscripcion_finanzas" id="edit_adscripcion_finanzas" class="form-control" placeholder="Adscripción en finanzas">
+                                    <input type="text" name="adscripcion_finanzas" id="edit_adscripcion_finanzas"
+                                        class="form-control" placeholder="Adscripción en finanzas">
                                 </div>
                             </div>
                         </div>
@@ -2365,20 +2494,20 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
     <script>
         // URL del sitio desde PHP
         const SITE_URL = '<?php echo defined("SITE_URL") ? SITE_URL : "https://secope.gusati.net"; ?>';
-        
+
         // Debug del formulario y configuración de event listeners
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const formAgregar = document.querySelector('#modalAgregar form');
             if (formAgregar) {
-                formAgregar.addEventListener('submit', function(e) {
+                formAgregar.addEventListener('submit', function (e) {
                     console.log('Formulario enviado');
                     console.log('Datos del formulario:', new FormData(this));
                 });
             }
-            
+
             // Event listeners para filas de empleados (mostrar ficha laboral)
             document.querySelectorAll('.empleado-row').forEach(row => {
-                row.addEventListener('click', function(e) {
+                row.addEventListener('click', function (e) {
                     // No mostrar ficha si se hace click en los botones de acción
                     if (e.target.closest('td.text-center') || e.target.closest('button')) {
                         return;
@@ -2394,24 +2523,24 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     }
                 });
             });
-            
+
             // Buscador principal de empleados
             const buscarEmpleado = document.getElementById('buscarEmpleado');
             if (buscarEmpleado) {
                 buscarEmpleado.addEventListener('input', filtrarEmpleados);
             }
-            
+
             // Event delegation para buscadores en modales (funciona con elementos dinámicos)
-            document.addEventListener('input', function(e) {
+            document.addEventListener('input', function (e) {
                 if (e.target.id === 'buscarPuesto') {
                     filtrarPuestos();
                 } else if (e.target.id === 'buscarDependencia') {
                     filtrarDependencias();
                 }
             });
-            
+
             // Ocultar resultados cuando se hace clic fuera
-            document.addEventListener('click', function(e) {
+            document.addEventListener('click', function (e) {
                 if (!e.target.closest('#buscarPuesto') && !e.target.closest('#resultadosPuesto')) {
                     const resultadosPuesto = document.getElementById('resultadosPuesto');
                     if (resultadosPuesto) {
@@ -2426,19 +2555,19 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 }
             });
         });
-        
+
         function filtrarEmpleados() {
             const busqueda = document.getElementById('buscarEmpleado').value.toLowerCase();
             const filas = document.querySelectorAll('#tablaEmpleados tr');
             let resultados = 0;
-            
+
             filas.forEach(fila => {
                 const nombre = fila.getAttribute('data-nombre') || '';
                 const numero = fila.getAttribute('data-numero') || '';
                 const rfc = fila.getAttribute('data-rfc') || '';
                 const curp = fila.getAttribute('data-curp') || '';
-                
-                if (nombre.includes(busqueda) || numero.includes(busqueda) || 
+
+                if (nombre.includes(busqueda) || numero.includes(busqueda) ||
                     rfc.includes(busqueda) || curp.includes(busqueda)) {
                     fila.style.display = '';
                     resultados++;
@@ -2446,15 +2575,15 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     fila.style.display = 'none';
                 }
             });
-            
+
             actualizarContadorResultados(resultados, filas.length);
         }
-        
+
         function limpiarBusqueda() {
             document.getElementById('buscarEmpleado').value = '';
             filtrarEmpleados();
         }
-        
+
         function actualizarContadorResultados(resultados, total) {
             const contador = document.getElementById('contadorResultados');
             if (resultados === 0 && total > 0) {
@@ -2463,28 +2592,28 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 contador.innerHTML = `Mostrando ${resultados} de ${total} empleados`;
             }
         }
-        
+
         function filtrarPuestos() {
             console.log('filtrarPuestos ejecutándose');
             const busqueda = document.getElementById('buscarPuesto').value.toLowerCase();
             console.log('Búsqueda:', busqueda);
             const resultadosDiv = document.getElementById('resultadosPuesto');
             const select = document.getElementById('selectPuesto');
-            
+
             if (busqueda.length < 2) {
                 resultadosDiv.style.display = 'none';
                 return;
             }
-            
+
             // Filtrar opciones
-            const opciones = Array.from(select.options).filter(opcion => 
+            const opciones = Array.from(select.options).filter(opcion =>
                 opcion.value !== '' && opcion.textContent.toLowerCase().includes(busqueda)
             );
             console.log('Opciones filtradas:', opciones.length);
-            
+
             if (opciones.length > 0) {
                 // Mostrar resultados filtrados
-                resultadosDiv.innerHTML = opciones.map(opcion => 
+                resultadosDiv.innerHTML = opciones.map(opcion =>
                     `<a href="#" class="list-group-item list-group-item-action" 
                         onclick="seleccionarPuesto('${opcion.value}', '${opcion.textContent.replace(/'/g, "\\'")}')">
                         ${opcion.textContent}
@@ -2496,28 +2625,28 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 resultadosDiv.style.display = 'block';
             }
         }
-        
+
         function filtrarDependencias() {
             console.log('filtrarDependencias ejecutándose');
             const busqueda = document.getElementById('buscarDependencia').value.toLowerCase();
             console.log('Búsqueda:', busqueda);
             const resultadosDiv = document.getElementById('resultadosDependencia');
             const select = document.getElementById('selectDependencia');
-            
+
             if (busqueda.length < 2) {
                 resultadosDiv.style.display = 'none';
                 return;
             }
-            
+
             // Filtrar opciones
-            const opciones = Array.from(select.options).filter(opcion => 
+            const opciones = Array.from(select.options).filter(opcion =>
                 opcion.value !== '' && opcion.textContent.toLowerCase().includes(busqueda)
             );
             console.log('Opciones filtradas:', opciones.length);
-            
+
             if (opciones.length > 0) {
                 // Mostrar resultados filtrados
-                resultadosDiv.innerHTML = opciones.map(opcion => 
+                resultadosDiv.innerHTML = opciones.map(opcion =>
                     `<a href="#" class="list-group-item list-group-item-action" 
                         onclick="seleccionarDependencia('${opcion.value}', '${opcion.textContent.replace(/'/g, "\\'")}')">
                         ${opcion.textContent}
@@ -2529,36 +2658,36 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 resultadosDiv.style.display = 'block';
             }
         }
-        
+
         function seleccionarPuesto(id, nombre) {
             document.getElementById('selectPuesto').value = id;
             document.getElementById('buscarPuesto').value = nombre;
             document.getElementById('resultadosPuesto').style.display = 'none';
         }
-        
+
         function seleccionarDependencia(id, nombre) {
             document.getElementById('selectDependencia').value = id;
             document.getElementById('buscarDependencia').value = nombre;
             document.getElementById('resultadosDependencia').style.display = 'none';
         }
-        
+
         function limpiarBusquedaPuesto() {
             document.getElementById('buscarPuesto').value = '';
             document.getElementById('selectPuesto').value = '';
             document.getElementById('resultadosPuesto').style.display = 'none';
         }
-        
+
         function limpiarBusquedaDependencia() {
             document.getElementById('buscarDependencia').value = '';
             document.getElementById('selectDependencia').value = '';
             document.getElementById('resultadosDependencia').style.display = 'none';
         }
-        
+
         // Función para mostrar ficha laboral
         function mostrarFichaLaboral(empleado) {
             const content = document.getElementById('fichaContent');
             const modal = new bootstrap.Modal(document.getElementById('modalFichaLaboral'));
-            
+
             // Función auxiliar para formatear fechas
             function formatDate(dateStr) {
                 if (!dateStr || dateStr === '0000-00-00') return 'No especificada';
@@ -2568,18 +2697,18 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 const year = date.getFullYear();
                 return `${day}/${month}/${year}`;
             }
-            
+
             // Función auxiliar para formatear moneda
             function formatCurrency(amount) {
                 if (!amount || amount === 0) return '$0.00';
                 return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
             }
-            
+
             // Función auxiliar para mostrar valor o "No especificado"
             function showValue(value, defaultValue = 'No especificado') {
                 return (value && value !== '' && value !== '0' && value !== 0) ? value : defaultValue;
             }
-            
+
             // Obtener foto del empleado
             const fotoUrl = empleado.foto ? `fotos_empleados/${empleado.foto}` : null;
             let fotoHtml = '';
@@ -2589,7 +2718,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             } else {
                 fotoHtml = '<div style="width: 120px; height: 120px; border: 3px solid #333; margin: 0 auto 15pt; display: flex; align-items: center; justify-content: center; background: #f5f5f5;"><span style="font-size: 10pt; color: #999;">Sin foto</span></div>';
             }
-            
+
             // Construir HTML de la ficha
             content.innerHTML = `
                 <div class="ficha-laboral-print" style="max-width: 100%; overflow-x: auto;">
@@ -2805,31 +2934,31 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     </div>
                 </div>
             `;
-            
+
             modal.show();
-            
+
             // Pre-cargar la imagen para asegurar que esté lista al imprimir
             if (fotoUrl) {
                 const img = new Image();
                 img.src = fotoUrl;
-                img.onload = function() {
+                img.onload = function () {
                     // Imagen cargada, lista para imprimir
                 };
-                img.onerror = function() {
+                img.onerror = function () {
                     // Si la imagen falla, no hacer nada (ya hay manejo de error en el HTML)
                 };
             }
-            
+
             // Guardar datos del empleado para compartir
             window.currentEmpleado = empleado;
             window.currentFichaContent = content.innerHTML;
         }
-        
+
         // Funciones para compartir
         function toggleCompartirMenu() {
             const menu = document.getElementById('menuCompartir');
             menu.classList.toggle('show');
-            
+
             // Cerrar al hacer clic fuera
             document.addEventListener('click', function cerrarMenu(e) {
                 if (!e.target.closest('.dropdown-compartir')) {
@@ -2838,21 +2967,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 }
             });
         }
-        
+
         function compartirPorEmail(e) {
             e.preventDefault();
             const empleado = window.currentEmpleado;
             if (!empleado || !empleado.id) return;
-            
+
             generarTokenFicha(empleado.id).then(token => {
                 const nombreCompleto = `${empleado.nombres || ''} ${empleado.apellido_paterno || ''} ${empleado.apellido_materno || ''}`.trim();
                 const linkFicha = SITE_URL + '/public/ver_ficha_laboral.php?id=' + empleado.id + '&token=' + token;
                 const asunto = encodeURIComponent(`Ficha Laboral - ${nombreCompleto}`);
                 const cuerpo = encodeURIComponent(`Estimado/a,\n\nAdjunto encontrarás el enlace seguro para ver la ficha laboral de ${nombreCompleto}.\n\nNúmero de Empleado: ${empleado.numero_empleado || 'N/A'}\n\nEnlace (válido por 7 días): ${linkFicha}\n\nSaludos cordiales.`);
-                
+
                 // Intentar abrir el cliente de correo
                 window.location.href = `mailto:?subject=${asunto}&body=${cuerpo}`;
-                
+
                 mostrarNotificacion('Se abrió tu cliente de correo con el enlace seguro de la ficha.', 'success');
             }).catch(error => {
                 console.error('Error generando token:', error);
@@ -2860,17 +2989,17 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 mostrarNotificacion(`Error al generar enlace seguro: ${error.message}. Verifica que el archivo generar_token_ficha.php esté en el servidor.`, 'danger');
             });
         }
-        
+
         function compartirPorWhatsApp(e) {
             e.preventDefault();
             const empleado = window.currentEmpleado;
             if (!empleado || !empleado.id) return;
-            
+
             generarTokenFicha(empleado.id).then(token => {
                 const nombreCompleto = `${empleado.nombres || ''} ${empleado.apellido_paterno || ''} ${empleado.apellido_materno || ''}`.trim();
                 const linkFicha = SITE_URL + '/public/ver_ficha_laboral.php?id=' + empleado.id + '&token=' + token;
                 const mensaje = encodeURIComponent(`Ficha Laboral - ${nombreCompleto}\nNúmero de Empleado: ${empleado.numero_empleado || 'N/A'}\n\nVer ficha completa (válido 7 días): ${linkFicha}`);
-                
+
                 window.open(`https://wa.me/?text=${mensaje}`, '_blank');
                 mostrarNotificacion('Abriendo WhatsApp...', 'success');
             }).catch(error => {
@@ -2879,7 +3008,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 mostrarNotificacion(`Error al generar enlace seguro: ${error.message}. Verifica que el archivo generar_token_ficha.php esté en el servidor.`, 'danger');
             });
         }
-        
+
         function descargarPDF(e) {
             e.preventDefault();
             const empleado = window.currentEmpleado;
@@ -2887,16 +3016,16 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 mostrarNotificacion('Error: No se pudo obtener la información del empleado.', 'danger');
                 return;
             }
-            
+
             mostrarNotificacion('Abriendo página para guardar como PDF...', 'info');
-            
+
             // Abrir la página de ficha en una nueva ventana
             const url = `public/ver_ficha_laboral.php?id=${empleado.id}`;
             const ventana = window.open(url, '_blank');
-            
+
             if (ventana) {
                 // Esperar a que la página cargue y luego mostrar el diálogo de impresión
-                ventana.onload = function() {
+                ventana.onload = function () {
                     setTimeout(() => {
                         ventana.print();
                         mostrarNotificacion('Usa "Guardar como PDF" en el diálogo de impresión para descargar el PDF.', 'success');
@@ -2906,12 +3035,12 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 mostrarNotificacion('Por favor, permite ventanas emergentes para generar el PDF.', 'warning');
             }
         }
-        
+
         function copiarEnlace(e) {
             e.preventDefault();
             const empleado = window.currentEmpleado;
             if (!empleado || !empleado.id) return;
-            
+
             // Generar token seguro para el enlace
             generarTokenFicha(empleado.id).then(token => {
                 const url = SITE_URL + '/public/ver_ficha_laboral.php?id=' + empleado.id + '&token=' + token;
@@ -2922,7 +3051,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 mostrarNotificacion(`Error al generar enlace seguro: ${error.message}. Verifica que el archivo generar_token_ficha.php esté en el servidor.`, 'danger');
             });
         }
-        
+
         function generarTokenFicha(empleadoId) {
             // Llamar al servidor para generar token seguro
             return fetch('api/generar_token_ficha.php', {
@@ -2933,33 +3062,33 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 credentials: 'same-origin', // Incluir cookies de sesión
                 body: JSON.stringify({ empleado_id: empleadoId })
             })
-            .then(response => {
-                return response.json().then(data => {
-                    if (!response.ok) {
-                        // Incluir información de debug si está disponible
-                        const errorMsg = data.message || `Error HTTP: ${response.status} ${response.statusText}`;
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            // Incluir información de debug si está disponible
+                            const errorMsg = data.message || `Error HTTP: ${response.status} ${response.statusText}`;
+                            const debugInfo = data.debug ? ` (Debug: ${JSON.stringify(data.debug)})` : '';
+                            throw new Error(errorMsg + debugInfo);
+                        }
+                        return data;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        return data.token;
+                    } else {
                         const debugInfo = data.debug ? ` (Debug: ${JSON.stringify(data.debug)})` : '';
-                        throw new Error(errorMsg + debugInfo);
+                        throw new Error((data.message || 'Error generando token') + debugInfo);
                     }
-                    return data;
+                })
+                .catch(error => {
+                    console.error('Error en generarTokenFicha:', error);
+                    throw error;
                 });
-            })
-            .then(data => {
-                if (data.success) {
-                    return data.token;
-                } else {
-                    const debugInfo = data.debug ? ` (Debug: ${JSON.stringify(data.debug)})` : '';
-                    throw new Error((data.message || 'Error generando token') + debugInfo);
-                }
-            })
-            .catch(error => {
-                console.error('Error en generarTokenFicha:', error);
-                throw error;
-            });
         }
-        
+
         function copiarUrlAlPortapapeles(url) {
-            
+
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(() => {
                     mostrarNotificacion('Enlace seguro copiado al portapapeles. El enlace expirará en 7 días.', 'success');
@@ -2970,7 +3099,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 fallbackCopiarEnlace(url);
             }
         }
-        
+
         function fallbackCopiarEnlace(texto) {
             const textArea = document.createElement('textarea');
             textArea.value = texto;
@@ -2986,21 +3115,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             }
             document.body.removeChild(textArea);
         }
-        
+
         function imprimirFicha() {
             const empleado = window.currentEmpleado;
             if (!empleado || !empleado.id) {
                 alert('Error: No se pudo obtener la información del empleado.');
                 return;
             }
-            
+
             // Abrir la página de ficha en una nueva ventana para imprimir
             const url = `public/ver_ficha_laboral.php?id=${empleado.id}`;
             const ventana = window.open(url, '_blank');
-            
+
             if (ventana) {
                 // Esperar a que la página cargue y luego imprimir
-                ventana.onload = function() {
+                ventana.onload = function () {
                     setTimeout(() => {
                         ventana.print();
                     }, 500);
@@ -3009,7 +3138,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 alert('Por favor, permite ventanas emergentes para imprimir la ficha.');
             }
         }
-        
+
         function mostrarNotificacion(mensaje, tipo) {
             // Crear notificación
             const alerta = document.createElement('div');
@@ -3020,7 +3149,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alerta);
-            
+
             // Auto-remover después de 3 segundos
             setTimeout(() => {
                 if (alerta.parentNode) {
@@ -3028,7 +3157,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 }
             }, 3000);
         }
-        
+
         // Funciones para editar y eliminar
         function editarEmpleado(empleado) {
             document.getElementById('edit_id').value = empleado.id;
@@ -3049,7 +3178,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             document.getElementById('edit_dependencia_id').value = empleado.dependencia_id || '';
             document.getElementById('edit_fecha_ingreso').value = empleado.fecha_ingreso || '';
             document.getElementById('edit_salario').value = empleado.salario || '';
-            
+
             // Nuevos campos
             // Manejar la foto actual
             if (empleado.foto && empleado.foto.trim() !== '') {
@@ -3057,7 +3186,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 const previewContainer = document.getElementById('edit_photo_preview_container');
                 const placeholder = document.getElementById('edit_photo_placeholder');
                 const img = document.getElementById('edit_photo_preview');
-                
+
                 img.src = 'fotos_empleados/' + empleado.foto;
                 previewContainer.style.display = 'block';
                 placeholder.style.display = 'none';
@@ -3081,7 +3210,7 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             document.getElementById('edit_profesion').value = empleado.profesion || '';
             // Sexo ya no es necesario, se mapea desde genero
             document.getElementById('edit_p01').value = empleado.p01 || '';
-            
+
             // Campos de información salarial
             document.getElementById('edit_bono_desempeno').value = empleado.bono_desempeno || '';
             document.getElementById('edit_renta_transporte').value = empleado.renta_transporte || '';
@@ -3091,13 +3220,13 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             document.getElementById('edit_issste').value = empleado.issste || '';
             document.getElementById('edit_seguro_colectivo').value = empleado.seguro_colectivo || '';
             document.getElementById('edit_otros_descuentos').value = empleado.otros_descuentos || '';
-            
+
             // Campos de información familiar
             document.getElementById('edit_padre_madre').value = empleado.padre_madre || '';
             document.getElementById('edit_numero_hijos').value = empleado.numero_hijos || '';
             document.getElementById('edit_edad_hijos').value = empleado.edad_hijos || '';
             document.getElementById('edit_vulnerabilidad').value = empleado.vulnerabilidad || '';
-            
+
             // Campos de información adicional
             document.getElementById('edit_motivo').value = empleado.motivo || '';
             document.getElementById('edit_discapacidad').value = empleado.discapacidad || '';
@@ -3106,18 +3235,18 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             document.getElementById('edit_nombramiento').value = empleado.nombramiento || '';
             document.getElementById('edit_puesto_finanzas').value = empleado.puesto_finanzas || '';
             document.getElementById('edit_adscripcion_finanzas').value = empleado.adscripcion_finanzas || '';
-            
+
             new bootstrap.Modal(document.getElementById('modalEditar')).show();
         }
-        
+
         function previewPhoto(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const previewContainer = document.getElementById('photo_preview_container');
                     const placeholder = document.getElementById('photo_placeholder');
                     const img = document.getElementById('photo_preview');
-                    
+
                     img.src = e.target.result;
                     previewContainer.style.display = 'block';
                     placeholder.style.display = 'none';
@@ -3125,21 +3254,21 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        
+
         function removePhoto() {
             document.getElementById('foto').value = '';
             document.getElementById('photo_preview_container').style.display = 'none';
             document.getElementById('photo_placeholder').style.display = 'flex';
         }
-        
+
         function previewEditPhoto(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const previewContainer = document.getElementById('edit_photo_preview_container');
                     const placeholder = document.getElementById('edit_photo_placeholder');
                     const img = document.getElementById('edit_photo_preview');
-                    
+
                     img.src = e.target.result;
                     previewContainer.style.display = 'block';
                     placeholder.style.display = 'none';
@@ -3147,13 +3276,13 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        
+
         function removeEditPhoto() {
             document.getElementById('edit_foto').value = '';
             document.getElementById('edit_photo_preview_container').style.display = 'none';
             document.getElementById('edit_photo_placeholder').style.display = 'flex';
         }
-        
+
         function eliminarEmpleado(id) {
             if (confirm('¿Estás seguro de que deseas eliminar este empleado?')) {
                 const form = document.createElement('form');
@@ -3166,57 +3295,57 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                 form.submit();
             }
         }
-        
+
         // Inicializar contador
         actualizarContadorResultados(<?php echo count($empleados); ?>, <?php echo count($empleados); ?>);
-        
+
         // Protección contra pérdida de datos al cerrar el modal
         let formModified = false;
-        
+
         // Detectar cambios en los formularios
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Formulario de agregar
             const formAgregar = document.querySelector('#modalAgregar form');
             if (formAgregar) {
                 const inputs = formAgregar.querySelectorAll('input, select, textarea');
                 inputs.forEach(input => {
-                    input.addEventListener('change', function() {
+                    input.addEventListener('change', function () {
                         formModified = true;
                     });
-                    input.addEventListener('input', function() {
+                    input.addEventListener('input', function () {
                         formModified = true;
                     });
                 });
-                
+
                 // Resetear cuando se envía el formulario
-                formAgregar.addEventListener('submit', function() {
+                formAgregar.addEventListener('submit', function () {
                     formModified = false;
                 });
             }
-            
+
             // Formulario de editar
             const formEditar = document.querySelector('#modalEditar form');
             if (formEditar) {
                 const inputsEditar = formEditar.querySelectorAll('input, select, textarea');
                 inputsEditar.forEach(input => {
-                    input.addEventListener('change', function() {
+                    input.addEventListener('change', function () {
                         formModified = true;
                     });
-                    input.addEventListener('input', function() {
+                    input.addEventListener('input', function () {
                         formModified = true;
                     });
                 });
-                
+
                 // Resetear cuando se envía el formulario
-                formEditar.addEventListener('submit', function() {
+                formEditar.addEventListener('submit', function () {
                     formModified = false;
                 });
             }
-            
+
             // Interceptar cierre del modal
             const modalAgregar = document.getElementById('modalAgregar');
             if (modalAgregar) {
-                modalAgregar.addEventListener('hide.bs.modal', function(event) {
+                modalAgregar.addEventListener('hide.bs.modal', function (event) {
                     if (formModified) {
                         if (!confirm('¿Estás seguro de cerrar el formulario? Los datos no guardados se perderán.')) {
                             event.preventDefault();
@@ -3227,10 +3356,10 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                     }
                 });
             }
-            
+
             const modalEditar = document.getElementById('modalEditar');
             if (modalEditar) {
-                modalEditar.addEventListener('hide.bs.modal', function(event) {
+                modalEditar.addEventListener('hide.bs.modal', function (event) {
                     if (formModified) {
                         if (!confirm('¿Estás seguro de cerrar el formulario? Los cambios no guardados se perderán.')) {
                             event.preventDefault();
@@ -3243,4 +3372,4 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
             }
         });
     </script>
-<?php require_once 'includes/footer.php'; ?>
+    <?php require_once 'includes/footer.php'; ?>

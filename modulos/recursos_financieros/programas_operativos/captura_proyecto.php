@@ -9,7 +9,15 @@ $db = (new Database())->getConnection();
 // Fetch Unidades Responsables (From Areas)
 // Fetch Unidades Responsables (From Areas)
 // Table is 'area' (singular) based on recent schema updates
-$stmtUnidades = $db->query("SELECT id, nombre, tipo FROM area WHERE activo = 1 AND tipo IN ('Secretaria', 'Subsecretaria', 'Direccion') ORDER BY nombre ASC");
+// Fetch Unidades Responsables (Configured in Areas PAO module)
+$stmtUnidades = $db->query("
+    SELECT a.id, a.nombre, a.tipo 
+    FROM area a 
+    INNER JOIN area_pao ap ON a.id = ap.area_id 
+    WHERE a.activo = 1 
+      AND ap.deleted_at IS NULL 
+    ORDER BY a.nombre ASC
+");
 $cat_unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Prioridades, Ejes, Objetivos
