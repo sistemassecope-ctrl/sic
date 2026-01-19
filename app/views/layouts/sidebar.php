@@ -91,5 +91,12 @@
                 </ul>
             </div>
         </li>
+
+        <!-- Menu Item: A -->
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-app-indicator"></i> A
+            </a>
+        </li>
     </ul>
 </div>
