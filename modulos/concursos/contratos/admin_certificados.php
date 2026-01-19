@@ -100,21 +100,16 @@ $stmt = $conexion->prepare("
 ");
 $stmt->execute();
 $certificados = $stmt->get_result();
+
+// Use unified header
+$pageTitle = 'Administración de Certificados';
+$route = 'concursos';
+require_once '../../../includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Administración de Certificados</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/styles.css">
-</head>
-<body class="bg-light">
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2 class="mb-4">Administración de Certificados</h2>
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">Administración de Certificados</h2>
                 
                 <?php if ($mensaje): ?>
                     <?php echo $mensaje; ?>
@@ -472,5 +467,7 @@ $certificados = $stmt->get_result();
     <style>
         .letter-spacing-2 { letter-spacing: 5px; }
     </style>
-</body>
-</html>
+    </div> <!-- End col-md-12 -->
+</div> <!-- End row -->
+
+<?php require_once '../../../includes/footer.php'; ?>
