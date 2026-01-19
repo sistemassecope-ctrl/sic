@@ -7,7 +7,9 @@ $db = (new Database())->getConnection();
 // $cat_municipios = $db->query("SELECT * FROM cat_municipios")->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Unidades Responsables (From Areas)
-$stmtUnidades = $db->query("SELECT id, nombre, tipo FROM areas WHERE activo = 1 AND tipo IN ('Secretaria', 'Subsecretaria', 'Direccion') ORDER BY nombre ASC");
+// Fetch Unidades Responsables (From Areas)
+// Table is 'area' (singular) based on recent schema updates
+$stmtUnidades = $db->query("SELECT id, nombre, tipo FROM area WHERE activo = 1 AND tipo IN ('Secretaria', 'Subsecretaria', 'Direccion') ORDER BY nombre ASC");
 $cat_unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Prioridades, Ejes, Objetivos
@@ -40,6 +42,11 @@ if (file_exists($csvFile) && ($handle = fopen($csvFile, "r")) !== FALSE) {
     }
     fclose($handle);
 }
+// Sort Localities for each Municipality
+foreach ($localidades_map as $id_mun => &$locs) {
+    sort($locs, SORT_LOCALE_STRING);
+}
+unset($locs); // Break reference
 $cat_municipios = [];
 foreach ($municipios_csv as $id => $nombre) {
     $cat_municipios[] = ['id_municipio' => $id, 'nombre_municipio' => $nombre];

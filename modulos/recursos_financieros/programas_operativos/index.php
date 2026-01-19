@@ -53,8 +53,8 @@ $programas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     <?php else: ?>
                         <?php foreach ($programas as $p): ?>
-                            <tr style="cursor: pointer;"
-                                ondblclick="<?php echo ($p['num_proyectos'] > 0) ? "window.location.href='/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa={$p['id_programa']}'" : "alert('Este Programa Operativo no contiene proyectos registrados.');"; ?>">
+                            <tr style="cursor: pointer;" title="Doble clic para ver proyectos"
+                                ondblclick="window.location.href='/pao/index.php?route=recursos_financieros/programas_operativos/proyectos&id_programa=<?php echo $p['id_programa']; ?>'">
                                 <td class="ps-3 fw-bold">#
                                     <?php echo $p['id_programa']; ?>
                                 </td>

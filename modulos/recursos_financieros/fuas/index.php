@@ -89,8 +89,11 @@ if ($id_proyecto) {
                     <?php if (empty($fuas)): ?>
                         <tr>
                             <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="bi bi-file-earmark-text display-6 d-block mb-3 opacity-50"></i>
-                                Sin registros de FUA encontrados.
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="bi bi-inbox display-4 mb-3 opacity-25"></i>
+                                    <h5 class="fw-bold">No hay información de momento</h5>
+                                    <p class="mb-0">No se han registrado Formatos Únicos de Atención (FUA) asociados.</p>
+                                </div>
                             </td>
                         </tr>
                     <?php else: ?>
