@@ -44,9 +44,9 @@ if ($id_programa) {
                 <!-- Ejercicio -->
                 <div class="col-md-3">
                     <label class="form-label fw-bold small text-uppercase text-secondary">Ejercicio</label>
-                    <input type="number" name="ejercicio" class="form-control fw-bold" 
-                        value="<?php echo $is_editing ? $programa['ejercicio'] : date('Y'); ?>"
-                        min="2020" max="2030" required>
+                    <input type="number" name="ejercicio" class="form-control fw-bold"
+                        value="<?php echo $is_editing ? $programa['ejercicio'] : date('Y'); ?>" min="2020" max="2030"
+                        required>
                 </div>
 
                 <!-- Estatus -->
@@ -64,16 +64,17 @@ if ($id_programa) {
                     <label class="form-label fw-bold small text-uppercase text-secondary">Monto Autorizado</label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
-                        <input type="number" step="0.01" name="monto_autorizado" class="form-control text-end fw-bold" 
-                            value="<?php echo $is_editing ? $programa['monto_autorizado'] : ''; ?>"
-                            placeholder="0.00" min="0">
+                        <input type="text" name="monto_autorizado" id="monto_autorizado"
+                            class="form-control text-end fw-bold"
+                            value="<?php echo $is_editing ? number_format($programa['monto_autorizado'], 2) : ''; ?>"
+                            placeholder="0.00" oninput="formatCurrency(this)">
                     </div>
                 </div>
 
                 <!-- Nombre del Programa -->
                 <div class="col-md-12">
                     <label class="form-label fw-bold small text-uppercase text-secondary">Nombre del Programa</label>
-                    <input type="text" name="nombre" class="form-control" 
+                    <input type="text" name="nombre" class="form-control"
                         value="<?php echo $is_editing ? htmlspecialchars($programa['nombre']) : ''; ?>"
                         placeholder="Ej. Programa Operativo Anual 2026" required>
                 </div>
@@ -83,6 +84,13 @@ if ($id_programa) {
                     <label class="form-label fw-bold small text-uppercase text-secondary">Descripción</label>
                     <textarea name="descripcion" class="form-control" rows="3"
                         placeholder="Descripción general del programa..."><?php echo $is_editing ? htmlspecialchars($programa['descripcion']) : ''; ?></textarea>
+                </div>
+
+                <!-- Comentarios Generales -->
+                <div class="col-12">
+                    <label class="form-label fw-bold small text-uppercase text-secondary">Comentarios Generales</label>
+                    <textarea name="comentarios" class="form-control" rows="3"
+                        placeholder="Comentarios adicionales..."><?php echo $is_editing ? htmlspecialchars($programa['comentarios'] ?? '') : ''; ?></textarea>
                 </div>
 
             </div>
@@ -108,8 +116,40 @@ if ($id_programa) {
             input.classList.add('text-uppercase');
             // JS force update value
             input.addEventListener('input', function () {
+                // If it is monto_autorizado, skip uppercase
+                if (this.name === 'monto_autorizado') return;
                 this.value = this.value.toUpperCase();
             });
         });
+
+        // Form Submit cleanup
+        const form = document.getElementById('formCaptura');
+        form.addEventListener('submit', function () {
+            const montoInput = document.getElementById('monto_autorizado');
+            // Remove commas before submit
+            montoInput.value = montoInput.value.replace(/,/g, '');
+        });
     });
+
+    function formatCurrency(input) {
+        // Get cursor position to restore later (optional, but good for UX)
+        // For simplicity, we'll just format the value.
+        let value = input.value.replace(/[^0-9.]/g, ''); // strip non-numeric
+
+        // Prevent multiple dots
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Split integer and decimal
+        const numberParts = value.split('.');
+        const integerPart = numberParts[0];
+        const decimalPart = numberParts.length > 1 ? '.' + numberParts[1].substring(0, 2) : '';
+
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+        input.value = formattedInteger + decimalPart;
+    }
 </script>

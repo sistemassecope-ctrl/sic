@@ -17,17 +17,19 @@ $id_programa = !empty($_POST['id_programa']) ? (int) $_POST['id_programa'] : nul
 $ejercicio = $_POST['ejercicio'] ?? date('Y');
 $nombre = isset($_POST['nombre']) ? trim($_POST['nombre']) : '';
 $descripcion = isset($_POST['descripcion']) ? trim($_POST['descripcion']) : '';
+$comentarios = isset($_POST['comentarios']) ? trim($_POST['comentarios']) : '';
 $estatus = $_POST['estatus'] ?? 'Abierto';
-$monto_autorizado = (float) ($_POST['monto_autorizado'] ?? 0);
+// Clean commas before casting
+$monto_autorizado = (float) str_replace(',', '', $_POST['monto_autorizado'] ?? '0');
 
 try {
     if ($id_programa) {
         // --- UPDATE ---
         $sql = "UPDATE programas_anuales SET 
-            ejercicio = ?, nombre = ?, descripcion = ?, estatus = ?, monto_autorizado = ?, fecha_registro = CURRENT_TIMESTAMP
+            ejercicio = ?, nombre = ?, descripcion = ?, comentarios = ?, estatus = ?, monto_autorizado = ?, fecha_registro = CURRENT_TIMESTAMP
             WHERE id_programa = ?";
         $stmt = $db->prepare($sql);
-        $stmt->execute([$ejercicio, $nombre, $descripcion, $estatus, $monto_autorizado, $id_programa]);
+        $stmt->execute([$ejercicio, $nombre, $descripcion, $comentarios, $estatus, $monto_autorizado, $id_programa]);
 
         $success_msg = "Programa Anual actualizado correctamente.";
     } else {
@@ -40,12 +42,12 @@ try {
         }
 
         $sql = "INSERT INTO programas_anuales (
-            ejercicio, nombre, descripcion, estatus, monto_autorizado
+            ejercicio, nombre, descripcion, comentarios, estatus, monto_autorizado
         ) VALUES (
-            ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?
         )";
         $stmt = $db->prepare($sql);
-        $stmt->execute([$ejercicio, $nombre, $descripcion, $estatus, $monto_autorizado]);
+        $stmt->execute([$ejercicio, $nombre, $descripcion, $comentarios, $estatus, $monto_autorizado]);
 
         $success_msg = "Programa Anual creado correctamente.";
     }
