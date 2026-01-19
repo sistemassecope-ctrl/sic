@@ -490,4 +490,70 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
             setTimeout(() => autoResize(ta), 100);
         });
     });
+
+    // --- Validación de Saldo de Proyecto ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const importeInput = document.querySelector('input[name="importe"]');
+        const proyectoSelectQuery = 'select[name="id_proyecto"]';
+        // FUA ID Actual para excluirlo de la suma si es edición
+        const currentFuaId = "<?php echo $is_editing ? $fua['id_fua'] : 0; ?>";
+        let saldoMaximo = 0;
+
+        function consultarSaldo() {
+            const idProyecto = $(proyectoSelectQuery).val();
+            if(!idProyecto) return;
+
+            // Mostrar spinner o algo si se desea
+            fetch(`/pao/modulos/recursos_financieros/fuas/get_saldo_proyecto.php?id_proyecto=${idProyecto}&id_fua=${currentFuaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.error) {
+                        console.error("Error al obtener saldo:", data.error);
+                        return;
+                    }
+                    saldoMaximo = parseFloat(data.saldo_disponible);
+                    // Si el saldo es negativo (overbudget), lo manejamos igual
+                    validarMonto(); 
+                })
+                .catch(err => console.error("Error de red:", err));
+        }
+
+        function validarMonto() {
+            if(!importeInput.value) return;
+            const monto = parseFloat(importeInput.value);
+            
+            // Limpiar alertas previas
+            const parent = importeInput.parentElement;
+            const existingAlert = parent.querySelector('.alert-saldo-proyecto');
+            if(existingAlert) existingAlert.remove();
+            
+            importeInput.classList.remove('is-invalid');
+            
+            // Validar
+            // Nota: Se permite guardar (advertencia) o se bloquea? 
+            // "no debe ser mayor del proyecto" sugiere prohibición. Marcaremos como inválido.
+            if (monto > saldoMaximo) {
+                importeInput.classList.add('is-invalid'); // Esto pone el borde rojo si usas Bootstrap validation styles
+                
+                const div = document.createElement('div');
+                div.className = 'invalid-feedback alert-saldo-proyecto d-block fw-bold mt-2';
+                div.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill"></i> El importe ($${monto.toLocaleString('es-MX')}) excede el saldo disponible del proyecto.<br>
+                    <span class="text-dark">Saldo Disponible: $${saldoMaximo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                `;
+                parent.appendChild(div);
+            }
+        }
+
+        // Listeners
+        if (typeof jQuery !== 'undefined') {
+            $(proyectoSelectQuery).on('change', consultarSaldo);
+        }
+        importeInput.addEventListener('input', validarMonto);
+        
+        // Ejecutar al inicio si ya hay proyecto seleccionado
+        if($(proyectoSelectQuery).val()) {
+            consultarSaldo();
+        }
+    });
 </script>

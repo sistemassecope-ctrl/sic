@@ -1237,7 +1237,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
                                 <h3><?php echo count(array_filter($estadisticas['por_genero'], function ($g) {
-                                    return $g['genero'] == 'Hombre'; })); ?>
+                                    return $g['genero'] == 'Hombre';
+                                })); ?>
                                 </h3>
                                 <p class="mb-0">Hombres</p>
                             </div>
@@ -1247,7 +1248,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                         <div class="card bg-warning text-white">
                             <div class="card-body text-center">
                                 <h3><?php echo count(array_filter($estadisticas['por_genero'], function ($g) {
-                                    return $g['genero'] == 'Mujer'; })); ?>
+                                    return $g['genero'] == 'Mujer';
+                                })); ?>
                                 </h3>
                                 <p class="mb-0">Mujeres</p>
                             </div>
@@ -1535,7 +1537,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <option value="">Seleccionar puesto...</option>
                                         <?php foreach ($puestos as $puesto): ?>
                                             <option value="<?php echo $puesto['id']; ?>">
-                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
+                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -1558,7 +1561,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <option value="">Seleccionar dependencia...</option>
                                         <?php foreach ($dependencias as $dependencia): ?>
                                             <option value="<?php echo $dependencia['id']; ?>">
-                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
+                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -2087,7 +2091,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <option value="">Seleccionar puesto...</option>
                                         <?php foreach ($puestos as $puesto): ?>
                                             <option value="<?php echo $puesto['id']; ?>">
-                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?></option>
+                                                <?php echo htmlspecialchars($puesto['nombre'] ?? ''); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -2099,7 +2104,8 @@ if (isset($_SESSION['password_temp']) && isset($_SESSION['email_temp'])) {
                                         <option value="">Seleccionar dependencia...</option>
                                         <?php foreach ($dependencias as $dependencia): ?>
                                             <option value="<?php echo $dependencia['id']; ?>">
-                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?></option>
+                                                <?php echo htmlspecialchars($dependencia['nombre'] ?? ''); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
