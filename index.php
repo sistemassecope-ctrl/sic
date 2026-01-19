@@ -231,6 +231,38 @@ switch ($route) {
         include 'app/views/layouts/wrapper.php';
         break;
 
+    // === MÓDULO: SOLICITUD DE COMBUSTIBLE ===
+    case 'combustible/index':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Solicitudes de Combustible';
+        $content_view = 'modulos/combustible/index.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'combustible/nuevo':
+    case 'combustible/editar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = isset($_GET['id']) ? 'Editar Solicitud de Combustible' : 'Nueva Solicitud de Combustible';
+        $content_view = 'modulos/combustible/create.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'combustible/guardar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        require 'modulos/combustible/save.php';
+        exit;
+        break;
+
+    case 'combustible/imprimir':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        require 'modulos/combustible/print.php';
+        exit;
+        break;
+
     default:
         // 404
         header("HTTP/1.0 404 Not Found");

@@ -123,10 +123,10 @@
                 </ul>
             </div>
         </li>
-        <!-- Menu Item: A -->
+        <!-- Menu Item: Solicitud de Combustible -->
         <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-app-indicator"></i> A
+            <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php?route=combustible/index">
+                <i class="bi bi-fuel-pump"></i> Solicitud de Combustible
             </a>
         </li>
         <li class="nav-item">
