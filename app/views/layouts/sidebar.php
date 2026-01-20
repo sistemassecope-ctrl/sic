@@ -1,6 +1,6 @@
 <div class="sidebar collapse d-md-block" id="sidebarMenu">
     <div class="sidebar-header">
-        <img src="<?php echo BASE_URL; ?>img/logo_secope.png" alt="SIS-PAO" class="img-fluid sidebar-logo">
+        <img src="<?php echo BASE_URL; ?>/img/logo_secope.png" alt="SIS-PAO" class="img-fluid sidebar-logo">
         <h5 class="mt-2 text-white sidebar-title">SIS-PAO</h5>
         <!-- Sidebar Toggle Button -->
         <button class="btn btn-sm btn-outline-light sidebar-toggle-btn" id="sidebarToggleBtn" title="Ocultar menú">
@@ -93,6 +93,18 @@
             </div>
         </li>
 
+        <!-- Menu Item: Solicitud de Combustible -->
+        <li class="nav-item">
+            <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php?route=combustible/index">
+                <i class="bi bi-fuel-pump"></i> Solicitud de Combustible
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-circle"></i> B
+            </a>
+        </li>
+        
         <!-- Módulo: Configuración Sistema -->
         <li class="nav-item">
             <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
@@ -122,17 +134,6 @@
                     </li>
                 </ul>
             </div>
-        </li>
-        <!-- Menu Item: Solicitud de Combustible -->
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php?route=combustible/index">
-                <i class="bi bi-fuel-pump"></i> Solicitud de Combustible
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-circle"></i> B
-            </a>
         </li>
     </ul>
 </div>

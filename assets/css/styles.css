@@ -60,7 +60,7 @@ body {
 /* Sidebar */
 .sidebar {
     background: linear-gradient(180deg, #212529 0%, #343a40 100%);
-    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
     min-height: 100vh;
     position: fixed;
     top: 0;
@@ -71,21 +71,27 @@ body {
 }
 
 .sidebar-header {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     color: var(--color-white);
     padding: 25px 20px;
     text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-header img {
     height: 55px;
     margin-bottom: 12px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .sidebar-menu {
     padding: 15px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 140px);
+    /* Subtract header height */
+    flex-wrap: nowrap !important;
+    /* Prevent Bootstrap's flex-wrap from hiding items */
 }
 
 .sidebar-menu .nav-item {
@@ -93,7 +99,7 @@ body {
 }
 
 .sidebar-menu .nav-link {
-    color: rgba(255,255,255,0.7) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
     padding: 12px 25px;
     font-size: 0.95rem;
     border-left: 4px solid transparent;
@@ -103,13 +109,15 @@ body {
 .sidebar-menu .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.05);
     color: var(--color-white) !important;
-    border-left-color: rgba(255,255,255,0.5);
-    padding-left: 30px; /* Subtle slide effect */
+    border-left-color: rgba(255, 255, 255, 0.5);
+    padding-left: 30px;
+    /* Subtle slide effect */
 }
 
 .sidebar-menu .nav-link.active {
-    background: linear-gradient(90deg, rgba(13,110,253,0.15) 0%, transparent 100%);
-    color: #4dabf7 !important; /* Lighter blue for better contrast on dark */
+    background: linear-gradient(90deg, rgba(13, 110, 253, 0.15) 0%, transparent 100%);
+    color: #4dabf7 !important;
+    /* Lighter blue for better contrast on dark */
     border-left-color: #0d6efd;
     font-weight: 600;
 }
@@ -128,12 +136,12 @@ body {
 
 /* Submenu specifics */
 .sidebar .collapse.show {
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-menu .nav-link[data-bs-toggle="collapse"]::after {
     /* Optional arrow fix if not using the icon manually */
-    display: none; 
+    display: none;
 }
 
 /* Sidebar Toggle Button */
@@ -534,7 +542,7 @@ body {
         gap: 15px;
     }
 
-    .d-flex.justify-content-between > * {
+    .d-flex.justify-content-between>* {
         width: 100%;
     }
 
