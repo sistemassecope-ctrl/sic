@@ -52,8 +52,9 @@ try {
     // 3. Calcular Saldo
     $saldo_disponible = $total_proyecto - $total_comprometido;
 
-    // DEBUG LOG
-    file_put_contents('debug_log.txt', date('Y-m-d H:i:s') . " - ID Proy: $id_proyecto, Total Proy: $total_proyecto, Comprometido: $total_comprometido, Saldo: $saldo_disponible\n", FILE_APPEND);
+    // LOG PARA DIAGNÓSTICO PROFUNDO
+    $log_msg = date('Y-m-d H:i:s') . " | ID PROY: $id_proyecto | ID FUA EXCL.: $id_fua_actual | TOTAL PROY: $total_proyecto | COMPROMETIDO: $total_comprometido | SALDO FINAL: $saldo_disponible\n";
+    file_put_contents(__DIR__ . '/trace_saldo.log', $log_msg, FILE_APPEND);
 
     echo json_encode([
         'total_proyecto' => $total_proyecto,
@@ -63,7 +64,9 @@ try {
     ]);
 
 } catch (Exception $e) {
+    file_put_contents(__DIR__ . '/trace_saldo.log', "ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
+
 ?>

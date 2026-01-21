@@ -36,6 +36,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tarea = $_POST['tarea'] ?? null;
     $observaciones = $_POST['observaciones'] ?? null;
 
+    // --- VALIDACIÓN DE PRESUPUESTO DEL PROYECTO (BACKEND) ---
+    if ($id_proyecto > 0) {
+        try {
+            // 1. Obtener Monto Total del Proyecto
+            $stmtP = $db->prepare("
+                SELECT (COALESCE(monto_federal,0) + COALESCE(monto_estatal,0) + COALESCE(monto_municipal,0) + COALESCE(monto_otros,0)) as total_proyecto
+                FROM proyectos_obra 
+                WHERE id_proyecto = ?
+            ");
+            $stmtP->execute([$id_proyecto]);
+            $totProy = (float) ($stmtP->fetchColumn() ?? 0);
+
+            // 2. Obtener Suma de Otros FUAs activos
+            $sqlFuas = "SELECT SUM(importe) FROM fuas WHERE id_proyecto = ? AND estatus != 'CANCELADO'";
+            $prms = [$id_proyecto];
+            if ($id_fua) {
+                $sqlFuas .= " AND id_fua != ?";
+                $prms[] = $id_fua;
+            }
+            $stmtF = $db->prepare($sqlFuas);
+            $stmtF->execute($prms);
+            $totalComprometido = (float) ($stmtF->fetchColumn() ?? 0);
+
+            $saldoDisponible = $totProy - $totalComprometido;
+
+            if ($importe > $saldoDisponible) {
+                die("Error de Validación: El importe solicitado ($" . number_format($importe, 2) . ") supera el saldo disponible del proyecto ($" . number_format($saldoDisponible, 2) . ").");
+            }
+        } catch (Exception $ve) {
+            // Error en validación, procedemos o alertamos? Mejor alertar.
+            die("Error al validar presupuesto: " . $ve->getMessage());
+        }
+    }
+
     try {
         $db->beginTransaction();
 
