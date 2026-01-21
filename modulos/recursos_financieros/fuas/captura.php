@@ -28,7 +28,12 @@ $proyectos = $stmtProyectos->fetchAll(PDO::FETCH_ASSOC);
 // $tiposAccion = $stmtTipos->fetchAll(PDO::FETCH_ASSOC);
 
 // 3. Fuentes de Financiamiento (CATALOGO)
-$stmtFuentes = $db->query("SELECT * FROM cat_fuentes_financiamiento WHERE activo = 1 ORDER BY anio DESC, abreviatura ASC");
+$sqlFuentes = "SELECT * FROM cat_fuentes_financiamiento WHERE activo = 1";
+if ($is_editing && !empty($fua['fuente_recursos'])) {
+    $sqlFuentes .= " OR abreviatura = " . $db->quote($fua['fuente_recursos']);
+}
+$sqlFuentes .= " ORDER BY anio DESC, abreviatura ASC";
+$stmtFuentes = $db->query($sqlFuentes);
 $fuentesFinanciamiento = $stmtFuentes->fetchAll(PDO::FETCH_ASSOC);
 
 // 4. Cargar Documentos Adjuntos (Archivo Digital)
@@ -110,6 +115,14 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
             <i class="bi bi-arrow-left"></i> REGRESAR AL LISTADO
         </a>
     </div>
+    
+    <?php if (isset($_SESSION['error_fua'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show container mb-4" role="alert" style="max-width: 1000px;">
+            <i class="bi bi-exclamation-octagon-fill me-2"></i>
+            <?php echo $_SESSION['error_fua']; unset($_SESSION['error_fua']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
 
     <form action="/pao/index.php?route=recursos_financieros/fuas/guardar" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
         
@@ -123,7 +136,7 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
             <!-- Encabezado Tipo Documento -->
             <div class="sheet-header">
                 <div>
-                    <h4 class="text-uppercase fw-bold mb-0">Formato Único de Afectación (FUA)</h4>
+                    <h4 class="text-uppercase fw-bold mb-0">Suficiencia Presupuestal</h4>
                     <span class="text-muted small">Control Financiero y Presupuestal</span>
                 </div>
                 <div class="text-end">
@@ -269,8 +282,39 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
                     </select>
                 </div>
 
-                 <!-- FUENTE DE RECURSOS -->
-                 <div class="col-md-8">
+                <div class="col-12 mt-4">
+                     <h5 class="text-secondary border-bottom pb-2 mb-3"><i class="bi bi-cash-stack me-2"></i>Información Financiera</h5>
+                </div>
+
+                 <!-- IMPORTES DETALLADOS -->
+                <div class="col-md-4">
+                    <label class="form-label">Importe de Obra</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="text" name="monto_obra" id="monto_obra" class="form-control text-end currency-input" 
+                            value="<?php echo $is_editing ? number_format($fua['monto_obra'], 2) : '0.00'; ?>" oninput="calcularTotal()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Importe de Supervisión</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="text" name="monto_supervision" id="monto_supervision" class="form-control text-end currency-input" 
+                            value="<?php echo $is_editing ? number_format($fua['monto_supervision'], 2) : '0.00'; ?>" oninput="calcularTotal()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Importe Solicitado</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white">$</span>
+                        <input type="text" name="importe" id="importe" class="form-control text-end fw-bold bg-white" 
+                            style="font-size: 1.1rem;"
+                            value="<?php echo $is_editing ? number_format($fua['importe'], 2) : '0.00'; ?>" readonly>
+                    </div>
+                </div>
+
+                <!-- FUENTE DE RECURSOS -->
+                <div class="col-md-12 mt-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <label class="form-label mb-0">Fuente de Recursos</label>
                         <a href="/pao/index.php?route=recursos_financieros/cat_fuentes" target="_blank" class="text-secondary small text-decoration-none" title="Administrar Catálogo">
@@ -282,21 +326,14 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
                         <?php foreach ($fuentesFinanciamiento as $ff): ?>
                                 <option value="<?php echo $ff['abreviatura']; ?>" 
                                     <?php echo ($is_editing && $fua['fuente_recursos'] == $ff['abreviatura']) ? 'selected' : ''; ?>>
-                                    <?php echo $ff['anio'] . ' - ' . $ff['abreviatura'] . ' (' . $ff['nombre_fuente'] . ')'; ?>
+                                    <?php 
+                                    $label = $ff['anio'] . ' - ' . $ff['abreviatura'] . ' (' . $ff['nombre_fuente'] . ')';
+                                    if ($ff['activo'] == 0) $label .= ' (INACTIVO)';
+                                    echo $label; 
+                                    ?>
                                 </option>
                         <?php endforeach; ?>
                     </select>
-                </div>
-
-                <!-- IMPORTE -->
-                <div class="col-md-4">
-                    <label class="form-label">Importe Solicitado</label>
-                    <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input type="number" step="0.01" name="importe" class="form-control text-end fw-bold" 
-                            style="font-size: 1.1rem;"
-                            value="<?php echo $is_editing ? $fua['importe'] : ''; ?>">
-                    </div>
                 </div>
 
                 <div class="col-12 mt-4">
@@ -360,6 +397,11 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
 
             <!-- Action Buttons (Bottom of Sheet) -->
             <div class="mt-5 pt-4 border-top text-end">
+                <?php if ($is_editing): ?>
+                    <button type="button" class="btn btn-outline-primary px-4 me-2" onclick="prepararOficio(<?php echo $id_fua; ?>)">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>GENERAR OFICIO
+                    </button>
+                <?php endif; ?>
                 <a href="/pao/index.php?route=recursos_financieros/fuas" class="btn btn-outline-secondary px-4 me-2">
                     CANCELAR
                 </a>
@@ -370,6 +412,85 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
             
         </div> <!-- End Hoja Papel -->
     </form>
+</div>
+
+<!-- Modal Generar Oficio Al Vuelo -->
+<div class="modal fade" id="modalOficio" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white p-4">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Personalizar Oficio "Al Vuelo"</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formOficio" target="_blank" action="/pao/modulos/recursos_financieros/fuas/generar_oficio.php" method="GET">
+                    <input type="hidden" name="id" id="modal_id_fua">
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-person-fill-down me-2"></i>DATOS DEL DESTINATARIO</h6>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase">Buscar Empleado</label>
+                                <select class="form-select select2-empleados" onchange="autoFillOficio(this, 'dest')">
+                                    <option value="">-- Seleccionar de la tabla --</option>
+                                    <?php foreach($empleados as $emp): ?>
+                                        <option value="<?php echo htmlspecialchars($emp['nombre_completo']); ?>" 
+                                                data-cargo="<?php echo htmlspecialchars($emp['puesto_nombre'] ?: ''); ?>">
+                                            <?php echo htmlspecialchars($emp['nombre_completo']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase text-muted">Nombre y Título (Manual)</label>
+                                <input type="text" name="dest_nom" id="oficio_dest_nom" class="form-control" value="C.P. MARLEN SÁNCHEZ GARCÍA">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase text-muted">Cargo</label>
+                                <input type="text" name="dest_car" id="oficio_dest_car" class="form-control" value="DIRECTORA DE ADMINISTRACIÓN">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-person-fill-up me-2"></i>DATOS DEL REMITENTE</h6>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase">Buscar Empleado</label>
+                                <select class="form-select select2-empleados" onchange="autoFillOficio(this, 'rem')">
+                                    <option value="">-- Seleccionar de la tabla --</option>
+                                    <?php foreach($empleados as $emp): ?>
+                                        <option value="<?php echo htmlspecialchars($emp['nombre_completo']); ?>" 
+                                                data-cargo="<?php echo htmlspecialchars($emp['puesto_nombre'] ?: ''); ?>">
+                                            <?php echo htmlspecialchars($emp['nombre_completo']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase text-muted">Nombre y Título (Manual)</label>
+                                <input type="text" name="rem_nom" id="oficio_rem_nom" class="form-control" value="ING. CÉSAR OTHÓN RODRÍGUEZ GÓMEZ">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-uppercase text-muted">Cargo</label>
+                                <input type="text" name="rem_car" id="oficio_rem_car" class="form-control" value="SUBSECRETARIO DE INFRAESTRUCTURA CARRETERA">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3 d-flex align-items-center border-0" style="background-color: #f0f7ff; color: #055160;">
+                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                        <small>Puedes seleccionar un empleado de la lista para autocompletar o escribir directamente en los campos inferiores si no se encuentra en el registro.</small>
+                    </div>
+
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light px-4 me-2 border" data-bs-dismiss="modal">CERRAR</button>
+                        <button type="submit" class="btn btn-dark px-5 shadow-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('modalOficio')).hide();">
+                            <i class="bi bi-file-pdf me-2"></i>GENERAR PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -448,8 +569,116 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
     }
     </script>
 
-
 <script>
+    function PreparingModal() {
+        // Init Select2 if available inside modal
+        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            $('.select2-empleados').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dropdownParent: $('#modalOficio')
+            });
+        }
+    }
+
+    function autoFillOficio(select, type) {
+        const selectedOption = select.options[select.selectedIndex];
+        if(!selectedOption.value) return;
+
+        const nameInput = document.getElementById(`oficio_${type}_nom`);
+        const cargoInput = document.getElementById(`oficio_${type}_car`);
+        
+        nameInput.value = selectedOption.value;
+        cargoInput.value = selectedOption.getAttribute('data-cargo') || '';
+        
+        // Add subtle highlight effect
+        [nameInput, cargoInput].forEach(inp => {
+            inp.style.backgroundColor = '#fff9c4';
+            setTimeout(() => inp.style.backgroundColor = 'white', 1000);
+        });
+    }
+
+    function prepararOficio(id) {
+        document.getElementById('modal_id_fua').value = id;
+        var modalEl = document.getElementById('modalOficio');
+        var myModal = new bootstrap.Modal(modalEl);
+        PreparingModal();
+        myModal.show();
+    }
+
+    // --- Funciones Globales ---
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function parseMoney(text) {
+        if (!text) return 0;
+        return parseFloat(text.toString().replace(/,/g, '')) || 0;
+    }
+
+    let saldoMaximo = 0;
+    let currentFuaId = "<?php echo $is_editing ? $fua['id_fua'] : 0; ?>";
+
+    function validarMonto() {
+        const importeInput = document.getElementById('importe');
+        if(!importeInput) return;
+
+        const monto = parseMoney(importeInput.value);
+        const proyectoSelectQuery = 'select[name="id_proyecto"]';
+        const idProyecto = $(proyectoSelectQuery).val();
+
+        // Limpiar alertas previas
+        const parent = importeInput.parentElement;
+        const existingAlert = parent.querySelector('.alert-saldo-proyecto');
+        if(existingAlert) existingAlert.remove();
+        importeInput.classList.remove('is-invalid');
+
+        if(!idProyecto || monto <= 0) return;
+
+        if (monto > saldoMaximo) {
+            importeInput.classList.add('is-invalid');
+            const div = document.createElement('div');
+            div.className = 'invalid-feedback alert-saldo-proyecto d-block fw-bold mt-2';
+            div.innerHTML = `
+                <i class="bi bi-exclamation-triangle-fill"></i> El importe ($${monto.toLocaleString('es-MX')}) excede el saldo disponible del proyecto.<br>
+                <span class="text-dark">Saldo Disponible: $${saldoMaximo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+            `;
+            parent.appendChild(div);
+        }
+    }
+
+    function consultarSaldo() {
+        const idProyecto = $('select[name="id_proyecto"]').val();
+        if(!idProyecto) return;
+
+        fetch('<?php echo BASE_URL; ?>/modulos/recursos_financieros/fuas/get_saldo_proyecto.php?id_proyecto=' + idProyecto + '&id_fua=' + currentFuaId)
+            .then(response => response.json())
+            .then(data => {
+                if(data.error) return;
+                saldoMaximo = parseFloat(data.saldo_disponible);
+                validarMonto(); 
+            })
+            .catch(err => console.error("Error al obtener saldo:", err));
+    }
+
+    function calcularTotal() {
+        const obraInput = document.getElementById('monto_obra');
+        const supervisionInput = document.getElementById('monto_supervision');
+        const totalInput = document.getElementById('importe');
+
+        if(!obraInput || !supervisionInput || !totalInput) return;
+
+        const obra = parseMoney(obraInput.value);
+        const supervision = parseMoney(supervisionInput.value);
+        const total = obra + supervision;
+
+        totalInput.value = formatMoney(total);
+        validarMonto();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Init Select2
         if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
@@ -457,17 +686,19 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
              $('.select2').select2({
                  theme: 'bootstrap-5',
                  width: '100%',
-                 dropdownParent: $('body') // Ensure dropdown works if inside modal/special containers
+                 dropdownParent: $('body')
              });
         }
 
-        // 1. Enforce Uppercase
+        // 1. Enforce Uppercase (except for currency inputs)
         const textInputs = document.querySelectorAll('input[type="text"], textarea');
         textInputs.forEach(function (input) {
-            input.classList.add('text-uppercase');
-            input.addEventListener('input', function () {
-                this.value = this.value.toUpperCase();
-            });
+            if (!input.classList.contains('currency-input') && input.id !== 'importe') {
+                input.classList.add('text-uppercase');
+                input.addEventListener('input', function () {
+                    this.value = this.value.toUpperCase();
+                });
+            }
         });
 
         // 2. Timeline Status Update Init
@@ -478,89 +709,29 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
         const textareas = document.querySelectorAll('textarea');
         function autoResize(el) {
             el.style.height = 'auto';
-            el.style.height = (el.scrollHeight + 2) + 'px'; // +2 for border correction
+            el.style.height = (el.scrollHeight + 2) + 'px';
         }
         textareas.forEach(ta => {
             ta.style.overflowY = 'hidden'; 
-            ta.style.resize = 'none'; // Disable manual resize
-            ta.addEventListener('input', function() {
-                autoResize(this);
-            });
-            // Initial resize (delay slightly to ensure render)
+            ta.style.resize = 'none';
+            ta.addEventListener('input', function() { autoResize(this); });
             setTimeout(() => autoResize(ta), 100);
         });
-    });
 
-    // --- Validación de Saldo de Proyecto ---
-    document.addEventListener('DOMContentLoaded', function() {
-        const importeInput = document.querySelector('input[name="importe"]');
-        const proyectoSelectQuery = 'select[name="id_proyecto"]';
-        // FUA ID Actual para excluirlo de la suma si es edición
-        const currentFuaId = "<?php echo $is_editing ? $fua['id_fua'] : 0; ?>";
-        let saldoMaximo = 0;
-
-        function consultarSaldo() {
-            const idProyecto = $(proyectoSelectQuery).val();
-            console.log("Consultando saldo para proyecto:", idProyecto);
-            if(!idProyecto) return;
-
-            fetch('<?php echo BASE_URL; ?>/modulos/recursos_financieros/fuas/get_saldo_proyecto.php?id_proyecto=' + idProyecto + '&id_fua=' + currentFuaId)
-                .then(response => {
-                    console.log("Respuesta recibida (status):", response.status);
-                    if (!response.ok) throw new Error('Error en la petición: ' + response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Datos recibidos:", data);
-                    if(data.error) {
-                        console.error("Error al obtener saldo:", data.error);
-                        return;
-                    }
-                    saldoMaximo = parseFloat(data.saldo_disponible);
-                    validarMonto(); 
-                })
-                .catch(err => {
-                    console.error("Error de red o parsing:", err);
-                    // Opcional: mostrar error en el UI
-                });
-        }
-
-        function validarMonto() {
-            if(!importeInput.value) return;
-            const monto = parseFloat(importeInput.value);
-            
-            // Limpiar alertas previas
-            const parent = importeInput.parentElement;
-            const existingAlert = parent.querySelector('.alert-saldo-proyecto');
-            if(existingAlert) existingAlert.remove();
-            
-            importeInput.classList.remove('is-invalid');
-            
-            // Validar
-            // Nota: Se permite guardar (advertencia) o se bloquea? 
-            // "no debe ser mayor del proyecto" sugiere prohibición. Marcaremos como inválido.
-            if (monto > saldoMaximo) {
-                importeInput.classList.add('is-invalid'); // Esto pone el borde rojo si usas Bootstrap validation styles
-                
-                const div = document.createElement('div');
-                div.className = 'invalid-feedback alert-saldo-proyecto d-block fw-bold mt-2';
-                div.innerHTML = `
-                    <i class="bi bi-exclamation-triangle-fill"></i> El importe ($${monto.toLocaleString('es-MX')}) excede el saldo disponible del proyecto.<br>
-                    <span class="text-dark">Saldo Disponible: $${saldoMaximo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
-                `;
-                parent.appendChild(div);
+        // Event delegation for formatting on blur
+        document.addEventListener('blur', function(e) {
+            if (e.target.classList.contains('currency-input')) {
+                const val = parseMoney(e.target.value);
+                e.target.value = formatMoney(val);
             }
+        }, true);
+
+        // Listeners for balance validation
+        if (typeof jQuery !== 'undefined') {
+            $('select[name="id_proyecto"]').on('change', consultarSaldo);
         }
 
-        // Listeners
-        if (typeof jQuery !== 'undefined') {
-            $(proyectoSelectQuery).on('change', consultarSaldo);
-        }
-        importeInput.addEventListener('input', validarMonto);
-        
-        // Ejecutar al inicio si ya hay proyecto seleccionado
-        if($(proyectoSelectQuery).val()) {
-            consultarSaldo();
-        }
+        const idProyecto = $('select[name="id_proyecto"]').val();
+        if(idProyecto) consultarSaldo();
     });
 </script>

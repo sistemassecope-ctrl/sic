@@ -123,7 +123,7 @@ switch ($route) {
     case 'recursos_financieros/fuas':
         if (!isset($_SESSION['user_id']))
             header("Location: " . BASE_URL . "/index.php?route=login");
-        $page_title = 'Gestión de FUAs';
+        $page_title = 'Suficiencias Presupuestales';
         $content_view = 'modulos/recursos_financieros/fuas/index.php';
         include 'app/views/layouts/wrapper.php';
         break;
@@ -132,7 +132,7 @@ switch ($route) {
     case 'recursos_financieros/fuas/editar':
         if (!isset($_SESSION['user_id']))
             header("Location: " . BASE_URL . "/index.php?route=login");
-        $page_title = 'Captura de FUA';
+        $page_title = 'Suficiencia Presupuestal';
         $content_view = 'modulos/recursos_financieros/fuas/captura.php';
         include 'app/views/layouts/wrapper.php';
         break;
@@ -140,7 +140,7 @@ switch ($route) {
     case 'recursos_financieros/fuas/captura_carpeta':
         if (!isset($_SESSION['user_id']))
             header("Location: " . BASE_URL . "/index.php?route=login");
-        $page_title = 'Captura de FUA (Vista Carpeta)';
+        $page_title = 'Suficiencia Presupuestal (Vista Carpeta)';
         $content_view = 'modulos/recursos_financieros/fuas/captura_carpeta.php';
         include 'app/views/layouts/wrapper.php';
         break;

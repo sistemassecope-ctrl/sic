@@ -18,7 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_proyecto = !empty($_POST['id_proyecto']) ? (int) $_POST['id_proyecto'] : null;
 
     $fuente_recursos = $_POST['fuente_recursos'] ?? null;
-    $importe = !empty($_POST['importe']) ? (float) $_POST['importe'] : 0.00;
+    $monto_obra = !empty($_POST['monto_obra']) ? (float) str_replace(',', '', $_POST['monto_obra']) : 0.00;
+    $monto_supervision = !empty($_POST['monto_supervision']) ? (float) str_replace(',', '', $_POST['monto_supervision']) : 0.00;
+    $importe = $monto_obra + $monto_supervision; // Re-calculate sum for safety
 
     $no_oficio_entrada = $_POST['no_oficio_entrada'] ?? null;
     $oficio_desf_ya = $_POST['oficio_desf_ya'] ?? null;
@@ -62,7 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $saldoDisponible = $totProy - $totalComprometido;
 
             if ($importe > $saldoDisponible) {
-                die("Error de Validación: El importe solicitado ($" . number_format($importe, 2) . ") supera el saldo disponible del proyecto ($" . number_format($saldoDisponible, 2) . ").");
+                $_SESSION['error_fua'] = "Error de Validación: El importe solicitado ($" . number_format($importe, 2) . ") supera el saldo disponible del proyecto ($" . number_format($saldoDisponible, 2) . ").";
+                $redirect = "/pao/index.php?route=recursos_financieros/fuas/nuevo";
+                if ($id_fua) {
+                    $redirect = "/pao/index.php?route=recursos_financieros/fuas/editar&id=" . $id_fua;
+                    if ($id_proyecto)
+                        $redirect .= "&id_proyecto=" . $id_proyecto;
+                } else if ($id_proyecto) {
+                    $redirect .= "&id_proyecto=" . $id_proyecto;
+                }
+                header("Location: " . $redirect);
+                exit;
             }
         } catch (Exception $ve) {
             // Error en validación, procedemos o alertamos? Mejor alertar.
@@ -84,6 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 id_proyecto = :id_proyecto,
                 fuente_recursos = :fuente_recursos,
                 importe = :importe,
+                monto_obra = :monto_obra,
+                monto_supervision = :monto_supervision,
                 no_oficio_entrada = :no_oficio_entrada,
                 oficio_desf_ya = :oficio_desf_ya,
                 clave_presupuestal = :clave_presupuestal,
@@ -104,12 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // INSERT
             $sql = "INSERT INTO fuas (
                 estatus, tipo_suficiencia, folio_fua, nombre_proyecto_accion, id_proyecto,
-                fuente_recursos, importe, no_oficio_entrada, oficio_desf_ya,
+                fuente_recursos, importe, monto_obra, monto_supervision, no_oficio_entrada, oficio_desf_ya,
                 clave_presupuestal, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, resultado_tramite,
                 tarea, observaciones
              ) VALUES (
                 :estatus, :tipo_suficiencia, :folio_fua, :nombre_proyecto_accion, :id_proyecto,
-                :fuente_recursos, :importe, :no_oficio_entrada, :oficio_desf_ya,
+                :fuente_recursos, :importe, :monto_obra, :monto_supervision, :no_oficio_entrada, :oficio_desf_ya,
                 :clave_presupuestal, :fecha_ingreso_admvo, :fecha_ingreso_cotrl_ptal, :fecha_titular, :fecha_firma_regreso, :fecha_acuse_antes_fa, :fecha_respuesta_sfa, :resultado_tramite,
                 :tarea, :observaciones
              )";
@@ -124,6 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindParam(':id_proyecto', $id_proyecto);
         $stmt->bindParam(':fuente_recursos', $fuente_recursos);
         $stmt->bindParam(':importe', $importe);
+        $stmt->bindParam(':monto_obra', $monto_obra);
+        $stmt->bindParam(':monto_supervision', $monto_supervision);
         $stmt->bindParam(':no_oficio_entrada', $no_oficio_entrada);
         $stmt->bindParam(':oficio_desf_ya', $oficio_desf_ya);
         $stmt->bindParam(':clave_presupuestal', $clave_presupuestal);

@@ -47,10 +47,10 @@ echo '</head>
 <body>';
 ?>
 <!-- Include Unified Sidebar -->
-<?php 
+<?php
 // Set $route variable for sidebar compatibility
 $route = $route ?? '';
-include __DIR__ . '/../app/views/layouts/sidebar.php'; 
+include __DIR__ . '/../app/views/layouts/sidebar.php';
 ?>
 
 <!-- Main Content -->
@@ -61,8 +61,9 @@ include __DIR__ . '/../app/views/layouts/sidebar.php';
                 <i class="fas fa-bars"></i>
             </button>
 
-            <a class="navbar-brand d-none d-lg-block p-0 m-0" href="<?php echo BASE_URL; ?>modulos/rh/empleados.php">
-                <img src="<?php echo BASE_URL; ?>img/logo_secope.png" alt="SECOPE" height="35"
+            <a class="navbar-brand d-none d-lg-block p-0 m-0"
+                href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/rh/empleados.php">
+                <img src="<?php echo rtrim(BASE_URL, '/'); ?>/img/logo_secope.png" alt="SECOPE" height="35"
                     class="d-inline-block align-text-top">
                 <span class="ms-2 align-middle" style="font-size: 1.1rem;">Sistema Integral SECOPE</span>
             </a>
@@ -77,23 +78,24 @@ include __DIR__ . '/../app/views/layouts/sidebar.php';
                         <img src="<?php echo htmlspecialchars($headerFoto); ?>" alt="User" class="rounded-circle me-2"
                             width="32" height="32" style="object-fit: cover;"
                             onerror="this.src='<?php echo BASE_URL; ?>img/user-placeholder.svg'">
-                    <?php
+                        <?php
                     }
                     // Mostrar email institucional, si no existe, mostrar el usuario (evitar email personal si así se prefiere, o fallback mínimo)
                     echo htmlspecialchars($currentUser['email_institucional'] ?: ($currentUser['email'] ?: $currentUser['username']));
                     ?>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>modulos/rh/mi_perfil.php">
+                    <li><a class="dropdown-item" href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/rh/mi_perfil.php">
                             <i class="fas fa-user me-2"></i>Mi Perfil
                         </a></li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>index.php?route=perfil/firma">
+                    <li><a class="dropdown-item"
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=perfil/firma">
                             <i class="fas fa-file-signature me-2"></i>Captura de Firmas
                         </a></li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>logout.php">
+                    <li><a class="dropdown-item" href="<?php echo rtrim(BASE_URL, '/'); ?>/logout.php">
                             <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
                         </a></li>
                 </ul>

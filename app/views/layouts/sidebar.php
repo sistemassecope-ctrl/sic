@@ -10,7 +10,7 @@
     <ul class="nav flex-column sidebar-menu">
         <li class="nav-item">
             <a class="nav-link <?php echo ($route == 'home') ? 'active' : ''; ?>"
-                href="<?php echo BASE_URL; ?>index.php?route=home">
+                href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=home">
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
         </li>
@@ -34,7 +34,7 @@
                     <li class="nav-item">
                         <a class="nav-link <?php echo (strpos($route, 'recursos_financieros/fuas') !== false) ? 'active' : ''; ?>"
                             href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=recursos_financieros/fuas">
-                            <i class="bi bi-file-earmark-text"></i> Formatos únicos de atención
+                            <i class="bi bi-file-earmark-text"></i> Suficiencias Presup.
                         </a>
                     </li>
                 </ul>
@@ -53,19 +53,19 @@
                 <ul class="nav flex-column ms-3">
                     <li class="nav-item">
                         <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'empleados.php') !== false ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>modulos/rh/empleados.php">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/rh/empleados.php">
                             <i class="bi bi-person-badge"></i> Empleados
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'organigrama.php') !== false ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>modulos/rh/organigrama.php">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/rh/organigrama.php">
                             <i class="bi bi-diagram-3"></i> Organigrama
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'areas.php') !== false ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>modulos/rh/areas.php">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/rh/areas.php">
                             <i class="bi bi-building"></i> Áreas
                         </a>
                     </li>
@@ -85,7 +85,7 @@
                 <ul class="nav flex-column ms-3">
                     <li class="nav-item">
                         <a class="nav-link"
-                            href="<?php echo BASE_URL; ?>modulos/concursos/contratos/admin_certificados.php">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/modulos/concursos/contratos/admin_certificados.php">
                             <i class="bi bi-award"></i> Certificados
                         </a>
                     </li>
@@ -95,7 +95,7 @@
 
         <!-- Menu Item: Solicitud de Combustible -->
         <li class="nav-item">
-            <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php?route=combustible/index">
+            <a class="nav-link" href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=combustible/index">
                 <i class="bi bi-fuel-pump"></i> Solicitud de Combustible
             </a>
         </li>
@@ -106,18 +106,19 @@
                 <span><i class="bi bi-truck"></i> Vehículos</span>
                 <i class="bi bi-chevron-down small"></i>
             </a>
-            <div class="collapse <?php echo (strpos($route, 'vehiculos') !== false) ? 'show' : ''; ?>" id="vehiculosSubmenu">
+            <div class="collapse <?php echo (strpos($route, 'vehiculos') !== false) ? 'show' : ''; ?>"
+                id="vehiculosSubmenu">
                 <ul class="nav flex-column ms-3">
                     <li class="nav-item">
                         <a class="nav-link <?php echo (strpos($route, 'vehiculos/padron_vehicular') !== false) ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>/index.php?route=vehiculos/padron_vehicular">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=vehiculos/padron_vehicular">
                             <i class="bi bi-list-ul"></i> Padrón Vehicular
                         </a>
                     </li>
                 </ul>
             </div>
         </li>
-        
+
         <!-- Módulo: Configuración Sistema -->
         <li class="nav-item">
             <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
@@ -129,19 +130,19 @@
                 <ul class="nav flex-column ms-3">
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($route == 'configuracion/roles_usuarios') ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>index.php?route=configuracion/roles_usuarios">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=configuracion/roles_usuarios">
                             <i class="bi bi-shield-lock"></i> Roles y Usuarios
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($route == 'configuracion/permisos_usuarios') ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>index.php?route=configuracion/permisos_usuarios">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=configuracion/permisos_usuarios">
                             <i class="bi bi-key"></i> Permisos por Usuario
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($route == 'configuracion/areas_pao') ? 'active' : ''; ?>"
-                            href="<?php echo BASE_URL; ?>index.php?route=configuracion/areas_pao">
+                            href="<?php echo rtrim(BASE_URL, '/'); ?>/index.php?route=configuracion/areas_pao">
                             <i class="bi bi-diagram-3"></i> Areas para PAO
                         </a>
                     </li>

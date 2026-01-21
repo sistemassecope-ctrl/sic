@@ -19,9 +19,10 @@ if (!$programa) {
     return;
 }
 
-// Fetch Projects
+// Fetch Projects with Balance Info
 $stmt_proy = $db->prepare("SELECT p.*, m.nombre_municipio,
-                           (SELECT COUNT(*) FROM fuas f WHERE f.id_proyecto = p.id_proyecto) as num_fuas
+                           (SELECT COUNT(*) FROM fuas f WHERE f.id_proyecto = p.id_proyecto) as num_fuas,
+                           (SELECT SUM(importe) FROM fuas f WHERE f.id_proyecto = p.id_proyecto AND f.estatus != 'CANCELADO') as total_fua
                            FROM proyectos_obra p
                            LEFT JOIN cat_municipios m ON p.id_municipio = m.id_municipio
                            WHERE p.id_programa = ?
@@ -114,14 +115,16 @@ foreach ($proyectos as $p) {
                         <th>Nombre del Proyecto</th>
                         <th>Municipio / Localidad</th>
                         <th class="text-end">Monto Total</th>
-                        <th class="text-center">Semáforo</th>
+                        <th class="text-end">Total FUAs</th>
+                        <th class="text-end">Saldo</th>
+                        <th class="text-center">Estatus</th>
                         <th class="text-end pe-3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($proyectos)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="bi bi-bricks display-6 d-block mb-3 opacity-50"></i>
                                 No hay proyectos registrados en este programa.
                             </td>
@@ -129,12 +132,24 @@ foreach ($proyectos as $p) {
                     <?php else: ?>
                         <?php foreach ($proyectos as $p): ?>
                             <?php
-                            $monto_total = $p['monto_federal'] + $p['monto_estatal'] + $p['monto_municipal'] + $p['monto_otros'];
+                            $monto_total = (float) ($p['monto_federal'] + $p['monto_estatal'] + $p['monto_municipal'] + $p['monto_otros']);
+                            $total_fua = (float) ($p['total_fua'] ?? 0);
+                            $saldo = $monto_total - $total_fua;
 
-                            // Semáforo logic
-                            $tiene_movimientos = ($p['num_fuas'] > 0);
-                            $semaforo_color = $tiene_movimientos ? 'text-danger' : 'text-secondary';
-                            $semaforo_titulo = $tiene_movimientos ? 'Tiene Movimientos (FUAs)' : 'Sin Movimientos';
+                            // Semáforo logic based on budget usage
+                            if ($total_fua == 0) {
+                                $semaforo_color = 'text-secondary';
+                                $semaforo_titulo = 'Sin Movimientos';
+                            } elseif ($saldo > 0) {
+                                $semaforo_color = 'text-warning';
+                                $semaforo_titulo = 'En Proceso (Con Saldo)';
+                            } elseif ($saldo == 0) {
+                                $semaforo_color = 'text-success';
+                                $semaforo_titulo = 'Totalmente Comprometido';
+                            } else {
+                                $semaforo_color = 'text-danger';
+                                $semaforo_titulo = 'SOBREGIRO';
+                            }
                             ?>
                             <tr style="cursor: pointer;" onclick="if(event.target.closest('.btn-group')) return;"
                                 ondblclick="window.location.href='/pao/index.php?route=recursos_financieros/proyectos/editar&id=<?php echo $p['id_proyecto']; ?>'">
@@ -158,6 +173,12 @@ foreach ($proyectos as $p) {
                                 </td>
                                 <td class="text-end fw-bold text-dark">
                                     $<?php echo number_format($monto_total, 2); ?>
+                                </td>
+                                <td class="text-end text-info fw-bold">
+                                    $<?php echo number_format($total_fua, 2); ?>
+                                </td>
+                                <td class="text-end <?php echo $saldo < 0 ? 'text-danger fw-bold' : 'text-success'; ?>">
+                                    $<?php echo number_format($saldo, 2); ?>
                                 </td>
                                 <td class="text-center">
                                     <i class="bi bi-circle-fill <?php echo $semaforo_color; ?> fs-5"
