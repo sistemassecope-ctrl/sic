@@ -501,21 +501,28 @@ if ($is_editing && !empty($fua['documentos_adjuntos'])) {
 
         function consultarSaldo() {
             const idProyecto = $(proyectoSelectQuery).val();
+            console.log("Consultando saldo para proyecto:", idProyecto);
             if(!idProyecto) return;
 
-            // Mostrar spinner o algo si se desea
-            fetch(`/pao/modulos/recursos_financieros/fuas/get_saldo_proyecto.php?id_proyecto=${idProyecto}&id_fua=${currentFuaId}`)
-                .then(response => response.json())
+            fetch('<?php echo BASE_URL; ?>/modulos/recursos_financieros/fuas/get_saldo_proyecto.php?id_proyecto=' + idProyecto + '&id_fua=' + currentFuaId)
+                .then(response => {
+                    console.log("Respuesta recibida (status):", response.status);
+                    if (!response.ok) throw new Error('Error en la petición: ' + response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log("Datos recibidos:", data);
                     if(data.error) {
                         console.error("Error al obtener saldo:", data.error);
                         return;
                     }
                     saldoMaximo = parseFloat(data.saldo_disponible);
-                    // Si el saldo es negativo (overbudget), lo manejamos igual
                     validarMonto(); 
                 })
-                .catch(err => console.error("Error de red:", err));
+                .catch(err => {
+                    console.error("Error de red o parsing:", err);
+                    // Opcional: mostrar error en el UI
+                });
         }
 
         function validarMonto() {
