@@ -263,6 +263,36 @@ switch ($route) {
         exit;
         break;
 
+    // === MÓDULO: VEHÍCULOS ===
+    case 'vehiculos/padron_vehicular':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = 'Padrón Vehicular';
+        $content_view = 'modulos/vehiculos/padron_vehicular/index.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'vehiculos/padron_vehicular/nuevo':
+    case 'vehiculos/padron_vehicular/editar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        $page_title = isset($_GET['id']) ? 'Editar Vehículo' : 'Nuevo Vehículo';
+        $content_view = 'modulos/vehiculos/padron_vehicular/create.php';
+        include 'app/views/layouts/wrapper.php';
+        break;
+
+    case 'vehiculos/padron_vehicular/guardar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        require 'modulos/vehiculos/padron_vehicular/save.php';
+        exit;
+
+    case 'vehiculos/padron_vehicular/eliminar':
+        if (!isset($_SESSION['user_id']))
+            header("Location: " . BASE_URL . "/index.php?route=login");
+        require 'modulos/vehiculos/padron_vehicular/delete.php';
+        exit;
+
     default:
         // 404
         header("HTTP/1.0 404 Not Found");

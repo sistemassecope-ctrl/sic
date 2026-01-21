@@ -99,10 +99,23 @@
                 <i class="bi bi-fuel-pump"></i> Solicitud de Combustible
             </a>
         </li>
+        <!-- Módulo: Vehículos -->
         <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-circle"></i> B
+            <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+                href="#vehiculosSubmenu" role="button" aria-expanded="false" aria-controls="vehiculosSubmenu">
+                <span><i class="bi bi-truck"></i> Vehículos</span>
+                <i class="bi bi-chevron-down small"></i>
             </a>
+            <div class="collapse <?php echo (strpos($route, 'vehiculos') !== false) ? 'show' : ''; ?>" id="vehiculosSubmenu">
+                <ul class="nav flex-column ms-3">
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (strpos($route, 'vehiculos/padron_vehicular') !== false) ? 'active' : ''; ?>"
+                            href="<?php echo BASE_URL; ?>/index.php?route=vehiculos/padron_vehicular">
+                            <i class="bi bi-list-ul"></i> Padrón Vehicular
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </li>
         
         <!-- Módulo: Configuración Sistema -->
