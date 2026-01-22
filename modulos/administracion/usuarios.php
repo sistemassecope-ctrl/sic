@@ -70,25 +70,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $usuarios = $pdo->query("
     SELECT 
         u.*,
-        CONCAT(e.nombre, ' ', e.apellido_paterno, ' ', IFNULL(e.apellido_materno, '')) as nombre_completo,
+        CONCAT(e.nombres, ' ', e.apellido_paterno, ' ', IFNULL(e.apellido_materno, '')) as nombre_completo,
         e.email,
         a.nombre_area,
-        p.nombre_puesto
+        p.nombre as nombre_puesto
     FROM usuarios_sistema u
     INNER JOIN empleados e ON u.id_empleado = e.id
-    INNER JOIN areas a ON e.id_area = a.id
-    INNER JOIN puestos p ON e.id_puesto = p.id
-    ORDER BY u.tipo, e.nombre
+    INNER JOIN areas a ON e.area_id = a.id
+    LEFT JOIN puestos_trabajo p ON e.puesto_trabajo_id = p.id
+    ORDER BY u.tipo, e.nombres
 ")->fetchAll();
 
 // Obtener empleados sin usuario
 $empleadosSinUsuario = $pdo->query("
-    SELECT e.id, CONCAT(e.nombre, ' ', e.apellido_paterno) as nombre_completo, a.nombre_area
+    SELECT e.id, CONCAT(e.nombres, ' ', e.apellido_paterno) as nombre_completo, a.nombre_area
     FROM empleados e
-    INNER JOIN areas a ON e.id_area = a.id
+    INNER JOIN areas a ON e.area_id = a.id
     LEFT JOIN usuarios_sistema u ON e.id = u.id_empleado
     WHERE u.id IS NULL AND e.estado = 1
-    ORDER BY e.nombre
+    ORDER BY e.nombres
 ")->fetchAll();
 ?>
 <?php include __DIR__ . '/../../includes/header.php'; ?>
