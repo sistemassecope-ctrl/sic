@@ -37,7 +37,7 @@ if (!$esEdicion && !in_array('crear', $permisos)) {
 $empleado = null;
 $errors = [];
 
-// Cargar datos si es edición
+$hijos = [];
 if ($esEdicion) {
     // Nota: Se filtra por area_id para seguridad
     $stmt = $pdo->prepare("SELECT * FROM empleados WHERE id = ? AND " . getAreaFilterSQL('area_id'));
@@ -45,9 +45,14 @@ if ($esEdicion) {
     $empleado = $stmt->fetch();
     
     if (!$empleado) {
-        setFlashMessage('error', 'Empleado no encontrado o no tienes acceso a su expedienre');
+        setFlashMessage('error', 'Empleado no encontrado o no tienes acceso a su expediente');
         redirect('/modulos/recursos-humanos/empleados.php');
     }
+
+    // Cargar hijos
+    $stmtHijos = $pdo->prepare("SELECT * FROM empleado_hijos WHERE empleado_id = ?");
+    $stmtHijos->execute([$empleadoId]);
+    $hijos = $stmtHijos->fetchAll();
 }
 
 // Procesar formulario
@@ -110,6 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sueldoBruto = $empleado['sueldo_bruto'] ?? 0.00;
         $sueldoNeto = $empleado['sueldo_neto'] ?? 0.00;
     }
+    
+    // Hijos (POST)
+    $hijosPost = $_POST['hijos'] ?? [];
     
     // Vulnerabilidad
     $vulnerabilidad = sanitize($_POST['vulnerabilidad'] ?? '');
@@ -185,6 +193,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($params);
                 
                 setFlashMessage('success', 'Expediente actualizado correctamente.');
+
+                // Sync Hijos
+                $pdo->prepare("DELETE FROM empleado_hijos WHERE empleado_id = ?")->execute([$empleadoId]);
+                foreach ($hijosPost as $h) {
+                    if (!empty($h['nombre'])) {
+                        $stmtH = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
+                        $stmtH->execute([$empleadoId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
+                    }
+                }
+
                 redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $empleadoId);
             } else {
                 // INSERT
@@ -200,6 +218,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($vals);
                 
                 $newId = $pdo->lastInsertId();
+
+                // Guardar Hijos para nuevo registro
+                foreach ($hijosPost as $h) {
+                    if (!empty($h['nombre'])) {
+                        $stmtH = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
+                        $stmtH->execute([$newId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
+                    }
+                }
+
                 setFlashMessage('success', 'Empleado registrado y expediente creado.');
                 redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $newId);
             }
@@ -686,6 +713,46 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                                 <input class="form-check-input ms-2" type="checkbox" id="padreMadre" name="padre_madre" <?= !empty($empleado['padre_madre']) ? 'checked' : '' ?> style="margin-left: -2.5em;">
                             </div>
                         </div>
+
+                        <div class="col-12 mt-4" style="grid-column: 1 / -1;">
+                            <h4 class="section-title mb-3" style="font-size: 1rem;"><i class="fas fa-child text-info me-2"></i> Detalles de los Hijos</h4>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm" id="tablaHijos">
+                                    <thead class="table-dark">
+                                        <tr style="font-size: 0.8rem;">
+                                            <th>Nombre Completo</th>
+                                            <th width="180">Fecha de Nacimiento</th>
+                                            <th width="150">Género</th>
+                                            <th width="50"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hijosContainer">
+                                        <?php if (empty($hijos)): ?>
+                                            <tr class="no-hijos-msg">
+                                                <td colspan="4" class="text-center text-muted py-3">No se han registrado hijos</td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($hijos as $idx => $h): ?>
+                                                <tr>
+                                                    <td><input type="text" name="hijos[<?= $idx ?>][nombre]" class="form-control form-control-sm" value="<?= e($h['nombre_completo']) ?>" required></td>
+                                                    <td><input type="date" name="hijos[<?= $idx ?>][fecha_nacimiento]" class="form-control form-control-sm" value="<?= e($h['fecha_nacimiento']) ?>"></td>
+                                                    <td>
+                                                        <select name="hijos[<?= $idx ?>][genero]" class="form-select form-select-sm">
+                                                            <option value="HOMBRE" <?= $h['genero'] == 'HOMBRE' ? 'selected' : '' ?>>HOMBRE</option>
+                                                            <option value="MUJER" <?= $h['genero'] == 'MUJER' ? 'selected' : '' ?>>MUJER</option>
+                                                        </select>
+                                                    </td>
+                                                    <td><button type="button" class="btn btn-outline-danger btn-sm remove-hijo"><i class="fas fa-trash"></i></button></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="addHijoBtn">
+                                <i class="fas fa-plus-circle me-1"></i> Agregar Hijo
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -809,6 +876,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Gestión Dinámica de Hijos
+    const addHijoBtn = document.getElementById('addHijoBtn');
+    const hijosContainer = document.getElementById('hijosContainer');
+    let hijoIdx = hijosContainer.querySelectorAll('tr:not(.no-hijos-msg)').length;
+
+    if (addHijoBtn) {
+        addHijoBtn.addEventListener('click', () => {
+            // Remover mensaje de "no hay hijos"
+            const noHijosMsg = hijosContainer.querySelector('.no-hijos-msg');
+            if (noHijosMsg) noHijosMsg.remove();
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" name="hijos[${hijoIdx}][nombre]" class="form-control form-control-sm" placeholder="Nombre completo" required></td>
+                <td><input type="date" name="hijos[${hijoIdx}][fecha_nacimiento]" class="form-control form-control-sm"></td>
+                <td>
+                    <select name="hijos[${hijoIdx}][genero]" class="form-select form-select-sm">
+                        <option value="HOMBRE">HOMBRE</option>
+                        <option value="MUJER">MUJER</option>
+                    </select>
+                </td>
+                <td><button type="button" class="btn btn-outline-danger btn-sm remove-hijo"><i class="fas fa-trash"></i></button></td>
+            `;
+            hijosContainer.appendChild(row);
+            hijoIdx++;
+            
+            actualizarContadorHijos();
+        });
+    }
+
+    if (hijosContainer) {
+        hijosContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.remove-hijo');
+            if (btn) {
+                btn.closest('tr').remove();
+                if (hijosContainer.querySelectorAll('tr').length === 0) {
+                    hijosContainer.innerHTML = `
+                        <tr class="no-hijos-msg">
+                            <td colspan="4" class="text-center text-muted py-3">No se han registrado hijos</td>
+                        </tr>
+                    `;
+                }
+                actualizarContadorHijos();
+            }
+        });
+    }
+
+    function actualizarContadorHijos() {
+        const count = hijosContainer.querySelectorAll('tr:not(.no-hijos-msg)').length;
+        const inputHijos = document.querySelector('input[name="numero_hijos"]');
+        if (inputHijos) {
+            inputHijos.value = count;
+        }
+    }
 });
 </script>
 
