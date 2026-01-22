@@ -1,22 +1,21 @@
 <?php
 /**
- * Configuración de Base de Datos
- * Sistema PAO v2 - Permisos Atómicos para Organizaciones
+ * Configuración de Base de Datos - EJEMPLO
+ * Renombrar a database.php y configurar credenciales
  */
 
-// Ruta base del proyecto (cambiar si el proyecto está en otra ubicación)
+// Ruta base del proyecto
 define('BASE_PATH', '/pao_v2');
 
 // Configuración de conexión
-define('DB_HOST', '192.168.100.114');
+define('DB_HOST', 'localhost');
 define('DB_NAME', 'pao_v2');
-define('DB_USER', 'u394367385_secope');
-define('DB_PASS', 'Smettil@subito2');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
 /**
  * Obtener conexión PDO a la base de datos
- * @return PDO
  */
 function getConnection(): PDO
 {
@@ -41,10 +40,6 @@ function getConnection(): PDO
     return $pdo;
 }
 
-/**
- * Alias para compatibilidad
- * @return PDO
- */
 function conectarDB(): PDO
 {
     return getConnection();
