@@ -50,9 +50,9 @@ if ($esEdicion) {
     }
 
     // Cargar hijos
-    $stmtHijos = $pdo->prepare("SELECT * FROM empleado_hijos WHERE empleado_id = ?");
-    $stmtHijos->execute([$empleadoId]);
-    $hijos = $stmtHijos->fetchAll();
+    $stmtH = $pdo->prepare("SELECT * FROM empleado_hijos WHERE empleado_id = ?");
+    $stmtH->execute([$empleadoId]);
+    $hijos = $stmtH->fetchAll();
 }
 
 // Procesar formulario
@@ -75,7 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $telefonoParticular = sanitize($_POST['telefono_particular'] ?? '');
     $email = sanitize($_POST['email'] ?? '');
     $emailInstitucional = sanitize($_POST['email_institucional'] ?? '');
-    $direccion = sanitize($_POST['direccion'] ?? '');
+    
+    // Dirección Fragmentada
+    $calle = sanitize($_POST['calle'] ?? '');
+    $numExterior = sanitize($_POST['num_exterior'] ?? '');
+    $numInterior = sanitize($_POST['num_interior'] ?? '');
+    $codigoPostal = sanitize($_POST['codigo_postal'] ?? '');
+    $colonia = sanitize($_POST['colonia'] ?? '');
+    $ciudad = sanitize($_POST['ciudad'] ?? '');
+    $municipio = sanitize($_POST['municipio'] ?? '');
+    $estadoDir = sanitize($_POST['estado_dir'] ?? '');
     
     // Laboral
     $numeroEmpleado = sanitize($_POST['numero_empleado'] ?? '');
@@ -90,11 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ultimoGrado = sanitize($_POST['ultimo_grado_estudios'] ?? '');
     $profesion = sanitize($_POST['profesion'] ?? '');
     
-    // Familiar / Social
-    $estadoCivil = sanitize($_POST['estado_civil'] ?? ''); // No estaba en schema anterior pero es común, lo mapeo a algo o lo omito si no está en DB. Revisando schema: NO ESTÁ. Omitimos o usamos un campo libre.
-    // Usaremos los que están en DB:
-    $numeroHijos = !empty($_POST['numero_hijos']) ? (int)$_POST['numero_hijos'] : 0;
-    $padreMadre = isset($_POST['padre_madre']) ? 1 : 0; // Checkbox? O string? Schema dice varchar o int? Schema dice tinyint/bit probable. Asumiremos texto o binario. Check schema: padre_madre.
+    // Familia
+    $conyugeNombre = sanitize($_POST['conyuge_nombre'] ?? '');
+    $conyugeFechaNac = !empty($_POST['conyuge_fecha_nacimiento']) ? $_POST['conyuge_fecha_nacimiento'] : null;
+    $conyugeGenero = sanitize($_POST['conyuge_genero'] ?? '');
+    $padreMadre = isset($_POST['padre_madre']) ? 1 : 0;
+    $hijosPost = $_POST['hijos'] ?? [];
     
     // Sistema
     $rolSistema = sanitize($_POST['rol_sistema'] ?? 'usuario');
@@ -115,9 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sueldoBruto = $empleado['sueldo_bruto'] ?? 0.00;
         $sueldoNeto = $empleado['sueldo_neto'] ?? 0.00;
     }
-    
-    // Hijos (POST)
-    $hijosPost = $_POST['hijos'] ?? [];
     
     // Vulnerabilidad
     $vulnerabilidad = sanitize($_POST['vulnerabilidad'] ?? '');
@@ -150,7 +157,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'telefono_particular' => $telefonoParticular,
                 'email' => $email,
                 'email_institucional' => $emailInstitucional,
-                'direccion' => $direccion,
+                
+                // Dirección Fragmentada
+                'calle' => $calle,
+                'num_exterior' => $numExterior,
+                'num_interior' => $numInterior,
+                'codigo_postal' => $codigoPostal,
+                'colonia' => $colonia,
+                'ciudad' => $ciudad,
+                'municipio' => $municipio,
+                'estado_dir' => $estadoDir,
                 
                 'numero_empleado' => $numeroEmpleado,
                 'area_id' => $areaId,
@@ -163,13 +179,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ultimo_grado_estudios' => $ultimoGrado,
                 'profesion' => $profesion,
                 
-                'numero_hijos' => $numeroHijos,
-                // 'padre_madre' => $padreMadre, // Tipo de dato a confirmar, lo enviamos si es compatible
+                'conyuge_nombre' => $conyugeNombre,
+                'conyuge_fecha_nacimiento' => $conyugeFechaNac,
+                'conyuge_genero' => $conyugeGenero,
+                'padre_madre' => $padreMadre,
                 
                 'rol_sistema' => $rolSistema,
                 'permisos_extra' => $permisosExtra,
                 
-                // Campos de Salario
+                // Campos de Sueldo
                 'salario' => $salario,
                 'sueldo_bruto' => $sueldoBruto,
                 'sueldo_neto' => $sueldoNeto,
@@ -193,17 +211,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($params);
                 
                 setFlashMessage('success', 'Expediente actualizado correctamente.');
-
+                
                 // Sync Hijos
                 $pdo->prepare("DELETE FROM empleado_hijos WHERE empleado_id = ?")->execute([$empleadoId]);
                 foreach ($hijosPost as $h) {
                     if (!empty($h['nombre'])) {
-                        $stmtH = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
-                        $stmtH->execute([$empleadoId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
+                        $stmtI = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
+                        $stmtI->execute([$empleadoId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
                     }
                 }
-
-                redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $empleadoId);
             } else {
                 // INSERT
                 $columnasActualizar['activo'] = 1;
@@ -218,18 +234,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($vals);
                 
                 $newId = $pdo->lastInsertId();
-
+                
                 // Guardar Hijos para nuevo registro
                 foreach ($hijosPost as $h) {
                     if (!empty($h['nombre'])) {
-                        $stmtH = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
-                        $stmtH->execute([$newId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
+                        $stmtI = $pdo->prepare("INSERT INTO empleado_hijos (empleado_id, nombre_completo, fecha_nacimiento, genero) VALUES (?, ?, ?, ?)");
+                        $stmtI->execute([$newId, sanitize($h['nombre']), $h['fecha_nacimiento'] ?: null, $h['genero'] ?: null]);
                     }
                 }
 
                 setFlashMessage('success', 'Empleado registrado y expediente creado.');
-                redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $newId);
+                $empleadoId = $newId;
             }
+            
+            // Redirigir de nuevo al formulario en lugar de sacarlo a la lista
+            redirect("/modulos/recursos-humanos/empleado-form.php?id=$empleadoId");
+            
             
         } catch (Exception $e) {
             $errors[] = 'Error en base de datos: ' . $e->getMessage();
@@ -446,7 +466,6 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
 </style>
 
 <main class="main-content">
-    <?= renderFlashMessage() ?>
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger" style="margin-bottom: 2rem;">
             <i class="fas fa-exclamation-triangle"></i> Por favor corrige los siguientes errores:
@@ -542,6 +561,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                                 <option value="">Seleccione...</option>
                                 <option value="HOMBRE" <?= ($empleado['genero'] ?? '') == 'HOMBRE' ? 'selected' : '' ?>>Masculino</option>
                                 <option value="MUJER" <?= ($empleado['genero'] ?? '') == 'MUJER' ? 'selected' : '' ?>>Femenino</option>
+                                <option value="OTRO" <?= ($empleado['genero'] ?? '') == 'OTRO' ? 'selected' : '' ?>>Otro</option>
                             </select>
                         </div>
                         
@@ -600,9 +620,45 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                             <input type="email" name="email_institucional" class="form-control" value="<?= e($empleado['email_institucional'] ?? '') ?>">
                         </div>
                         
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label class="form-label">Dirección Completa</label>
-                            <textarea name="direccion" class="form-control" rows="3"><?= e($empleado['direccion'] ?? '') ?></textarea>
+                        <!-- Dirección Fragmentada -->
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label class="form-label">Calle</label>
+                            <input type="text" name="calle" class="form-control" value="<?= e($empleado['calle'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Núm. Exterior</label>
+                            <input type="text" name="num_exterior" class="form-control" value="<?= e($empleado['num_exterior'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Núm. Interior</label>
+                            <input type="text" name="num_interior" class="form-control" placeholder="Opcional" value="<?= e($empleado['num_interior'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Código Postal</label>
+                            <input type="text" name="codigo_postal" class="form-control" value="<?= e($empleado['codigo_postal'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Colonia / Localidad</label>
+                            <input type="text" name="colonia" class="form-control" value="<?= e($empleado['colonia'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Ciudad</label>
+                            <input type="text" name="ciudad" class="form-control" value="<?= e($empleado['ciudad'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Municipio / Delegación</label>
+                            <input type="text" name="municipio" class="form-control" value="<?= e($empleado['municipio'] ?? '') ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <input type="text" name="estado_dir" class="form-control" value="<?= e($empleado['estado_dir'] ?? '') ?>">
                         </div>
                     </div>
                 </div>
@@ -702,34 +758,62 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     </div>
                     
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label class="form-label">Número de Hijos</label>
-                            <input type="number" name="numero_hijos" class="form-control" min="0" value="<?= e($empleado['numero_hijos'] ?? '0') ?>">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                             <h4 class="form-label" style="font-size: 1rem; color: var(--text-primary); border-bottom: 1px dashed var(--border-primary); padding-bottom: 0.5rem;">
+                                <i class="fas fa-heart text-danger me-2"></i> Datos del Cónyuge
+                             </h4>
                         </div>
                         
-                        <div class="form-group d-flex align-items-center">
-                            <div class="form-check form-switch ps-0">
-                                <label class="form-check-label ms-5" for="padreMadre">¿Es Padre/Madre?</label>
-                                <input class="form-check-input ms-2" type="checkbox" id="padreMadre" name="padre_madre" <?= !empty($empleado['padre_madre']) ? 'checked' : '' ?> style="margin-left: -2.5em;">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label class="form-label">Nombre Completo del Cónyuge</label>
+                            <input type="text" name="conyuge_nombre" class="form-control" value="<?= e($empleado['conyuge_nombre'] ?? '') ?>" placeholder="Nombre completo">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" name="conyuge_fecha_nacimiento" class="form-control" value="<?= e($empleado['conyuge_fecha_nacimiento'] ?? '') ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Género</label>
+                            <select name="conyuge_genero" class="form-control">
+                                <option value="">Seleccione...</option>
+                                <option value="MUJER" <?= ($empleado['conyuge_genero'] ?? '') == 'MUJER' ? 'selected' : '' ?>>MUJER</option>
+                                <option value="HOMBRE" <?= ($empleado['conyuge_genero'] ?? '') == 'HOMBRE' ? 'selected' : '' ?>>HOMBRE</option>
+                                <option value="OTRO" <?= ($empleado['conyuge_genero'] ?? '') == 'OTRO' ? 'selected' : '' ?>>OTRO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid mt-4">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                             <h4 class="form-label" style="font-size: 1rem; color: var(--text-primary); border-bottom: 1px dashed var(--border-primary); padding-bottom: 0.5rem;">
+                                <i class="fas fa-baby text-info me-2"></i> Información de los Hijos
+                             </h4>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="padreMadre" name="padre_madre" <?= !empty($empleado['padre_madre']) ? 'checked' : '' ?>>
+                                <label class="form-check-label ms-2" for="padreMadre">¿Es Padre/Madre?</label>
                             </div>
                         </div>
 
-                        <div class="col-12 mt-4" style="grid-column: 1 / -1;">
-                            <h4 class="section-title mb-3" style="font-size: 1rem;"><i class="fas fa-child text-info me-2"></i> Detalles de los Hijos</h4>
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-sm" id="tablaHijos">
+                        <div class="col-12" style="grid-column: 1 / -1;">
+                            <div class="table-responsive mt-2">
+                                <table class="table table-bordered table-sm" style="background: var(--bg-tertiary);">
                                     <thead class="table-dark">
-                                        <tr style="font-size: 0.8rem;">
-                                            <th>Nombre Completo</th>
-                                            <th width="180">Fecha de Nacimiento</th>
-                                            <th width="150">Género</th>
+                                        <tr style="font-size: 0.85rem;">
+                                            <th>Nombre Completo del Hijo/a</th>
+                                            <th width="150">Fecha Nac.</th>
+                                            <th width="120">Género</th>
                                             <th width="50"></th>
                                         </tr>
                                     </thead>
                                     <tbody id="hijosContainer">
                                         <?php if (empty($hijos)): ?>
-                                            <tr class="no-hijos-msg">
-                                                <td colspan="4" class="text-center text-muted py-3">No se han registrado hijos</td>
+                                            <tr class="no-hijos-row">
+                                                <td colspan="4" class="text-center text-muted py-3 small">No se han registrado hijos</td>
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($hijos as $idx => $h): ?>
@@ -749,8 +833,8 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                                     </tbody>
                                 </table>
                             </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="addHijoBtn">
-                                <i class="fas fa-plus-circle me-1"></i> Agregar Hijo
+                            <button type="button" class="btn btn-outline-info btn-sm" id="addHijoBtn">
+                                <i class="fas fa-plus me-1"></i> Agregar Hijo/a
                             </button>
                         </div>
                     </div>
@@ -770,7 +854,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
 
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">Salario Base</label>
+                            <label class="form-label">Sueldo Base</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" step="0.01" name="salario" class="form-control" value="<?= e($empleado['salario'] ?? '0.00') ?>">
@@ -839,10 +923,10 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                 </div>
                 
                 <div class="action-bar">
-                    <a href="<?= url('/modulos/recursos-humanos/empleados.php') ?>" class="btn btn-light border">
-                        Cancelar
+                    <a href="<?= url('/modulos/recursos-humanos/empleados.php') ?>" id="btn-cancelar" class="btn btn-light border">
+                        <i class="fas fa-arrow-left me-1"></i> Regresar
                     </a>
-                    <button type="submit" class="btn btn-primary px-4">
+                    <button type="submit" id="btn-guardar" class="btn btn-primary px-4">
                         <i class="fas fa-save me-2"></i> Guardar Expediente
                     </button>
                 </div>
@@ -877,16 +961,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Lógica de Cambios y Botón de Guardado ---
+    const form = document.getElementById('expedienteForm');
+    const btnGuardar = document.getElementById('btn-guardar');
+    const btnCancelar = document.getElementById('btn-cancelar');
+    const esEdicion = <?= json_encode($esEdicion) ?>;
+    let haCambiado = false;
+
+    function marcarComoModificado() {
+        if (!haCambiado && esEdicion) {
+            haCambiado = true;
+            btnGuardar.innerHTML = '<i class="fas fa-save me-2"></i> Guardar Expediente';
+            btnGuardar.classList.remove('btn-secondary');
+            btnGuardar.classList.add('btn-primary');
+            btnCancelar.innerHTML = '<i class="fas fa-undo me-1"></i> Descartar Cambios';
+        }
+    }
+
+    // Escuchar cambios en todos los inputs
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input', marcarComoModificado);
+        el.addEventListener('change', marcarComoModificado);
+    });
+
+    // Configuración Inicial Modo Edición
+    if (esEdicion) {
+        btnGuardar.innerHTML = '<i class="fas fa-times me-2"></i> Cerrar';
+        btnGuardar.classList.remove('btn-primary');
+        btnGuardar.classList.add('btn-secondary');
+        
+        btnGuardar.addEventListener('click', (e) => {
+            if (!haCambiado) {
+                e.preventDefault();
+                window.location.href = btnCancelar.href;
+            }
+        });
+    }
+
     // Gestión Dinámica de Hijos
     const addHijoBtn = document.getElementById('addHijoBtn');
     const hijosContainer = document.getElementById('hijosContainer');
-    let hijoIdx = hijosContainer.querySelectorAll('tr:not(.no-hijos-msg)').length;
+    let hijoIdx = hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length;
 
     if (addHijoBtn) {
         addHijoBtn.addEventListener('click', () => {
-            // Remover mensaje de "no hay hijos"
-            const noHijosMsg = hijosContainer.querySelector('.no-hijos-msg');
-            if (noHijosMsg) noHijosMsg.remove();
+            const noHijosRow = hijosContainer.querySelector('.no-hijos-row');
+            if (noHijosRow) noHijosRow.remove();
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -901,9 +1021,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-hijo"><i class="fas fa-trash"></i></button></td>
             `;
             hijosContainer.appendChild(row);
-            hijoIdx++;
             
-            actualizarContadorHijos();
+            // Agregar listeners a los nuevos inputs
+            row.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('input', marcarComoModificado);
+                el.addEventListener('change', marcarComoModificado);
+            });
+
+            hijoIdx++;
+            updateHijosCount();
+            marcarComoModificado();
         });
     }
 
@@ -913,23 +1040,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn) {
                 btn.closest('tr').remove();
                 if (hijosContainer.querySelectorAll('tr').length === 0) {
-                    hijosContainer.innerHTML = `
-                        <tr class="no-hijos-msg">
-                            <td colspan="4" class="text-center text-muted py-3">No se han registrado hijos</td>
-                        </tr>
-                    `;
+                    hijosContainer.innerHTML = `<tr class="no-hijos-row"><td colspan="4" class="text-center text-muted py-3 small">No se han registrado hijos</td></tr>`;
                 }
-                actualizarContadorHijos();
+                updateHijosCount();
+                marcarComoModificado();
             }
         });
     }
 
-    function actualizarContadorHijos() {
-        const count = hijosContainer.querySelectorAll('tr:not(.no-hijos-msg)').length;
-        const inputHijos = document.querySelector('input[name="numero_hijos"]');
-        if (inputHijos) {
-            inputHijos.value = count;
-        }
+    function updateHijosCount() {
+        const count = hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length;
+        const switchPM = document.getElementById('padreMadre');
+        if (switchPM) switchPM.checked = count > 0;
     }
 });
 </script>
