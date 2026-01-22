@@ -102,11 +102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Datos Financieros (Solo Admin/Permisos)
     // Si NO puede ver salarios, mantenemos los valores actuales de la base de datos si es edición
     if ($puedeVerSalarios) {
-        $sueldo = !empty($_POST['sueldo']) ? (float)$_POST['sueldo'] : 0.00;
+        $salario = !empty($_POST['salario']) ? (float)$_POST['salario'] : 0.00;
         $sueldoBruto = !empty($_POST['sueldo_bruto']) ? (float)$_POST['sueldo_bruto'] : 0.00;
         $sueldoNeto = !empty($_POST['sueldo_neto']) ? (float)$_POST['sueldo_neto'] : 0.00;
     } else {
-        $sueldo = $empleado['sueldo'] ?? 0.00;
+        $salario = $empleado['salario'] ?? 0.00;
         $sueldoBruto = $empleado['sueldo_bruto'] ?? 0.00;
         $sueldoNeto = $empleado['sueldo_neto'] ?? 0.00;
     }
@@ -161,8 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'rol_sistema' => $rolSistema,
                 'permisos_extra' => $permisosExtra,
                 
-                // Campos de Sueldo
-                'sueldo' => $sueldo,
+                // Campos de Salario
+                'salario' => $salario,
                 'sueldo_bruto' => $sueldoBruto,
                 'sueldo_neto' => $sueldoNeto,
                 'vulnerabilidad' => $vulnerabilidad,
@@ -185,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($params);
                 
                 setFlashMessage('success', 'Expediente actualizado correctamente.');
+                redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $empleadoId);
             } else {
                 // INSERT
                 $columnasActualizar['activo'] = 1;
@@ -198,9 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($vals);
                 
+                $newId = $pdo->lastInsertId();
                 setFlashMessage('success', 'Empleado registrado y expediente creado.');
+                redirect('/modulos/recursos-humanos/empleado-form.php?id=' . $newId);
             }
-            redirect('/modulos/recursos-humanos/empleados.php');
             
         } catch (Exception $e) {
             $errors[] = 'Error en base de datos: ' . $e->getMessage();
@@ -417,6 +419,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
 </style>
 
 <main class="main-content">
+    <?= renderFlashMessage() ?>
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger" style="margin-bottom: 2rem;">
             <i class="fas fa-exclamation-triangle"></i> Por favor corrige los siguientes errores:
@@ -510,9 +513,8 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                             <label class="form-label">Género</label>
                             <select name="genero" class="form-control">
                                 <option value="">Seleccione...</option>
-                                <option value="M" <?= ($empleado['genero'] ?? '') == 'M' ? 'selected' : '' ?>>Masculino</option>
-                                <option value="F" <?= ($empleado['genero'] ?? '') == 'F' ? 'selected' : '' ?>>Femenino</option>
-                                <option value="O" <?= ($empleado['genero'] ?? '') == 'O' ? 'selected' : '' ?>>Otro</option>
+                                <option value="HOMBRE" <?= ($empleado['genero'] ?? '') == 'HOMBRE' ? 'selected' : '' ?>>Masculino</option>
+                                <option value="MUJER" <?= ($empleado['genero'] ?? '') == 'MUJER' ? 'selected' : '' ?>>Femenino</option>
                             </select>
                         </div>
                         
@@ -701,10 +703,10 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
 
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">Sueldo Base</label>
+                            <label class="form-label">Salario Base</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="0.01" name="sueldo" class="form-control" value="<?= e($empleado['sueldo'] ?? '0.00') ?>">
+                                <input type="number" step="0.01" name="salario" class="form-control" value="<?= e($empleado['salario'] ?? '0.00') ?>">
                             </div>
                         </div>
                         <div class="form-group">
