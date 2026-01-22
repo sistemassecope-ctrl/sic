@@ -28,4 +28,4 @@ if ($id > 0) {
     }
 }
 
-redirect('poas.php');
+redirect('modulos/recursos-financieros/poas.php');

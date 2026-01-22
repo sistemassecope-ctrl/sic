@@ -16,7 +16,7 @@ $id_programa = isset($_GET['id_programa']) ? (int) $_GET['id_programa'] : 0;
 
 if ($id_programa === 0) {
     setFlashMessage('error', 'Programa no especificado.');
-    redirect('poas.php');
+    redirect('modulos/recursos-financieros/poas.php');
 }
 
 // Información del Programa
@@ -26,7 +26,7 @@ $programa = $stmt_prog->fetch();
 
 if (!$programa) {
     setFlashMessage('error', 'El programa solicitado no existe.');
-    redirect('poas.php');
+    redirect('modulos/recursos-financieros/poas.php');
 }
 
 // Filtro de Áreas
@@ -34,12 +34,11 @@ $areaFilter = getAreaFilterSQL('p.id_unidad_responsable');
 
 // Listado de Proyectos
 $stmt_proy = $pdo->prepare("
-    SELECT p.*, m.nombre_municipio, l.nombre_localidad,
+    SELECT p.*, m.nombre_municipio,
            (SELECT COUNT(*) FROM fuas f WHERE f.id_proyecto = p.id_proyecto) as num_fuas,
            (SELECT SUM(importe) FROM fuas f WHERE f.id_proyecto = p.id_proyecto AND f.estatus != 'CANCELADO') as total_fua
     FROM proyectos_obra p
     LEFT JOIN cat_municipios m ON p.id_municipio = m.id_municipio
-    LEFT JOIN cat_localidades l ON p.id_localidad = l.id_localidad
     WHERE p.id_programa = ? AND $areaFilter
     ORDER BY p.id_proyecto DESC
 ");
@@ -183,7 +182,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                             <?= e($p['nombre_municipio'] ?? 'N/A') ?>
                                         </div>
                                         <div class="small text-muted">
-                                            <?= e($p['nombre_localidad'] ?? '-') ?>
+                                            <?= e($p['localidad'] ?? '-') ?>
                                         </div>
                                     </td>
                                     <td class="text-end fw-bold">$

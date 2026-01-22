@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare($sql)->execute([$ejercicio, $nombre, $descripcion, $estatus, $monto]);
             setFlashMessage('success', 'Programa Anual creado correctamente');
         }
-        redirect('poas.php');
+        redirect('modulos/recursos-financieros/poas.php');
     } catch (Exception $e) {
         setFlashMessage('error', $e->getMessage());
     }

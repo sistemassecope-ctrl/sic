@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare($sql)->execute(array_values($data));
             setFlashMessage('success', 'Suficiencia registrada correctamente');
         }
-        redirect('fuas.php' . ($data['id_proyecto'] ? "?id_proyecto=" . $data['id_proyecto'] : ""));
+        redirect('modulos/recursos-financieros/fuas.php' . ($data['id_proyecto'] ? "?id_proyecto=" . $data['id_proyecto'] : ""));
     } catch (Exception $e) {
         setFlashMessage('error', $e->getMessage());
     }
@@ -129,7 +129,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <div class="step">
                         <div
                             class="step-circle <?= (!empty($fua['fecha_titular']) && !empty($fua['fecha_firma_regreso'])) ? 'active' : '' ?>">
-                            <i class="fas fa-signature"></i></div>
+                            <i class="fas fa-signature"></i>
+                        </div>
                         <label>Firmas</label>
                         <div class="d-flex gap-1">
                             <input type="date" name="fecha_titular" title="Firma Titular"
@@ -191,10 +192,10 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <div class="col-md-4">
                     <label class="form-label x-small text-muted">ESTATUS INTERNO</label>
                     <select name="estatus" class="form-control">
-                        <option value="ACTIVO" <?= ($is_editing && $fua['estatus'] == 'ACTIVO') ? 'selected' : '' ?>
-                            >ACTIVO</option>
-                        <option value="CANCELADO" <?= ($is_editing && $fua['estatus'] == 'CANCELADO') ? 'selected' : '' ?>
-                            >CANCELADO</option>
+                        <option value="ACTIVO" <?= ($is_editing && $fua['estatus'] == 'ACTIVO') ? 'selected' : '' ?>>ACTIVO
+                        </option>
+                        <option value="CANCELADO" <?= ($is_editing && $fua['estatus'] == 'CANCELADO') ? 'selected' : '' ?>>
+                            CANCELADO</option>
                     </select>
                 </div>
                 <div class="col-md-4">

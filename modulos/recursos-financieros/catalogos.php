@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setFlashMessage('error', 'Error: ' . $e->getMessage());
     }
 
-    redirect('catalogos.php');
+    redirect('modulos/recursos-financieros/catalogos.php');
 }
 
 // --- Obtener Datos ---

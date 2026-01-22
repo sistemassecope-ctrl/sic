@@ -29,7 +29,7 @@ if ($id_proyecto) {
 
 if (!$id_programa_parent) {
     setFlashMessage('error', 'Programa no especificado.');
-    redirect('poas.php');
+    redirect('modulos/recursos-financieros/poas.php');
 }
 
 // Info del Programa
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare($sql)->execute(array_values($data));
             setFlashMessage('success', 'Proyecto registrado');
         }
-        redirect("proyectos.php?id_programa=$id_programa_parent");
+        redirect("modulos/recursos-financieros/proyectos.php?id_programa=$id_programa_parent");
     } catch (Exception $e) {
         setFlashMessage('error', $e->getMessage());
     }

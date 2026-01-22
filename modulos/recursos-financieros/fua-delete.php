@@ -21,4 +21,4 @@ if ($id > 0) {
     }
 }
 
-redirect('fuas.php');
+redirect('modulos/recursos-financieros/fuas.php');

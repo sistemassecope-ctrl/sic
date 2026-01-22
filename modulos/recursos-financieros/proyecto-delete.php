@@ -29,4 +29,4 @@ if ($id > 0) {
     }
 }
 
-redirect("proyectos.php?id_programa=$id_programa");
+redirect("modulos/recursos-financieros/proyectos.php?id_programa=$id_programa");

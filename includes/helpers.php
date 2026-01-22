@@ -161,7 +161,7 @@ function basePath(): string
  */
 function url(string $path = ''): string
 {
-    return basePath() . $path;
+    return rtrim(basePath(), '/') . '/' . ltrim($path, '/');
 }
 
 /**
@@ -180,7 +180,7 @@ function baseUrl(): string
  */
 function redirect(string $path): void
 {
-    $url = basePath() . $path;
+    $url = url($path);
     header("Location: $url");
     exit;
 }
