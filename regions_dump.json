@@ -1,0 +1,110 @@
+{
+    "regions": [
+        {
+            "region": "REGION LAGUNA",
+            "count": 8
+        },
+        {
+            "region": "SECOPE",
+            "count": 83
+        }
+    ],
+    "columns": [
+        "id",
+        "numero",
+        "numero_economico",
+        "numero_patrimonio",
+        "numero_placas",
+        "poliza",
+        "marca",
+        "tipo",
+        "modelo",
+        "color",
+        "numero_serie",
+        "secretaria_subsecretaria",
+        "direccion_departamento",
+        "resguardo_nombre",
+        "factura_nombre",
+        "observacion_1",
+        "observacion_2",
+        "telefono",
+        "kilometraje",
+        "region",
+        "con_logotipos",
+        "en_proceso_baja",
+        "created_at",
+        "updated_at"
+    ],
+    "sample_data": [
+        {
+            "id": 1,
+            "numero_economico": "V1210-006",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "SECRETARIA  GENERAL"
+        },
+        {
+            "id": 2,
+            "numero_economico": "V1500-325",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "SECRETARIA  GENERAL"
+        },
+        {
+            "id": 3,
+            "numero_economico": "V1100-025",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "SECRETARIA TECNICA"
+        },
+        {
+            "id": 4,
+            "numero_economico": "V1100-024",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "DIRECCION JURIDICA"
+        },
+        {
+            "id": 5,
+            "numero_economico": "V1100-030",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "UNIDAD DE COMUNICACI\u00d3N SOCIAL"
+        },
+        {
+            "id": 6,
+            "numero_economico": "V1210-024",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL",
+            "direccion_departamento": "DEPARTAMENTO DE CONCURSOS Y CONTRATOS"
+        },
+        {
+            "id": 7,
+            "numero_economico": "V1500-250",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL COORDINACION INTERISTITUCIONAL",
+            "direccion_departamento": "COORDINACION INTERISTITUCIONAL"
+        },
+        {
+            "id": 8,
+            "numero_economico": "V1500-230",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL COORDINACION INTERISTITUCIONAL",
+            "direccion_departamento": "COORDINACION INTERISTITUCIONAL"
+        },
+        {
+            "id": 9,
+            "numero_economico": "V1500-236",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL COORDINACION INTERISTITUCIONAL",
+            "direccion_departamento": "AREA DE RESIDENTES DE OBRAS ELECTRICAS"
+        },
+        {
+            "id": 10,
+            "numero_economico": "V1500-244",
+            "region": "SECOPE",
+            "secretaria_subsecretaria": "SECRETARIA  GENERAL COORDINACION INTERISTITUCIONAL",
+            "direccion_departamento": "AREA DE ARCHIVO"
+        }
+    ]
+}
