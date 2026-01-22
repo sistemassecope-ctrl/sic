@@ -102,129 +102,6 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
 <?php include __DIR__ . '/../../includes/header.php'; ?>
 <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 
-<style>
-    .avatar-initials {
-        width: 40px;
-        height: 40px;
-        background-color: var(--accent-primary);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 1.1rem;
-        /* Actualización visual */
-    }
-
-    .role-badge {
-        font-size: 0.7rem;
-        padding: 0.2em 0.6em;
-        border-radius: 10px;
-        background: #e2e8f0;
-        color: #475569;
-        font-weight: 600;
-    }
-
-    .role-admin_global {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    /* Rojo suave */
-    .role-admin_area {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    /* Ambar */
-    .role-SUPERADMIN {
-        background: #e0e7ff;
-        color: #3730a3;
-    }
-
-    /* Indigo suave */
-    .estatus-dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-
-    .estatus-ACTIVO {
-        background-color: #10b981;
-    }
-
-    .estatus-BAJA {
-        background-color: #ef4444;
-    }
-
-    .estatus-LICENCIA {
-        background-color: #f59e0b;
-    }
-
-    /* Filtros Premium */
-    .search-filters-bar {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        background: var(--bg-card);
-        padding: 1.25rem;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-primary);
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-md);
-    }
-
-    .search-input-group {
-        flex: 2;
-        position: relative;
-    }
-
-    .search-input-group i {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-muted);
-    }
-
-    .search-input-group input {
-        padding-left: 2.75rem !important;
-    }
-
-    .filter-select-group {
-        flex: 1;
-    }
-
-    .filter-select-group select {
-        width: 100%;
-        cursor: pointer;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238b949e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 1rem center;
-        background-size: 16px 12px;
-        appearance: none;
-    }
-
-    .btn-clear {
-        color: var(--text-muted);
-        transition: color var(--transition-fast);
-    }
-
-    .btn-clear:hover {
-        color: var(--accent-danger);
-    }
-
-    @media (max-width: 992px) {
-        .search-filters-bar {
-            flex-direction: column;
-            align-items: stretch;
-        }
-    }
-</style>
-
 <main class="main-content">
     <div class="page-header">
         <div>
@@ -232,11 +109,6 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
             <p class="page-description">Gestión y control de expedientes digitales</p>
         </div>
         <div class="d-flex gap-2">
-            <?php if (isAdmin()): ?>
-                <button class="btn btn-warning" onclick="alert('Funcionalidad de Sincronización Remota Pendiente')">
-                    <i class="fas fa-sync-alt"></i> Sincronizar
-                </button>
-            <?php endif; ?>
             <a href="empleado-form.php" class="btn btn-primary">
                 <i class="fas fa-user-plus"></i> Nuevo Empleado
             </a>
@@ -284,16 +156,12 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
     <div class="card" style="border:none; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+                <thead>
                     <tr>
-                        <th class="ps-4 text-secondary text-uppercase"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Empleado</th>
-                        <th class="text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                            Adscripción</th>
-                        <th class="text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                            Estatus / Rol</th>
-                        <th class="text-end pe-4 text-secondary text-uppercase"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Acciones</th>
+                        <th class="ps-4">Empleado</th>
+                        <th>Adscripción</th>
+                        <th>Estatus / Rol</th>
+                        <th class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
