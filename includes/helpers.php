@@ -59,8 +59,8 @@ function csrfField(): string
  */
 function isAjax(): bool
 {
-    return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    return isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 }
 
 /**
@@ -216,20 +216,20 @@ function getFlashMessage(): ?array
 function renderFlashMessage(): string
 {
     $flash = getFlashMessage();
-    
+
     if (!$flash) {
         return '';
     }
-    
+
     $typeClasses = [
         'success' => 'alert-success',
         'error' => 'alert-danger',
         'warning' => 'alert-warning',
         'info' => 'alert-info'
     ];
-    
+
     $class = $typeClasses[$flash['type']] ?? 'alert-info';
-    
+
     return sprintf(
         '<div class="alert %s alert-dismissible fade show" role="alert">
             %s
@@ -238,4 +238,15 @@ function renderFlashMessage(): string
         $class,
         e($flash['message'])
     );
+}
+
+/**
+ * Obtener SQL para filtrar por ejercicio fiscal
+ * @param string $column
+ * @return string
+ */
+function getEjercicioFilterSQL(string $column): string
+{
+    $ejercicio = isset($_GET['ejercicio']) ? (int) $_GET['ejercicio'] : date('Y');
+    return "$column = $ejercicio";
 }
