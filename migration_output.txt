@@ -1,5 +1,0 @@
-﻿=== ELIMINANDO FOREIGN KEYS ===
-
-1. Eliminando FK 'empleados_ibfk_1' de 'empleados'...
-
-ÔØî ERROR: SQLSTATE[42000]: Syntax error or access violation: 1091 Can't DROP 'empleados_ibfk_1'; check that column/key exists
