@@ -126,6 +126,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sueldoNeto = $empleado['sueldo_neto'] ?? 0.00;
     }
     
+    // Baja y Desvinculación
+    $fechaBaja = !empty($_POST['fecha_baja']) ? $_POST['fecha_baja'] : null;
+    $tipoBaja = sanitize($_POST['tipo_baja'] ?? '');
+    $docSustentoTipo = sanitize($_POST['documento_sustento_tipo'] ?? '');
+    
+    // Procesar archivo de baja si existe
+    $docSustentoArchivo = $empleado['documento_sustento_archivo'] ?? null;
+    if (isset($_FILES['documento_archivo']) && $_FILES['documento_archivo']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . '/../../assets/uploads/bajas/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
+        $ext = pathinfo($_FILES['documento_archivo']['name'], PATHINFO_EXTENSION);
+        $fileName = 'baja_' . ($empleadoId ?? 'nuevo') . '_' . time() . '.' . $ext;
+        $destPath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['documento_archivo']['tmp_name'], $destPath)) {
+            $docSustentoArchivo = '/assets/uploads/bajas/' . $fileName;
+        }
+    }
+
+    // Auto-ajustar estatus si hay fecha de baja
+    if ($fechaBaja) {
+        $estatus = 'BAJA';
+    }
+    
     // Vulnerabilidad
     $vulnerabilidad = sanitize($_POST['vulnerabilidad'] ?? '');
 
@@ -192,6 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'sueldo_bruto' => $sueldoBruto,
                 'sueldo_neto' => $sueldoNeto,
                 'vulnerabilidad' => $vulnerabilidad,
+
+                // Desvinculación
+                'fecha_baja' => $fechaBaja,
+                'tipo_baja' => $tipoBaja,
+                'documento_sustento_tipo' => $docSustentoTipo,
+                'documento_sustento_archivo' => $docSustentoArchivo,
 
                 'fecha_actualizacion' => date('Y-m-d H:i:s')
             ];
@@ -262,8 +293,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Catálogos
 $areas = $pdo->query("SELECT * FROM areas WHERE estado = 1 AND " . getAreaFilterSQL('id') . " ORDER BY nombre_area")->fetchAll();
-$areas = $pdo->query("SELECT * FROM areas WHERE estado = 1 AND " . getAreaFilterSQL('id') . " ORDER BY nombre_area")->fetchAll();
 $puestos = $pdo->query("SELECT * FROM puestos_trabajo WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
+$catTiposBaja = $pdo->query("SELECT * FROM cat_tipos_baja WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
+$catTiposDocBaja = $pdo->query("SELECT * FROM cat_tipos_documento_baja WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
 
 // Obtener datos financieros si tiene permiso y existe la info
 $puestoData = null;
@@ -477,7 +509,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
         </div>
     <?php endif; ?>
 
-    <form method="POST" id="expedienteForm">
+    <form method="POST" id="expedienteForm" enctype="multipart/form-data">
         <div class="expediente-container">
             <!-- Sidebar: Foto y Navegación -->
             <aside class="expediente-nav">
@@ -521,6 +553,12 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     <?php if ($puedeVerSalarios): ?>
                     <button type="button" class="nav-link" data-target="finanzas">
                         <i class="fas fa-hand-holding-usd fa-fw"></i> Compensación
+                    </button>
+                    <?php endif; ?>
+                    
+                    <?php if ($esEdicion): ?>
+                    <button type="button" class="nav-link" data-target="bajas">
+                        <i class="fas fa-user-slash fa-fw"></i> Baja y Desvinculación
                     </button>
                     <?php endif; ?>
                 </div>
@@ -921,6 +959,63 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                         </div>
                     </div>
                 </div>
+
+                <!-- 7. Baja y Desvinculación (Solo Edición) -->
+                <?php if ($esEdicion): ?>
+                <div id="bajas" class="form-section">
+                    <div class="paper-header">
+                        <h2 class="section-title"><i class="fas fa-user-slash text-danger"></i> Baja y Desvinculación</h2>
+                        <span class="badge bg-danger">Cierre de Expediente</span>
+                    </div>
+                    
+                    <div class="alert alert-warning border small">
+                        <i class="fas fa-exclamation-circle"></i> Al registrar una fecha de baja, el estatus del empleado cambiará automáticamente a <strong>BAJA</strong> al guardar.
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Fecha de Cuasa de Baja</label>
+                            <input type="date" name="fecha_baja" class="form-control" value="<?= e($empleado['fecha_baja'] ?? '') ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Baja</label>
+                            <select name="tipo_baja" class="form-control">
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($catTiposBaja as $ctb): ?>
+                                    <option value="<?= e($ctb['nombre']) ?>" <?= ($empleado['tipo_baja'] ?? '') == $ctb['nombre'] ? 'selected' : '' ?>>
+                                        <?= e($ctb['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Documento que Sustenta</label>
+                            <select name="documento_sustento_tipo" class="form-control">
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($catTiposDocBaja as $ctd): ?>
+                                    <option value="<?= e($ctd['nombre']) ?>" <?= ($empleado['documento_sustento_tipo'] ?? '') == $ctd['nombre'] ? 'selected' : '' ?>>
+                                        <?= e($ctd['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Archivo de Sustento (Digitalizado)</label>
+                            <input type="file" name="documento_archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                            <?php if (!empty($empleado['documento_sustento_archivo'])): ?>
+                                <div class="mt-2">
+                                    <a href="<?= e($empleado['documento_sustento_archivo'] ?? '') ?>" target="_blank" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-file-pdf"></i> Ver documento actual
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 
                 <div class="action-bar">
                     <a href="<?= url('/modulos/recursos-humanos/empleados.php') ?>" id="btn-cancelar" class="btn btn-light border">
