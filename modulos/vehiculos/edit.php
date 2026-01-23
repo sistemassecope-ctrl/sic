@@ -109,6 +109,22 @@ $areas = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado = 1 AND $fi
             </form>
         </div>
     </div>
+
+    <!-- Integración de Bitácora de Notas (Solo Edición) -->
+    <?php if ($isEdit): ?>
+    <div class="card mt-4">
+        <div class="card-body">
+            <?php 
+                $vehiculo_id = $v['id'];
+                $redirect_to = '/modulos/vehiculos/edit.php?id=' . $v['id'];
+                // tipo_origen por defecto es 'ACTIVO', correcto para vehiculos.
+                include 'notas/list.php'; 
+            ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </main>
+
+<?php if ($isEdit) include 'notas/modal_edit.php'; ?>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

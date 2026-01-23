@@ -67,10 +67,10 @@ $bajas = $pdo->query($sql)->fetchAll();
         </div>
     </div>
 
-    <div class="card">
+    <div class="card bg-dark text-white border-secondary">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="bg-transparent border-secondary">
                     <tr>
                         <th class="ps-4" style="width: 50px;">#</th>
                         <th>Unidad</th>
@@ -122,6 +122,11 @@ $bajas = $pdo->query($sql)->fetchAll();
                                         <a href="edit_baja.php?id=<?= $v['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar Datos de Baja">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <!-- Notas Trigger (Histórico) -->
+                                        <button type="button" class="btn btn-sm btn-outline-info" title="Bitácora Histórica"
+                                                onclick="verNotas(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </button>
                                     </div>
                                 <?php endif; ?>
                             </td>
@@ -242,6 +247,56 @@ function restaurarBaja(id, economico) {
         });
     }
 }
+
+
+// Modal de Notas
+let notasModalObj = null;
+
+function verNotas(id, economico) {
+    // Check if element exists, create if not (reuse logic from index if shared, but here is separate file)
+    let modalEl = document.getElementById('modalNotas');
+    if (!modalEl) return;
+
+    document.getElementById('modalNotasTitulo').textContent = economico + ' (Histórico)';
+    const body = document.getElementById('modalNotasBody');
+    body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
+    
+    if (!notasModalObj) {
+        notasModalObj = new bootstrap.Modal(modalEl);
+    }
+    notasModalObj.show();
+    
+    // Cargar contenido via AJAX con tipo=BAJA
+    fetch(`notas/view_async.php?vehiculo_id=${id}&tipo=BAJA&from=/modulos/vehiculos/bajas.php`)
+        .then(response => response.text())
+        .then(html => {
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-danger">Error al cargar notas.</div>';
+            console.error(err);
+        });
+}
 </script>
+
+<!-- Modal Visualizar Notas -->
+<div class="modal fade" id="modalNotas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header bg-dark text-white border-secondary">
+                <h5 class="modal-title"><i class="fas fa-history"></i> Bitácora: <span id="modalNotasTitulo"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-dark text-white" id="modalNotasBody">
+                <!-- AJAX Content -->
+            </div>
+            <div class="modal-footer bg-dark border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'notas/modal_edit.php'; ?>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

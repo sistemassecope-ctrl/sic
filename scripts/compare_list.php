@@ -1,0 +1,69 @@
+<?php
+require_once __DIR__ . '/../config/database.php';
+$pdo = getConnection();
+
+// Lista proporcionada por el usuario (Transcribiendo imagen)
+$userList = [
+'V1210-006', 'V1500-326', 'V1100-025', 'V1100-024', 'V1100-030', 
+'V1210-024', 'V1500-250', 'V1500-230', 'V1500-236', 'V1500-244', 
+'V1500-254', 'V2600-025', 'V1100-027', 'V1500-363', 'V1500-319', 
+'V1500-311', 'V1100-031', 'V1500-243', 'V1210-003', 'V1500-290', 
+'V1100-022', 'V1500-297', 'V1100-020', 'V2600-024', 'V1500-233', 
+'V1500-238', 'V1500-242', 'V1500-294', 'V1500-315', 'V1500-271', 
+'V1500-261', 'V1500-256', 'V1500-318', 'V1500-307', 'V1500-268', 
+'V1500-259', 'V1500-260', 'V1500-269', 'V1500-308', 'V1500-321', 
+'V1500-304', 'V1500-235', 'V1500-268', 'V1500-262', 'V1500-310', // V1500-268 duplicate in image?
+'V1500-314', 'V1500-317', 'V1500-323', 'V1500-257', 'V1500-300', 
+'V1500-266', 'V1500-263', 'V1500-267', 'V1500-226', 'V1500-286', 
+'V1500-248', 'V1500-316', 'V1100-023', 'V1500-292', 'V1500-288', 
+'V1500-312', 'V1500-232', 'V1500-320', 'V1500-240', 'V1500-241', 
+'V1500-265', 'V1500-264', 'V1500-270', 'V1500-291', 'V1500-293', 
+'V1500-296', 'V1500-298', 'V1500-299', 'V1500-301', 'V1500-305', 
+'V1500-309', 'V1500-322', 'V1500-239', 'V1500-266', 'V1500-249', // V1500-266 duplicate?
+'V1500-280', 'V1500-302', 'V1500-281', 'V1500-283', 'V1500-247', 
+'V1500-246', 'V1100-029', 'V1500-282', 'V100-026',  'V1500-289', 
+'V1500-355'
+];
+
+// Normalizar (quitar espacios, trim)
+$userList = array_map(function($v) {
+    return trim(str_replace(' ', '-', $v));
+}, $userList);
+$userListUnique = array_unique($userList);
+
+echo "Total en Usuario: " . count($userList) . "\n";
+echo "Total Únicos Usuario: " . count($userListUnique) . "\n";
+
+// Obtener DB
+$dbActivos = $pdo->query("SELECT numero_economico FROM vehiculos WHERE activo = 1")->fetchAll(PDO::FETCH_COLUMN);
+$dbBajas = $pdo->query("SELECT numero_economico FROM vehiculos_bajas")->fetchAll(PDO::FETCH_COLUMN);
+$allDb = array_merge($dbActivos, $dbBajas); // Todos (activos + bajas)
+
+echo "Total en DB (Activos): " . count($dbActivos) . "\n";
+echo "Total en DB (Bajas): " . count($dbBajas) . "\n";
+echo "Total en DB (Combinado): " . count($allDb) . "\n\n";
+
+// Comparar
+$missingInDb = [];
+foreach ($userListUnique as $eco) {
+    if (!in_array($eco, $allDb)) {
+        $missingInDb[] = $eco;
+    }
+}
+
+if (count($missingInDb) > 0) {
+    echo "FALTAN EN LA BASE DE DATOS:\n";
+    foreach ($missingInDb as $m) {
+        echo "- $m\n";
+    }
+} else {
+    echo "¡Todos los números de tu lista existen en la base de datos!\n";
+}
+
+// Extra check: duplicados de la imagen
+$counts = array_count_values($userList);
+$duplicates = array_filter($counts, function($count) { return $count > 1; });
+if (count($duplicates) > 0) {
+    echo "\nNota: Encontré duplicados en tu lista de imagen:\n";
+    print_r($duplicates);
+}

@@ -56,19 +56,21 @@
     <input type="text" name="numero_serie" class="form-control" value="<?= e($v['numero_serie'] ?? '') ?>">
 </div>
 
-<div class="col-md-4">
-    <label class="form-label">Secretaria / Subsecretaria</label>
-    <!-- Placeholder or logic if this field exists, otherwise keep generic -->
-    <input type="text" class="form-control" disabled value="Campo Migrado (Ver Áreas)">
-</div>
 
-<div class="col-md-4">
-    <label class="form-label">Dirección / Depto</label>
-    <!-- Placeholder -->
-    <input type="text" class="form-control" disabled value="Campo Migrado (Ver Áreas)">
-</div>
 
 <!-- Row 4 -->
+<div class="col-md-4">
+    <label class="form-label">Departamento / Área <span class="text-danger">*</span></label>
+    <select name="area_id" class="form-select" required>
+        <option value="">-- Seleccionar Área --</option>
+        <?php foreach ($areas as $area): ?>
+            <option value="<?= $area['id'] ?>" <?= ($v['area_id'] ?? '') == $area['id'] ? 'selected' : '' ?>>
+                <?= e($area['nombre_area']) ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
 <div class="col-md-4">
     <label class="form-label">Resguardo a Nombre De</label>
     <input type="text" name="resguardo_nombre" class="form-control" value="<?= e($v['resguardo_nombre'] ?? '') ?>">
@@ -76,18 +78,11 @@
 
 <div class="col-md-4">
     <label class="form-label">Factura a Nombre De</label>
-    <input type="text" class="form-control" placeholder="No migrado en esquema actual" disabled>
+    <input type="text" name="factura_nombre" class="form-control" value="<?= e($v['factura_nombre'] ?? '') ?>">
 </div>
 
 <!-- Row 5: Observations Split -->
-<div class="col-md-6">
-    <label class="form-label">Observación 1</label>
-    <textarea name="observacion_1" class="form-control" rows="2"><?= e($v['observacion_1'] ?? '') ?></textarea>
-</div>
-<div class="col-md-6">
-    <label class="form-label">Observación 2</label>
-    <textarea name="observacion_2" class="form-control" rows="2"><?= e($v['observacion_2'] ?? '') ?></textarea>
-</div>
+<!-- Observaciones legacy eliminadas. Utilizar Bitácora de Notas en Listado. -->
 
 <!-- Special Toggles Row -->
 <div class="col-12 mt-4">

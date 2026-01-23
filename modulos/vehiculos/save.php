@@ -22,23 +22,29 @@ $MODULO_ID = $modulo ? $modulo['id'] : 0;
 // Recoger datos
 $id = isset($_POST['id']) ? (int)$_POST['id'] : null;
 $numero_economico = sanitize($_POST['numero_economico']);
+$numero_patrimonio = sanitize($_POST['numero_patrimonio']);
 $numero_placas = sanitize($_POST['numero_placas']);
+$poliza = sanitize($_POST['poliza']);
 $marca = sanitize($_POST['marca']);
-$modelo = sanitize($_POST['modelo']);
 $tipo = sanitize($_POST['tipo']);
+$modelo = sanitize($_POST['modelo']);
 $color = sanitize($_POST['color']);
 $numero_serie = sanitize($_POST['numero_serie']);
-$poliza = sanitize($_POST['poliza']);
+$telefono = sanitize($_POST['telefono']);
 $region = sanitize($_POST['region']);
 $con_logotipos = sanitize($_POST['con_logotipos']);
 $en_proceso_baja = sanitize($_POST['en_proceso_baja']);
 $kilometraje = sanitize($_POST['kilometraje']);
 
-$area_id = (int)$_POST['area_id'];
+$area_id = isset($_POST['area_id']) && !empty($_POST['area_id']) ? (int)$_POST['area_id'] : null;
+$factura_nombre = sanitize($_POST['factura_nombre']);
 $resguardo_nombre = sanitize($_POST['resguardo_nombre']);
-$observaciones = sanitize($_POST['observaciones']);
+$observacion_1 = sanitize($_POST['observacion_1']);
+$observacion_2 = sanitize($_POST['observacion_2']);
 // Si es nuevo, activo por defecto. Si es edit, depende del check.
-$activo = isset($_POST['activo']) ? 1 : ($id ? 0 : 1); 
+// $activo = isset($_POST['activo']) ? 1 : ($id ? 0 : 1); 
+// REGLA: Si está en esta tabla, ES ACTIVO. No usamos activo=0.
+$activo = 1; 
 
 // 2. Permisos y Validaciones
 if ($id) {
@@ -57,47 +63,49 @@ if ($id) {
     requirePermission('crear', $MODULO_ID);
 }
 
-// Validar que el área destino sea permitida para el usuario
-$allowedAreas = $pdo->query("SELECT id FROM areas WHERE " . getAreaFilterSQL('id'))->fetchAll(PDO::FETCH_COLUMN);
-if (!isAdmin() && !in_array($area_id, $allowedAreas)) {
-    setFlashMessage('error', 'No puedes asignar vehículos a un área que no administras.');
-    redirect($id ? "edit.php?id=$id" : "create.php");
+// Validar que el área destino sea permitida para el usuario (solo si se especifica un área)
+if ($area_id !== null) {
+    $allowedAreas = $pdo->query("SELECT id FROM areas WHERE " . getAreaFilterSQL('id'))->fetchAll(PDO::FETCH_COLUMN);
+    if (!isAdmin() && !in_array($area_id, $allowedAreas)) {
+        setFlashMessage('error', 'No puedes asignar vehículos a un área que no administras.');
+        redirect($id ? "edit.php?id=$id" : "create.php");
+    }
 }
 
 try {
     if ($id) {
-        $sql = "UPDATE vehiculos SET 
-                numero_economico = ?, numero_placas = ?, marca = ?, modelo = ?, 
-                tipo = ?, color = ?, numero_serie = ?, poliza = ?,
-                region = ?, con_logotipos = ?, en_proceso_baja = ?, kilometraje = ?,
-                area_id = ?, resguardo_nombre = ?, observaciones = ?, activo = ?
-                WHERE id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $numero_economico, $numero_placas, $marca, $modelo,
-            $tipo, $color, $numero_serie, $poliza,
-            $region, $con_logotipos, $en_proceso_baja, $kilometraje,
-            $area_id, $resguardo_nombre, $observaciones, $activo,
-            $id
-        ]);
-        setFlashMessage('success', 'Vehículo actualizado correctamente.');
-    } else {
-        $sql = "INSERT INTO vehiculos (
-                numero_economico, numero_placas, marca, modelo, 
-                tipo, color, numero_serie, poliza,
-                region, con_logotipos, en_proceso_baja, kilometraje,
-                area_id, resguardo_nombre, observaciones, activo
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $numero_economico, $numero_placas, $marca, $modelo,
-            $tipo, $color, $numero_serie, $poliza,
-            $region, $con_logotipos, $en_proceso_baja, $kilometraje,
-            $area_id, $resguardo_nombre, $observaciones
-        ]);
-        setFlashMessage('success', 'Vehículo registrado correctamente.');
-    }
-    redirect('index.php');
+    $sql = "UPDATE vehiculos SET 
+            numero_economico = ?, numero_placas = ?, numero_patrimonio = ?, marca = ?, modelo = ?, 
+            tipo = ?, color = ?, numero_serie = ?, poliza = ?, telefono = ?,
+            region = ?, con_logotipos = ?, en_proceso_baja = ?, kilometraje = ?,
+            area_id = ?, resguardo_nombre = ?, factura_nombre = ?, observacion_1 = ?, observacion_2 = ?, activo = ?
+            WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $numero_economico, $numero_placas, $numero_patrimonio, $marca, $modelo,
+        $tipo, $color, $numero_serie, $poliza, $telefono,
+        $region, $con_logotipos, $en_proceso_baja, $kilometraje,
+        $area_id, $resguardo_nombre, $factura_nombre, $observacion_1, $observacion_2, $activo,
+        $id
+    ]);
+    setFlashMessage('success', 'Vehículo actualizado correctamente.');
+} else {
+    $sql = "INSERT INTO vehiculos (
+            numero_economico, numero_placas, numero_patrimonio, marca, modelo, 
+            tipo, color, numero_serie, poliza, telefono,
+            region, con_logotipos, en_proceso_baja, kilometraje,
+            area_id, resguardo_nombre, factura_nombre, observacion_1, observacion_2, activo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $numero_economico, $numero_placas, $numero_patrimonio, $marca, $modelo,
+        $tipo, $color, $numero_serie, $poliza, $telefono,
+        $region, $con_logotipos, $en_proceso_baja, $kilometraje,
+        $area_id, $resguardo_nombre, $factura_nombre, $observacion_1, $observacion_2
+    ]);
+    setFlashMessage('success', 'Vehículo registrado correctamente.');
+}
+    redirect('modulos/vehiculos/index.php');
 
 } catch (PDOException $e) {
     setFlashMessage('error', 'Error en base de datos: ' . $e->getMessage());

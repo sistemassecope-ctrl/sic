@@ -34,6 +34,10 @@ if (!$id) {
 }
 
 try {
+    // Primero borrar notas asociadas (ya que no hay CASCADE en BD para evitar problemas con ID)
+    $stmtNotasDel = $pdo->prepare("DELETE FROM vehiculos_notas WHERE vehiculo_id = ? AND tipo_origen = 'ACTIVO'");
+    $stmtNotasDel->execute([$id]);
+
     $stmt = $pdo->prepare("DELETE FROM vehiculos WHERE id = ?");
     $stmt->execute([$id]);
     

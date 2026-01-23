@@ -56,13 +56,13 @@ try {
         INSERT INTO vehiculos_bajas (
             vehiculo_origen_id, numero_economico, numero_placas, 
             marca, modelo, area_id, region, 
-            numero_patrimonio, poliza, tipo, color, numero_serie, resguardo_nombre,
+            numero_patrimonio, poliza, tipo, color, numero_serie, resguardo_nombre, factura_nombre,
             observacion_1, observacion_2, kilometraje, telefono, con_logotipos,
             fecha_baja, motivo_baja, usuario_baja_id
         ) VALUES (
              ?, ?, ?, 
              ?, ?, ?, ?, 
-             ?, ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?,
              NOW(), ?, ?
         )
@@ -71,13 +71,17 @@ try {
     $stmtBaja->execute([
         $vehiculo['id'], $vehiculo['numero_economico'], $vehiculo['numero_placas'],
         $vehiculo['marca'], $vehiculo['modelo'], $vehiculo['area_id'], $vehiculo['region'],
-        $vehiculo['numero_patrimonio'], $vehiculo['poliza'], $vehiculo['tipo'], $vehiculo['color'], $vehiculo['numero_serie'], $vehiculo['resguardo_nombre'],
+        $vehiculo['numero_patrimonio'], $vehiculo['poliza'], $vehiculo['tipo'], $vehiculo['color'], $vehiculo['numero_serie'], $vehiculo['resguardo_nombre'], $vehiculo['factura_nombre'],
         $vehiculo['observacion_1'], $vehiculo['observacion_2'], $vehiculo['kilometraje'], $vehiculo['telefono'], $vehiculo['con_logotipos'],
-        $motivo, $_SESSION['user_id']
+        $motivo, getCurrentUserId()
     ]);
     
-    // 3. ELIMINAR vehículo del padrón activo (MOVER, no copiar)
-    // El vehículo ahora solo existe en vehiculos_bajas
+    // 3. TRANSFERIR NOTAS al nuevo ID de baja
+    $nuevoIdBaja = $pdo->lastInsertId();
+    $stmtNotasUpdate = $pdo->prepare("UPDATE vehiculos_notas SET vehiculo_id = ?, tipo_origen = 'BAJA' WHERE vehiculo_id = ? AND tipo_origen = 'ACTIVO'");
+    $stmtNotasUpdate->execute([$nuevoIdBaja, $id]);
+
+    // 4. ELIMINAR vehículo del padrón activo
     $stmtDelete = $pdo->prepare("DELETE FROM vehiculos WHERE id = ?");
     $stmtDelete->execute([$id]);
     

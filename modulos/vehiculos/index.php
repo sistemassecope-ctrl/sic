@@ -106,7 +106,7 @@ try {
             <h1 class="page-title">
                 <i class="fas fa-truck-pickup" style="color: var(--accent-blue);"></i>
                 Padrón Vehicular
-                <span class="badge bg-primary ms-2"><?= count($vehiculos) ?> registros</span>
+                <span class="badge bg-primary ms-2"><?= $totalRecords ?> registros</span>
             </h1>
             <p class="page-description">Unidades activas</p>
         </div>
@@ -122,15 +122,15 @@ try {
     <?= renderFlashMessage() ?>
     
     <!-- Panel de Filtros (Estilo Legacy) -->
-    <div class="card mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-            <h6 class="mb-0 text-muted"><i class="fas fa-filter"></i> Filtros de Búsqueda</h6>
-            <button class="btn btn-link btn-sm text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" aria-expanded="true">
+    <div class="card mb-4 bg-dark text-white border-secondary">
+        <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0 text-white"><i class="fas fa-filter"></i> Filtros de Búsqueda</h6>
+            <button class="btn btn-link btn-sm text-decoration-none p-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" aria-expanded="true">
                 <i class="fas fa-chevron-up"></i> Mostrar / Ocultar
             </button>
         </div>
         <div class="collapse show" id="filtrosCollapse">
-            <div class="card-body bg-light pt-3 pb-2">
+            <div class="card-body bg-dark text-white pt-3 pb-2">
                 <form method="GET" id="searchForm">
                     
                     <!-- Row 1: Region, Logos, Baja, Color -->
@@ -274,6 +274,11 @@ try {
                                     <a href="edit.php?id=<?= $v['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <!-- Notas Trigger -->
+                                    <button type="button" class="btn btn-sm btn-outline-info" title="Bitácora de Notas"
+                                            onclick="verNotas(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </button>
                                     <!-- Baja Trigger -->
                                     <button type="button" class="btn btn-sm btn-outline-warning" title="Dar de Baja"
                                             onclick="confirmarBaja(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
@@ -412,6 +417,31 @@ try {
         </div>
     </div>
 </div>
+</div>
+
+<!-- Modal Visualizar Notas -->
+<div class="modal fade" id="modalNotas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header bg-dark text-white border-secondary">
+                <h5 class="modal-title"><i class="fas fa-clipboard-list"></i> Bitácora: <span id="modalNotasTitulo"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-dark text-white" id="modalNotasBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary bg-dark">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'notas/modal_edit.php'; ?>
 
 <style>
 /* Estilos extra para badges suaves */
@@ -521,6 +551,32 @@ async function confirmarEliminacion(id, economico) {
             alert('Error de conexión');
         }
     }
+}
+
+
+// Modal de Notas
+let notasModalObj = null;
+
+function verNotas(id, economico) {
+    document.getElementById('modalNotasTitulo').textContent = economico;
+    const body = document.getElementById('modalNotasBody');
+    body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
+    
+    if (!notasModalObj) {
+        notasModalObj = new bootstrap.Modal(document.getElementById('modalNotas'));
+    }
+    notasModalObj.show();
+    
+    // Cargar contenido via AJAX
+    fetch(`notas/view_async.php?vehiculo_id=${id}&from=/modulos/vehiculos/index.php`)
+        .then(response => response.text())
+        .then(html => {
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-danger">Error al cargar notas.</div>';
+            console.error(err);
+        });
 }
 </script>
 

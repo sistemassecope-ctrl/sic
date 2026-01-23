@@ -43,13 +43,13 @@ try {
         INSERT INTO vehiculos (
             numero, numero_economico, numero_patrimonio, numero_placas, poliza,
             marca, tipo, modelo, color, numero_serie,
-            resguardo_nombre, observacion_1, observacion_2,
+            resguardo_nombre, factura_nombre, observacion_1, observacion_2,
             area_id, region, con_logotipos, kilometraje, telefono,
             activo, en_proceso_baja, created_at
         ) VALUES (
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
-            ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             1, 'NO', NOW()
         )
@@ -67,6 +67,7 @@ try {
         $baja['color'] ?? '',
         $baja['numero_serie'] ?? '',
         $baja['resguardo_nombre'] ?? '',
+        $baja['factura_nombre'] ?? '',
         $baja['observacion_1'] ?? '',
         $baja['observacion_2'] ?? '',
         $baja['area_id'],
@@ -76,6 +77,11 @@ try {
         $baja['telefono'] ?? ''
     ]);
     
+    // Transferir Notas de vuelta a ACTIVO
+    $newVehiculoId = $pdo->lastInsertId();
+    $stmtNotasRestore = $pdo->prepare("UPDATE vehiculos_notas SET vehiculo_id = ?, tipo_origen = 'ACTIVO' WHERE vehiculo_id = ? AND tipo_origen = 'BAJA'");
+    $stmtNotasRestore->execute([$newVehiculoId, $bajaId]);
+
     // 3. Eliminar del histórico
     $stmtDelete = $pdo->prepare("DELETE FROM vehiculos_bajas WHERE id = ?");
     $stmtDelete->execute([$bajaId]);

@@ -1,4 +1,0 @@
-define('DB_HOST', '192.168.100.14');
-define('DB_NAME', 'sic');
-define('DB_USER', 'sic_test');
-define('DB_PASS', 'sic_test.2025');
