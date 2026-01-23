@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../config/database.php';
 
 header('Content-Type: application/json');
 
@@ -31,7 +31,7 @@ try {
     // Checkbox handling ('SI' if present, 'NO' if not, standard logic for checkboxes often requires checking presence)
     // But since we send JSON, we might send 'SI' or 'NO' explicitly or boolean.
     // The form JS should send 'SI' or 'NO'. If unchecked, maybe it sends nothing or 'NO'.
-    
+
     $conLogotipos = isset($data['con_logotipos']) ? $data['con_logotipos'] : 'NO';
     // Ensure it's strictly SI/NO
     $conLogotipos = ($conLogotipos === 'SI' || $conLogotipos === true || $conLogotipos === 'on') ? 'SI' : 'NO';
@@ -60,18 +60,18 @@ try {
             con_logotipos = ?
             
             WHERE id = ?";
-            
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $data['fecha_baja'],
         $data['motivo_baja'],
-        
+
         $data['numero_economico'],
         $data['numero_placas'],
         $data['marca'],
         $data['modelo'],
         $data['region'],
-         
+
         $data['numero_patrimonio'] ?? null,
         $data['poliza'] ?? null,
         $data['tipo'] ?? null,
@@ -84,12 +84,12 @@ try {
         $data['kilometraje'] ?? null,
         $data['telefono'] ?? null,
         $conLogotipos,
-        
+
         $data['id']
     ]);
-    
+
     echo json_encode(['success' => true]);
-    
+
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
 }

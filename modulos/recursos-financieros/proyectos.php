@@ -9,6 +9,22 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Proyectos de Obra
+define('MODULO_ID', 53);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+// Si no puede ver, denegar acceso
+if (!$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder a este módulo');
+    redirect('modulos/recursos-financieros/poas.php');
+}
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -71,11 +87,13 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <?= $programa['ejercicio'] ?>
             </p>
         </div>
-        <div class="page-actions">
-            <a href="proyecto-form.php?id_programa=<?= $id_programa ?>" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nuevo Proyecto
-            </a>
-        </div>
+        <?php if ($puedeCrear): ?>
+            <div class="page-actions">
+                <a href="proyecto-form.php?id_programa=<?= $id_programa ?>" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Proyecto
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?= renderFlashMessage() ?>
@@ -204,14 +222,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                 class="btn btn-sm btn-secondary" title="Ver FUAs">
                                                 <i class="fas fa-file-invoice"></i>
                                             </a>
-                                            <a href="proyecto-form.php?id=<?= $p['id_proyecto'] ?>"
-                                                class="btn btn-sm btn-secondary" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-danger"
-                                                onclick="confirmDelete(<?= $p['id_proyecto'] ?>)" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <a href="proyecto-form.php?id=<?= $p['id_proyecto'] ?>"
+                                                    class="btn btn-sm btn-secondary" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($puedeEliminar): ?>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete(<?= $p['id_proyecto'] ?>)" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

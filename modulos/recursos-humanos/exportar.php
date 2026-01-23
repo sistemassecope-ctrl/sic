@@ -9,14 +9,14 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
-define('MODULO_ID', 2);
+define('MODULO_ID', 20);
 
 $permisos = getUserPermissions(MODULO_ID);
 
 // Verificar permiso de exportar
 if (!in_array('exportar', $permisos)) {
     setFlashMessage('error', 'No tienes permiso para exportar datos');
-    redirect('/recursos-humanos/empleados.php');
+    redirect('/modulos/recursos-humanos/empleados.php');
 }
 
 $pdo = getConnection();
@@ -26,41 +26,41 @@ $areasUsuario = getUserAreas();
 $sql = "
     SELECT 
         e.id as 'ID',
-        e.nombre as 'Nombre',
+        e.nombres as 'Nombre',
         e.apellido_paterno as 'Apellido Paterno',
         e.apellido_materno as 'Apellido Materno',
         e.email as 'Email',
-        e.telefono as 'Teléfono',
+        e.telefono_celular as 'Teléfono',
         a.nombre_area as 'Área',
-        p.nombre_puesto as 'Puesto',
-        CASE e.estado WHEN 1 THEN 'Activo' ELSE 'Inactivo' END as 'Estado'
+        p.nombre as 'Puesto',
+        CASE e.estatus WHEN 'ACTIVO' THEN 'Activo' ELSE 'Inactivo' END as 'Estado'
     FROM empleados e
-    INNER JOIN areas a ON e.id_area = a.id
-    INNER JOIN puestos p ON e.id_puesto = p.id
-    WHERE " . getAreaFilterSQL('e.id_area');
+    LEFT JOIN areas a ON e.area_id = a.id
+    LEFT JOIN puestos_trabajo p ON e.puesto_trabajo_id = p.id
+    WHERE " . getAreaFilterSQL('e.area_id');
 
 $params = [];
 
 // Aplicar filtro de área si se especificó
-if (isset($_GET['area']) && in_array((int)$_GET['area'], $areasUsuario)) {
-    $sql .= " AND e.id_area = ?";
-    $params[] = (int)$_GET['area'];
+if (isset($_GET['area']) && in_array((int) $_GET['area'], $areasUsuario)) {
+    $sql .= " AND e.area_id = ?";
+    $params[] = (int) $_GET['area'];
 }
 
 // Aplicar búsqueda si se especificó
 if (isset($_GET['q']) && !empty($_GET['q'])) {
     $busqueda = sanitize($_GET['q']);
-    $sql .= " AND (e.nombre LIKE ? OR e.apellido_paterno LIKE ? OR e.email LIKE ?)";
+    $sql .= " AND (e.nombres LIKE ? OR e.apellido_paterno LIKE ? OR e.email LIKE ?)";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
     $params[] = "%$busqueda%";
 }
 
-$sql .= " ORDER BY e.nombre";
+$sql .= " ORDER BY e.nombres";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$empleados = $stmt->fetchAll();
+$empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Generar CSV
 $filename = 'empleados_' . date('Y-m-d_His') . '.csv';
@@ -71,12 +71,12 @@ header('Content-Disposition: attachment; filename="' . $filename . '"');
 $output = fopen('php://output', 'w');
 
 // BOM para Excel
-fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
 // Encabezados
 if (!empty($empleados)) {
     fputcsv($output, array_keys($empleados[0]));
-    
+
     // Datos
     foreach ($empleados as $empleado) {
         fputcsv($output, $empleado);

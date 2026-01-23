@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../config/database.php';
 
 header('Content-Type: application/json');
 
@@ -19,7 +19,7 @@ $MODULO_ID = $modulo ? $modulo['id'] : 0;
 requirePermission('editar', $MODULO_ID);
 
 $data = json_decode(file_get_contents('php://input'), true);
-$bajaId = isset($data['id']) ? (int)$data['id'] : 0;
+$bajaId = isset($data['id']) ? (int) $data['id'] : 0;
 
 if (!$bajaId) {
     echo json_encode(['success' => false, 'message' => 'ID inválido']);
@@ -28,16 +28,16 @@ if (!$bajaId) {
 
 try {
     $pdo->beginTransaction();
-    
+
     // 1. Obtener datos del histórico
     $stmtB = $pdo->prepare("SELECT * FROM vehiculos_bajas WHERE id = ?");
     $stmtB->execute([$bajaId]);
     $baja = $stmtB->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$baja) {
         throw new Exception("Registro histórico no encontrado.");
     }
-    
+
     // 2. Insertar en vehículos (MOVER de vuelta al padrón)
     $stmtIns = $pdo->prepare("
         INSERT INTO vehiculos (
@@ -54,7 +54,7 @@ try {
             1, 'NO', NOW()
         )
     ");
-    
+
     $stmtIns->execute([
         $baja['numero'] ?? 0,
         $baja['numero_economico'],
@@ -76,7 +76,6 @@ try {
         $baja['kilometraje'] ?? '',
         $baja['telefono'] ?? ''
     ]);
-    
     // Transferir Notas de vuelta a ACTIVO
     $newVehiculoId = $pdo->lastInsertId();
     $stmtNotasRestore = $pdo->prepare("UPDATE vehiculos_notas SET vehiculo_id = ?, tipo_origen = 'ACTIVO' WHERE vehiculo_id = ? AND tipo_origen = 'BAJA'");
@@ -85,11 +84,14 @@ try {
     // 3. Eliminar del histórico
     $stmtDelete = $pdo->prepare("DELETE FROM vehiculos_bajas WHERE id = ?");
     $stmtDelete->execute([$bajaId]);
-    
+
     $pdo->commit();
     echo json_encode(['success' => true]);
-    
+
 } catch (Exception $e) {
-    try { $pdo->rollBack(); } catch (Exception $ex) {}
+    try {
+        $pdo->rollBack();
+    } catch (Exception $ex) {
+    }
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

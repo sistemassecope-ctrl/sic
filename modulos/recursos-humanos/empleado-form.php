@@ -9,30 +9,37 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
-define('MODULO_ID', 2);
+// ID del módulo de Empleados
+define('MODULO_ID', 20);
 
-$pdo = getConnection();
-$user = getCurrentUser();
-$permisos = getUserPermissions(MODULO_ID);
-$areasUsuario = getUserAreas();
-
-// Lógica de Permisos de Salarios
-$puedeVerSalarios = isAdmin() || 
-                    in_array(($user['rol_sistema'] ?? 'usuario'), ['admin_global', 'SUPERADMIN']) || 
-                    (json_decode($user['permisos_extra'] ?? '{}', true)['ver_salarios'] ?? false);
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
 
 $empleadoId = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $esEdicion = $empleadoId !== null;
 
 // Verificar permisos
-if ($esEdicion && !in_array('editar', $permisos)) {
-    setFlashMessage('error', 'No tienes permiso para editar empleados');
+if ($esEdicion && !$puedeEditar && !$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder a este expediente');
     redirect('/modulos/recursos-humanos/empleados.php');
 }
-if (!$esEdicion && !in_array('crear', $permisos)) {
-    setFlashMessage('error', 'No tienes permiso para crear empleados');
+
+if ($esEdicion && !$puedeEditar && $puedeVer) {
+    // Si solo puede ver, permitir acceso pero bloquear POST y mostrar UI de solo lectura
+}
+
+if (!$esEdicion && !$puedeCrear) {
+    setFlashMessage('error', 'No tienes permiso para crear nuevos empleados');
     redirect('/modulos/recursos-humanos/empleados.php');
 }
+
+$pdo = getConnection();
+$user = getCurrentUser();
+$areasUsuario = getUserAreas();
 
 $empleado = null;
 $errors = [];
@@ -57,6 +64,10 @@ if ($esEdicion) {
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($esEdicion && !$puedeEditar) || (!$esEdicion && !$puedeCrear)) {
+        setFlashMessage('error', 'No tienes permiso para realizar esta acción');
+        redirect("/modulos/recursos-humanos/empleado-form.php" . ($esEdicion ? "?id=$empleadoId" : ""));
+    }
     // --- Recolección y Sanitización de Datos ---
     
     // Básicos

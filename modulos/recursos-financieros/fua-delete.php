@@ -9,6 +9,18 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Suficiencias (FUAs)
+define('MODULO_ID', 54);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeEliminar) {
+    setFlashMessage('error', 'No tienes permiso para eliminar suficiencias.');
+    redirect('modulos/recursos-financieros/fuas.php');
+}
+
 $pdo = getConnection();
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 

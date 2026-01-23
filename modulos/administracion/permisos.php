@@ -9,9 +9,18 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
-// Solo administradores
-if (!isAdmin()) {
-    setFlashMessage('error', 'Acceso denegado');
+// ID del módulo de Permisos
+define('MODULO_ID', 31);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+
+if (!$puedeVer) {
+    $sessionInfo = "UID: " . ($_SESSION['usuario_id'] ?? 'none') . ", Tipo: " . ($_SESSION['usuario_tipo'] ?? 'none') . ", Rol: " . ($_SESSION['rol_sistema'] ?? 'none');
+    $msg = "Acceso denegado al módulo " . MODULO_ID . ". " . $sessionInfo . ". isAdmin: " . (isAdmin() ? 'YES' : 'NO') . ". Permisos detectados: [" . implode(', ', $permisos_user) . "]";
+    setFlashMessage('error', $msg);
     redirect('/index.php');
 }
 
@@ -20,6 +29,10 @@ $userId = isset($_GET['usuario']) ? (int) $_GET['usuario'] : null;
 
 // Procesar formulario de permisos
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
+    if (!$puedeEditar) {
+        setFlashMessage('error', 'No tienes permiso para modificar permisos');
+        redirect('/modulos/administracion/permisos.php?usuario=' . $userId);
+    }
     $permisos = $_POST['permisos'] ?? [];
     $areas = $_POST['areas'] ?? [];
 
@@ -46,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
     }
 
     setFlashMessage('success', 'Permisos actualizados correctamente');
-    redirect('/admin/permisos.php?usuario=' . $userId);
+    redirect('/modulos/administracion/permisos.php?usuario=' . $userId);
 }
 
 // Obtener usuarios
@@ -292,12 +305,14 @@ if ($userId) {
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-                        <a href="<?= url('/admin/permisos.php') ?>" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancelar
+                        <a href="<?= url('/modulos/administracion/usuarios.php') ?>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver a Usuarios
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Permisos
-                        </button>
+                        <?php if ($puedeEditar): ?>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Permisos
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </form>
             <?php else: ?>

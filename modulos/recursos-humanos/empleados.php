@@ -10,26 +10,23 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Empleados
+define('MODULO_ID', 20);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder al directorio de personal.');
+    redirect('/index.php');
+}
+
 $pdo = getConnection();
 $user = getCurrentUser();
-
-// Permisos del Módulo de Empleados (ID 20 ó 2 segun se haya definido, usaremos 2 para RH general por ahora)
-define('MODULO_ID', 2);
-$permisos = getUserPermissions(MODULO_ID);
-
-/*
- * Validación de Acceso:
- * 1. Admin Global
- * 2. Tiene permiso explícito de 'ver' o 'administrar' en el módulo
- * 3. Es Admin de Área (se verifica implícitamente al filtrar resultados)
- */
-if (!isAdmin() && empty($permisos)) {
-    // Si no es admin y no tiene permisos explícitos, verificar si tiene rol de sistema en su ficha de empleado
-    if (($user['rol_sistema'] ?? 'usuario') === 'usuario') {
-        setFlashMessage('error', 'No tienes permiso para acceder al directorio de empleados');
-        redirect('/index.php');
-    }
-}
 
 // Params de Búsqueda
 $busqueda = sanitize($_GET['q'] ?? '');
@@ -132,9 +129,11 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
             <p class="page-description">Gestión y control de expedientes digitales</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="empleado-form.php" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Nuevo Empleado
-            </a>
+            <?php if ($puedeCrear): ?>
+                <a href="empleado-form.php" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Nuevo Empleado
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -248,12 +247,15 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
                                     </div>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <a href="empleado-form.php?id=<?= $emp['id'] ?>"
-                                            class="btn btn-outline-secondary btn-sm" title="Editar Expediente">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </div>
+                                    <?php if ($puedeVer || $puedeEditar): ?>
+                                        <div class="btn-group">
+                                            <a href="empleado-form.php?id=<?= $emp['id'] ?>"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                title="<?= $puedeEditar ? 'Editar' : 'Ver' ?> Expediente">
+                                                <i class="fas fa-<?= $puedeEditar ? 'edit' : 'eye' ?>"></i>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

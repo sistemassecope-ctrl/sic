@@ -9,6 +9,14 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Programas Operativos (Listado de Programas)
+define('MODULO_ID', 56);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -17,11 +25,20 @@ $programa = null;
 $is_editing = false;
 
 if ($id_programa) {
+    if (!$puedeEditar) {
+        setFlashMessage('error', 'No tienes permiso para editar Programas Anuales.');
+        redirect('modulos/recursos-financieros/poas.php');
+    }
     $stmt = $pdo->prepare("SELECT * FROM programas_anuales WHERE id_programa = ?");
     $stmt->execute([$id_programa]);
     $programa = $stmt->fetch();
     if ($programa)
         $is_editing = true;
+} else {
+    if (!$puedeCrear) {
+        setFlashMessage('error', 'No tienes permiso para crear Programas Anuales.');
+        redirect('modulos/recursos-financieros/poas.php');
+    }
 }
 
 // --- Procesar Guardado ---

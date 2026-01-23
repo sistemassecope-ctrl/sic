@@ -8,8 +8,18 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
-if (!isAdmin()) {
-    setFlashMessage('error', 'No tienes permiso para acceder a esta sección');
+// ID del módulo de Usuarios
+define('MODULO_ID', 30);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder a la gestión de usuarios.');
     redirect('/index.php');
 }
 
@@ -18,6 +28,10 @@ $pdo = getConnection();
 // Procesar acciones
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['toggle_status'])) {
+        if (!$puedeEditar) {
+            setFlashMessage('error', 'No tienes permiso para realizar esta acción');
+            redirect('/modulos/administracion/usuarios.php');
+        }
         $userId = (int) $_POST['user_id'];
         $newStatus = (int) $_POST['new_status'];
 
@@ -25,10 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$newStatus, $userId]);
 
         setFlashMessage('success', $newStatus ? 'Usuario activado' : 'Usuario desactivado');
-        redirect('/admin/usuarios.php');
+        redirect('/modulos/administracion/usuarios.php');
     }
 
     if (isset($_POST['reset_password'])) {
+        if (!$puedeEditar) {
+            setFlashMessage('error', 'No tienes permiso para realizar esta acción');
+            redirect('/modulos/administracion/usuarios.php');
+        }
         $userId = (int) $_POST['user_id'];
         $newPassword = password_hash('password123', PASSWORD_DEFAULT);
 
@@ -36,10 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$newPassword, $userId]);
 
         setFlashMessage('success', 'Contraseña restablecida a: password123');
-        redirect('/admin/usuarios.php');
+        redirect('/modulos/administracion/usuarios.php');
     }
 
     if (isset($_POST['create_user'])) {
+        if (!$puedeCrear) {
+            setFlashMessage('error', 'No tienes permiso para crear usuarios');
+            redirect('/modulos/administracion/usuarios.php');
+        }
         $empleadoId = (int) $_POST['empleado_id'];
         $usuario = sanitize($_POST['usuario']);
         $tipo = (int) $_POST['tipo'];
@@ -62,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setFlashMessage('success', 'Usuario creado correctamente. Contraseña inicial: password123');
             }
         }
-        redirect('/admin/usuarios.php');
+        redirect('/modulos/administracion/usuarios.php');
     }
 }
 
@@ -103,9 +125,11 @@ $empleadosSinUsuario = $pdo->query("
             </h1>
             <p class="page-description">Administra los usuarios que tienen acceso al sistema</p>
         </div>
-        <button class="btn btn-primary" onclick="document.getElementById('modalNuevo').style.display='flex'">
-            <i class="fas fa-plus"></i> Nuevo Usuario
-        </button>
+        <?php if ($puedeCrear): ?>
+            <button class="btn btn-primary" onclick="document.getElementById('modalNuevo').style.display='flex'">
+                <i class="fas fa-plus"></i> Nuevo Usuario
+            </button>
+        <?php endif; ?>
     </div>
 
     <?= renderFlashMessage() ?>
@@ -171,28 +195,30 @@ $empleadosSinUsuario = $pdo->query("
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 0.5rem;">
-                                        <a href="<?= url('/admin/permisos.php?usuario=' . $u['id']) ?>"
+                                        <a href="<?= url('/modulos/administracion/permisos.php?usuario=' . $u['id']) ?>"
                                             class="btn btn-sm btn-secondary" title="Configurar permisos">
                                             <i class="fas fa-key"></i>
                                         </a>
 
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                            <input type="hidden" name="new_status" value="<?= $u['estado'] == 1 ? 0 : 1 ?>">
-                                            <button type="submit" name="toggle_status" class="btn btn-sm btn-secondary"
-                                                title="<?= $u['estado'] == 1 ? 'Desactivar' : 'Activar' ?>">
-                                                <i class="fas fa-<?= $u['estado'] == 1 ? 'ban' : 'check' ?>"></i>
-                                            </button>
-                                        </form>
+                                        <?php if ($puedeEditar): ?>
+                                            <form method="POST" style="display: inline;">
+                                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                <input type="hidden" name="new_status" value="<?= $u['estado'] == 1 ? 0 : 1 ?>">
+                                                <button type="submit" name="toggle_status" class="btn btn-sm btn-secondary"
+                                                    title="<?= $u['estado'] == 1 ? 'Desactivar' : 'Activar' ?>">
+                                                    <i class="fas fa-<?= $u['estado'] == 1 ? 'ban' : 'check' ?>"></i>
+                                                </button>
+                                            </form>
 
-                                        <form method="POST" style="display: inline;"
-                                            onsubmit="return confirm('¿Restablecer contraseña a password123?')">
-                                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                            <button type="submit" name="reset_password" class="btn btn-sm btn-secondary"
-                                                title="Restablecer contraseña">
-                                                <i class="fas fa-unlock-alt"></i>
-                                            </button>
-                                        </form>
+                                            <form method="POST" style="display: inline;"
+                                                onsubmit="return confirm('¿Restablecer contraseña a password123?')">
+                                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                <button type="submit" name="reset_password" class="btn btn-sm btn-secondary"
+                                                    title="Restablecer contraseña">
+                                                    <i class="fas fa-unlock-alt"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

@@ -9,6 +9,14 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Suficiencias (FUAs)
+define('MODULO_ID', 54);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -18,12 +26,21 @@ $fua = null;
 $is_editing = false;
 
 if ($id_fua) {
+    if (!$puedeEditar) {
+        setFlashMessage('error', 'No tienes permiso para editar suficiencias.');
+        redirect('modulos/recursos-financieros/fuas.php');
+    }
     $stmt = $pdo->prepare("SELECT * FROM fuas WHERE id_fua = ?");
     $stmt->execute([$id_fua]);
     $fua = $stmt->fetch();
     if ($fua) {
         $is_editing = true;
         $id_proyecto = $fua['id_proyecto'];
+    }
+} else {
+    if (!$puedeCrear) {
+        setFlashMessage('error', 'No tienes permiso para registrar nuevas suficiencias.');
+        redirect('modulos/recursos-financieros/fuas.php');
     }
 }
 

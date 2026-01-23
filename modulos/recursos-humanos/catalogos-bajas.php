@@ -12,7 +12,15 @@ requireAuth();
 $pdo = getConnection();
 $user = getCurrentUser();
 
-if (!isAdmin()) {
+define('MODULO_ID', 50);
+$permisos_user = getUserPermissions(MODULO_ID);
+
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeVer) {
     setFlashMessage('error', 'No tienes permiso para acceder a la gestión de catálogos');
     redirect('/index.php');
 }
@@ -24,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $label = $_POST['target_table'] === 'docs' ? 'Documento' : 'Tipo de Baja';
 
     if ($accion === 'crear') {
+        if (!$puedeCrear) {
+            setFlashMessage('error', 'No tienes permiso para crear registros');
+            redirect('/modulos/recursos-humanos/catalogos-bajas.php');
+        }
         $nombre = sanitize($_POST['nombre'] ?? '');
         if (!empty($nombre)) {
             $stmt = $pdo->prepare("INSERT INTO $tabla (nombre) VALUES (?)");
@@ -33,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accion === 'editar') {
+        if (!$puedeEditar) {
+            setFlashMessage('error', 'No tienes permiso para editar registros');
+            redirect('/modulos/recursos-humanos/catalogos-bajas.php');
+        }
         $id = (int) $_POST['id'];
         $nombre = sanitize($_POST['nombre'] ?? '');
         if ($id > 0 && !empty($nombre)) {
@@ -43,6 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accion === 'toggle_status') {
+        if (!$puedeEditar) {
+            setFlashMessage('error', 'No tienes permiso para modificar el estado');
+            redirect('/modulos/recursos-humanos/catalogos-bajas.php');
+        }
         $id = (int) $_POST['id'];
         $nuevoEstado = (int) $_POST['estado'];
         if ($id > 0) {
@@ -82,9 +102,11 @@ $tiposDoc = $pdo->query("SELECT * FROM cat_tipos_documento_baja ORDER BY nombre 
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="card-title"><i class="fas fa-user-slash text-danger me-2"></i> Tipos de Baja</h3>
-                <button class="btn btn-sm btn-primary" onclick="openModal('crear', 'baja')">
-                    <i class="fas fa-plus"></i> Agregar
-                </button>
+                <?php if ($puedeCrear): ?>
+                    <button class="btn btn-sm btn-primary" onclick="openModal('crear', 'baja')">
+                        <i class="fas fa-plus"></i> Agregar
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="card-body" style="padding: 0;">
                 <table class="table">
@@ -109,21 +131,23 @@ $tiposDoc = $pdo->query("SELECT * FROM cat_tipos_documento_baja ORDER BY nombre 
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-secondary"
-                                        onclick="openModal('editar', 'baja', <?= $t['id'] ?>, '<?= e($t['nombre']) ?>')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="accion" value="toggle_status">
-                                        <input type="hidden" name="target_table" value="baja">
-                                        <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                                        <input type="hidden" name="estado" value="<?= $t['activo'] ? 0 : 1 ?>">
-                                        <button type="submit"
-                                            class="btn btn-sm <?= $t['activo'] ? 'btn-outline-danger' : 'btn-outline-success' ?>"
-                                            title="<?= $t['activo'] ? 'Desactivar' : 'Activar' ?>">
-                                            <i class="fas fa-<?= $t['activo'] ? 'ban' : 'check' ?>"></i>
+                                    <?php if ($puedeEditar): ?>
+                                        <button class="btn btn-sm btn-secondary"
+                                            onclick="openModal('editar', 'baja', <?= $t['id'] ?>, '<?= e($t['nombre']) ?>')">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                    </form>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="accion" value="toggle_status">
+                                            <input type="hidden" name="target_table" value="baja">
+                                            <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                            <input type="hidden" name="estado" value="<?= $t['activo'] ? 0 : 1 ?>">
+                                            <button type="submit"
+                                                class="btn btn-sm <?= $t['activo'] ? 'btn-outline-danger' : 'btn-outline-success' ?>"
+                                                title="<?= $t['activo'] ? 'Desactivar' : 'Activar' ?>">
+                                                <i class="fas fa-<?= $t['activo'] ? 'ban' : 'check' ?>"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -136,9 +160,11 @@ $tiposDoc = $pdo->query("SELECT * FROM cat_tipos_documento_baja ORDER BY nombre 
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="card-title"><i class="fas fa-file-alt text-info me-2"></i> Documentos de Sustento</h3>
-                <button class="btn btn-sm btn-primary" onclick="openModal('crear', 'docs')">
-                    <i class="fas fa-plus"></i> Agregar
-                </button>
+                <?php if ($puedeCrear): ?>
+                    <button class="btn btn-sm btn-primary" onclick="openModal('crear', 'docs')">
+                        <i class="fas fa-plus"></i> Agregar
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="card-body" style="padding: 0;">
                 <table class="table">
@@ -163,21 +189,23 @@ $tiposDoc = $pdo->query("SELECT * FROM cat_tipos_documento_baja ORDER BY nombre 
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-secondary"
-                                        onclick="openModal('editar', 'docs', <?= $t['id'] ?>, '<?= e($t['nombre']) ?>')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="accion" value="toggle_status">
-                                        <input type="hidden" name="target_table" value="docs">
-                                        <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                                        <input type="hidden" name="estado" value="<?= $t['activo'] ? 0 : 1 ?>">
-                                        <button type="submit"
-                                            class="btn btn-sm <?= $t['activo'] ? 'btn-outline-danger' : 'btn-outline-success' ?>"
-                                            title="<?= $t['activo'] ? 'Desactivar' : 'Activar' ?>">
-                                            <i class="fas fa-<?= $t['activo'] ? 'ban' : 'check' ?>"></i>
+                                    <?php if ($puedeEditar): ?>
+                                        <button class="btn btn-sm btn-secondary"
+                                            onclick="openModal('editar', 'docs', <?= $t['id'] ?>, '<?= e($t['nombre']) ?>')">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                    </form>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="accion" value="toggle_status">
+                                            <input type="hidden" name="target_table" value="docs">
+                                            <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                            <input type="hidden" name="estado" value="<?= $t['activo'] ? 0 : 1 ?>">
+                                            <button type="submit"
+                                                class="btn btn-sm <?= $t['activo'] ? 'btn-outline-danger' : 'btn-outline-success' ?>"
+                                                title="<?= $t['activo'] ? 'Desactivar' : 'Activar' ?>">
+                                                <i class="fas fa-<?= $t['activo'] ? 'ban' : 'check' ?>"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

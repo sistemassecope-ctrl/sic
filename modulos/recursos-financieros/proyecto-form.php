@@ -9,6 +9,14 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Proyectos de Obra
+define('MODULO_ID', 53);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -18,12 +26,21 @@ $proyecto = null;
 $is_editing = false;
 
 if ($id_proyecto) {
+    if (!$puedeEditar) {
+        setFlashMessage('error', 'No tienes permiso para editar proyectos.');
+        redirect('modulos/recursos-financieros/proyectos.php?id_programa=' . ($id_programa_parent ?: '0'));
+    }
     $stmt = $pdo->prepare("SELECT * FROM proyectos_obra WHERE id_proyecto = ?");
     $stmt->execute([$id_proyecto]);
     $proyecto = $stmt->fetch();
     if ($proyecto) {
         $is_editing = true;
         $id_programa_parent = $proyecto['id_programa'];
+    }
+} else {
+    if (!$puedeCrear) {
+        setFlashMessage('error', 'No tienes permiso para crear nuevos proyectos.');
+        redirect('modulos/recursos-financieros/poas.php');
     }
 }
 

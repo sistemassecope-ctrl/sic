@@ -8,7 +8,22 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
-// requirePermission('ver', 5); // ID 5 para Recursos Financieros según el plan
+
+// ID del módulo de Programas Operativos (Listado de Programas)
+define('MODULO_ID', 56);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+// Si no puede ver, denegar acceso
+if (!$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder a este módulo');
+    redirect('/index.php');
+}
 
 $pdo = getConnection();
 $user = getCurrentUser();
@@ -36,11 +51,13 @@ include __DIR__ . '/../../includes/sidebar.php';
             </h1>
             <p class="page-description">Gestión de techos financieros por ejercicio fiscal</p>
         </div>
-        <div class="page-actions">
-            <a href="poa-form.php" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> Nuevo POA
-            </a>
-        </div>
+        <?php if ($puedeCrear): ?>
+            <div class="page-actions">
+                <a href="poa-form.php" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Nuevo POA
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?= renderFlashMessage() ?>
@@ -142,14 +159,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                 class="btn btn-sm btn-secondary" title="Ver Proyectos">
                                                 <i class="fas fa-list"></i>
                                             </a>
-                                            <a href="poa-form.php?id=<?= $p['id_programa'] ?>" class="btn btn-sm btn-secondary"
-                                                title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-danger"
-                                                onclick="confirmDelete(<?= $p['id_programa'] ?>)" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <a href="poa-form.php?id=<?= $p['id_programa'] ?>" class="btn btn-sm btn-secondary"
+                                                    title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($puedeEliminar): ?>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete(<?= $p['id_programa'] ?>)" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

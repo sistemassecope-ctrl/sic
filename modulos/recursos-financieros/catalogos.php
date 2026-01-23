@@ -9,6 +9,21 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Catálogos (Financieros)
+define('MODULO_ID', 55);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeVer = in_array('ver', $permisos_user);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeVer) {
+    setFlashMessage('error', 'No tienes permiso para acceder a los catálogos.');
+    redirect('modulos/recursos-financieros/poas.php');
+}
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -106,8 +121,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="tab-pane active" id="tab-ejes">
                 <div class="p-4 bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold">Listado de Ejes</h5>
-                    <button class="btn btn-primary btn-sm" onclick="modalEje()"><i class="fas fa-plus"></i> Nuevo
-                        Eje</button>
+                    <?php if ($puedeCrear): ?>
+                        <button class="btn btn-primary btn-sm" onclick="modalEje()"><i class="fas fa-plus"></i> Nuevo
+                            Eje</button>
+                    <?php endif; ?>
                 </div>
                 <div class="table-container">
                     <table class="table">
@@ -131,13 +148,15 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-secondary"
-                                                onclick="modalEje(<?= $row['id_eje'] ?>, '<?= e($row['nombre_eje']) ?>')"><i
-                                                    class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
-                                                onclick="toggle('eje', <?= $row['id_eje'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
-                                                <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <button class="btn btn-sm btn-secondary"
+                                                    onclick="modalEje(<?= $row['id_eje'] ?>, '<?= e($row['nombre_eje']) ?>')"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
+                                                    onclick="toggle('eje', <?= $row['id_eje'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
+                                                    <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -151,8 +170,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="tab-pane d-none" id="tab-objetivos">
                 <div class="p-4 bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold">Listado de Objetivos</h5>
-                    <button class="btn btn-primary btn-sm" onclick="modalObjetivo()"><i class="fas fa-plus"></i> Nuevo
-                        Objetivo</button>
+                    <?php if ($puedeCrear): ?>
+                        <button class="btn btn-primary btn-sm" onclick="modalObjetivo()"><i class="fas fa-plus"></i> Nuevo
+                            Objetivo</button>
+                    <?php endif; ?>
                 </div>
                 <div class="table-container">
                     <table class="table">
@@ -180,13 +201,15 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-secondary"
-                                                onclick="modalObjetivo(<?= $row['id_objetivo'] ?>, '<?= e($row['nombre_objetivo']) ?>', <?= $row['id_eje'] ?>)"><i
-                                                    class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
-                                                onclick="toggle('objetivo', <?= $row['id_objetivo'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
-                                                <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <button class="btn btn-sm btn-secondary"
+                                                    onclick="modalObjetivo(<?= $row['id_objetivo'] ?>, '<?= e($row['nombre_objetivo']) ?>', <?= $row['id_eje'] ?>)"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
+                                                    onclick="toggle('objetivo', <?= $row['id_objetivo'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
+                                                    <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -200,8 +223,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="tab-pane d-none" id="tab-prioridades">
                 <div class="p-4 bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold">Listado de Prioridades</h5>
-                    <button class="btn btn-primary btn-sm" onclick="modalPrioridad()"><i class="fas fa-plus"></i> Nueva
-                        Prioridad</button>
+                    <?php if ($puedeCrear): ?>
+                        <button class="btn btn-primary btn-sm" onclick="modalPrioridad()"><i class="fas fa-plus"></i> Nueva
+                            Prioridad</button>
+                    <?php endif; ?>
                 </div>
                 <div class="table-container">
                     <table class="table">
@@ -225,13 +250,15 @@ include __DIR__ . '/../../includes/sidebar.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-secondary"
-                                                onclick="modalPrioridad(<?= $row['id_prioridad'] ?>, '<?= e($row['nombre_prioridad']) ?>')"><i
-                                                    class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
-                                                onclick="toggle('prioridad', <?= $row['id_prioridad'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
-                                                <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <button class="btn btn-sm btn-secondary"
+                                                    onclick="modalPrioridad(<?= $row['id_prioridad'] ?>, '<?= e($row['nombre_prioridad']) ?>')"><i
+                                                        class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
+                                                    onclick="toggle('prioridad', <?= $row['id_prioridad'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
+                                                    <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

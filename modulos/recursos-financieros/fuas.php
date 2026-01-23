@@ -9,6 +9,15 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Suficiencias (FUAs)
+define('MODULO_ID', 54);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeCrear = in_array('crear', $permisos_user);
+$puedeEditar = in_array('editar', $permisos_user);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
 $pdo = getConnection();
 $user = getCurrentUser();
 
@@ -98,9 +107,11 @@ include __DIR__ . '/../../includes/sidebar.php';
         </div>
         <div class="page-actions">
             <div class="btn-group">
-                <a href="fua-form.php<?= $id_proyecto ? "?id_proyecto=$id_proyecto" : "" ?>" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nueva Suficiencia
-                </a>
+                <?php if ($puedeCrear): ?>
+                    <a href="fua-form.php<?= $id_proyecto ? "?id_proyecto=$id_proyecto" : "" ?>" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nueva Suficiencia
+                    </a>
+                <?php endif; ?>
                 <a href="fua-carpeta.php<?= $id_proyecto ? "?id_proyecto=$id_proyecto" : "" ?>" class="btn btn-primary
                     border-start">
                     <i class="fas fa-folder-open"></i>
@@ -276,14 +287,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                                                 onclick="prepararOficio(<?= $f['id_fua'] ?>)" title="Generar Oficio">
                                                 <i class="fas fa-file-pdf"></i>
                                             </button>
-                                            <a href="fua-form.php?id=<?= $f['id_fua'] ?>" class="btn btn-sm btn-secondary"
-                                                title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-danger"
-                                                onclick="confirmDelete(<?= $f['id_fua'] ?>)" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <?php if ($puedeEditar): ?>
+                                                <a href="fua-form.php?id=<?= $f['id_fua'] ?>" class="btn btn-sm btn-secondary"
+                                                    title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($puedeEliminar): ?>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete(<?= $f['id_fua'] ?>)" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

@@ -9,6 +9,18 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// ID del módulo de Proyectos de Obra
+define('MODULO_ID', 53);
+
+// Obtener permisos del usuario para este módulo
+$permisos_user = getUserPermissions(MODULO_ID);
+$puedeEliminar = in_array('eliminar', $permisos_user);
+
+if (!$puedeEliminar) {
+    setFlashMessage('error', 'No tienes permiso para eliminar proyectos.');
+    redirect('modulos/recursos-financieros/poas.php');
+}
+
 $pdo = getConnection();
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $id_programa = isset($_GET['id_programa']) ? (int) $_GET['id_programa'] : 0;
