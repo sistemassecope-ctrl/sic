@@ -12,11 +12,12 @@ $isAdmin = isAdmin();
  * Obtiene los módulos accesibles para el usuario actual
  * Estructura jerárquica: módulos padres con sus hijos
  */
-function getAccessibleModules(): array {
+function getAccessibleModules(): array
+{
     $pdo = getConnection();
-    $userId = $_SESSION['user_id'] ?? 0;
+    $userId = $_SESSION['usuario_id'] ?? 0;
     $isAdmin = isAdmin();
-    
+
     if ($isAdmin) {
         // Admin ve todos los módulos activos
         $sql = "SELECT DISTINCT m.* FROM modulos m WHERE m.estado = 1 ORDER BY m.orden";
@@ -33,13 +34,13 @@ function getAccessibleModules(): array {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$userId]);
     }
-    
+
     $modulos = $stmt->fetchAll();
-    
+
     // Organizar en estructura jerárquica
     $tree = [];
     $children = [];
-    
+
     foreach ($modulos as $mod) {
         if ($mod['id_padre'] === null) {
             $tree[$mod['id']] = $mod;
@@ -48,7 +49,7 @@ function getAccessibleModules(): array {
             $children[$mod['id_padre']][] = $mod;
         }
     }
-    
+
     // Asignar hijos a padres
     foreach ($children as $parentId => $kids) {
         if (isset($tree[$parentId])) {
@@ -65,12 +66,12 @@ function getAccessibleModules(): array {
             }
         }
     }
-    
+
     // Ordenar por orden
-    uasort($tree, function($a, $b) {
+    uasort($tree, function ($a, $b) {
         return $a['orden'] - $b['orden'];
     });
-    
+
     return $tree;
 }
 
@@ -90,15 +91,15 @@ $currentPath = $_SERVER['REQUEST_URI'];
             <i class="fas fa-bars"></i>
         </button>
     </div>
-    
+
     <nav class="sidebar-nav">
         <ul class="nav-menu">
             <?php foreach ($modulosMenu as $modulo): ?>
-                <?php 
+                <?php
                 $hasChildren = !empty($modulo['children']);
                 $moduleUrl = $modulo['ruta'] ? url($modulo['ruta']) : '#';
                 $isActive = $modulo['ruta'] && strpos($currentPath, $modulo['ruta']) !== false;
-                
+
                 // Verificar si algún hijo está activo
                 $childActive = false;
                 if ($hasChildren) {
@@ -110,8 +111,9 @@ $currentPath = $_SERVER['REQUEST_URI'];
                     }
                 }
                 ?>
-                
-                <li class="nav-item <?= $hasChildren ? 'has-submenu' : '' ?> <?= ($isActive || $childActive) ? 'active' : '' ?>">
+
+                <li
+                    class="nav-item <?= $hasChildren ? 'has-submenu' : '' ?> <?= ($isActive || $childActive) ? 'active' : '' ?>">
                     <?php if ($hasChildren): ?>
                         <!-- Módulo con submenú -->
                         <a href="javascript:void(0)" class="nav-link submenu-toggle" data-target="submenu-<?= $modulo['id'] ?>">
@@ -120,10 +122,10 @@ $currentPath = $_SERVER['REQUEST_URI'];
                             <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
                         <ul class="submenu <?= $childActive ? 'open' : '' ?>" id="submenu-<?= $modulo['id'] ?>">
-                            <?php foreach ($modulo['children'] as $child): 
+                            <?php foreach ($modulo['children'] as $child):
                                 $childUrl = $child['ruta'] ? url($child['ruta']) : '#';
                                 $childIsActive = $child['ruta'] && strpos($currentPath, $child['ruta']) !== false;
-                            ?>
+                                ?>
                                 <li class="submenu-item">
                                     <a href="<?= $childUrl ?>" class="submenu-link <?= $childIsActive ? 'active' : '' ?>">
                                         <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"></i>
@@ -143,7 +145,7 @@ $currentPath = $_SERVER['REQUEST_URI'];
             <?php endforeach; ?>
         </ul>
     </nav>
-    
+
     <div class="sidebar-footer">
         <div class="user-info">
             <div class="user-avatar">
@@ -161,33 +163,33 @@ $currentPath = $_SERVER['REQUEST_URI'];
 </aside>
 
 <script>
-// Toggle submenús
-document.querySelectorAll('.submenu-toggle').forEach(toggle => {
-    toggle.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-target');
-        const submenu = document.getElementById(targetId);
-        const parent = this.closest('.nav-item');
-        
-        // Cerrar otros submenús
-        document.querySelectorAll('.submenu.open').forEach(sm => {
-            if (sm.id !== targetId) {
-                sm.classList.remove('open');
-                sm.closest('.nav-item').classList.remove('expanded');
-            }
-        });
-        
-        // Toggle actual
-        submenu.classList.toggle('open');
-        parent.classList.toggle('expanded');
-    });
-});
+    // Toggle submenús
+    document.querySelectorAll('.submenu-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+            const submenu = document.getElementById(targetId);
+            const parent = this.closest('.nav-item');
 
-// Abrir submenú activo al cargar la página
-document.querySelectorAll('.submenu-link.active').forEach(link => {
-    const submenu = link.closest('.submenu');
-    if (submenu) {
-        submenu.classList.add('open');
-        submenu.closest('.nav-item').classList.add('expanded');
-    }
-});
+            // Cerrar otros submenús
+            document.querySelectorAll('.submenu.open').forEach(sm => {
+                if (sm.id !== targetId) {
+                    sm.classList.remove('open');
+                    sm.closest('.nav-item').classList.remove('expanded');
+                }
+            });
+
+            // Toggle actual
+            submenu.classList.toggle('open');
+            parent.classList.toggle('expanded');
+        });
+    });
+
+    // Abrir submenú activo al cargar la página
+    document.querySelectorAll('.submenu-link.active').forEach(link => {
+        const submenu = link.closest('.submenu');
+        if (submenu) {
+            submenu.classList.add('open');
+            submenu.closest('.nav-item').classList.add('expanded');
+        }
+    });
 </script>

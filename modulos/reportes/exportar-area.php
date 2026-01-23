@@ -24,11 +24,11 @@ $datos = $pdo->query("
     SELECT 
         a.nombre_area as 'Área',
         COUNT(e.id) as 'Total Empleados',
-        SUM(CASE WHEN e.estado = 1 THEN 1 ELSE 0 END) as 'Activos',
-        SUM(CASE WHEN e.estado = 0 THEN 1 ELSE 0 END) as 'Inactivos',
+        SUM(CASE WHEN e.estatus = 'Activo' AND e.activo = 1 THEN 1 ELSE 0 END) as 'Activos',
+        SUM(CASE WHEN e.estatus != 'Activo' OR e.activo = 0 THEN 1 ELSE 0 END) as 'Inactivos',
         COUNT(DISTINCT u.id) as 'Usuarios Sistema'
     FROM areas a
-    LEFT JOIN empleados e ON a.id = e.id_area
+    LEFT JOIN empleados e ON a.id = e.area_id
     LEFT JOIN usuarios_sistema u ON e.id = u.id_empleado
     WHERE a.estado = 1 AND " . getAreaFilterSQL('a.id') . "
     GROUP BY a.id, a.nombre_area
@@ -41,7 +41,7 @@ header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 
 $output = fopen('php://output', 'w');
-fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
 if (!empty($datos)) {
     fputcsv($output, array_keys($datos[0]));

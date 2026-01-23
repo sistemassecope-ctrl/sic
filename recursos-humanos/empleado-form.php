@@ -16,7 +16,7 @@ $user = getCurrentUser();
 $permisos = getUserPermissions(MODULO_ID);
 $areasUsuario = getUserAreas();
 
-$empleadoId = isset($_GET['id']) ? (int)$_GET['id'] : null;
+$empleadoId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $esEdicion = $empleadoId !== null;
 
 // Verificar permisos
@@ -35,10 +35,10 @@ $errors = [];
 
 // Si es edición, cargar datos del empleado
 if ($esEdicion) {
-    $stmt = $pdo->prepare("SELECT * FROM empleados WHERE id = ? AND " . getAreaFilterSQL('id_area'));
+    $stmt = $pdo->prepare("SELECT * FROM empleados WHERE id = ? AND " . getAreaFilterSQL('area_id'));
     $stmt->execute([$empleadoId]);
     $empleado = $stmt->fetch();
-    
+
     if (!$empleado) {
         setFlashMessage('error', 'Empleado no encontrado o no tienes acceso');
         redirect('/recursos-humanos/empleados.php');
@@ -52,42 +52,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $apellidoMaterno = sanitize($_POST['apellido_materno'] ?? '');
     $email = sanitize($_POST['email'] ?? '');
     $telefono = sanitize($_POST['telefono'] ?? '');
-    $idArea = (int)($_POST['id_area'] ?? 0);
-    $idPuesto = (int)($_POST['id_puesto'] ?? 0);
-    
+    $idArea = (int) ($_POST['id_area'] ?? 0);
+    $idPuesto = (int) ($_POST['id_puesto'] ?? 0);
+
     // Validaciones
-    if (empty($nombre)) $errors[] = 'El nombre es requerido';
-    if (empty($apellidoPaterno)) $errors[] = 'El apellido paterno es requerido';
-    if ($idArea <= 0) $errors[] = 'Selecciona un área';
-    if ($idPuesto <= 0) $errors[] = 'Selecciona un puesto';
-    
+    if (empty($nombre))
+        $errors[] = 'El nombre es requerido';
+    if (empty($apellidoPaterno))
+        $errors[] = 'El apellido paterno es requerido';
+    if ($idArea <= 0)
+        $errors[] = 'Selecciona un área';
+    if ($idPuesto <= 0)
+        $errors[] = 'Selecciona un puesto';
+
     // Verificar que el área seleccionada esté en las áreas permitidas
     if (!in_array($idArea, $areasUsuario)) {
         $errors[] = 'No tienes permiso para asignar empleados a esa área';
     }
-    
+
     if (empty($errors)) {
         try {
             if ($esEdicion) {
                 $stmt = $pdo->prepare("
                     UPDATE empleados SET 
-                        nombre = ?, apellido_paterno = ?, apellido_materno = ?,
-                        email = ?, telefono = ?, id_area = ?, id_puesto = ?
+                        nombres = ?, apellido_paterno = ?, apellido_materno = ?,
+                        email = ?, telefono = ?, area_id = ?, puesto_trabajo_id = ?
                     WHERE id = ?
                 ");
                 $stmt->execute([
-                    $nombre, $apellidoPaterno, $apellidoMaterno,
-                    $email, $telefono, $idArea, $idPuesto, $empleadoId
+                    $nombre,
+                    $apellidoPaterno,
+                    $apellidoMaterno,
+                    $email,
+                    $telefono,
+                    $idArea,
+                    $idPuesto,
+                    $empleadoId
                 ]);
                 setFlashMessage('success', 'Empleado actualizado correctamente');
             } else {
                 $stmt = $pdo->prepare("
-                    INSERT INTO empleados (nombre, apellido_paterno, apellido_materno, email, telefono, id_area, id_puesto)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO empleados (nombres, apellido_paterno, apellido_materno, email, telefono, area_id, puesto_trabajo_id, estatus, activo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Activo', 1)
                 ");
                 $stmt->execute([
-                    $nombre, $apellidoPaterno, $apellidoMaterno,
-                    $email, $telefono, $idArea, $idPuesto
+                    $nombre,
+                    $apellidoPaterno,
+                    $apellidoMaterno,
+                    $email,
+                    $telefono,
+                    $idArea,
+                    $idPuesto
                 ]);
                 setFlashMessage('success', 'Empleado creado correctamente');
             }
@@ -96,16 +111,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Error al guardar: ' . $e->getMessage();
         }
     }
-    
+
     // Mantener datos en caso de error
     $empleado = [
-        'nombre' => $nombre,
+        'nombres' => $nombre,
         'apellido_paterno' => $apellidoPaterno,
         'apellido_materno' => $apellidoMaterno,
         'email' => $email,
         'telefono' => $telefono,
-        'id_area' => $idArea,
-        'id_puesto' => $idPuesto
+        'area_id' => $idArea,
+        'puesto_trabajo_id' => $idPuesto
     ];
 }
 
@@ -115,7 +130,7 @@ $areas = $pdo->query("
 ")->fetchAll();
 
 // Obtener puestos
-$puestos = $pdo->query("SELECT * FROM puestos WHERE estado = 1 ORDER BY nivel_jerarquico DESC")->fetchAll();
+$puestos = $pdo->query("SELECT * FROM puestos_trabajo WHERE activo = 1 ORDER BY id")->fetchAll();
 ?>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <?php include __DIR__ . '/../includes/sidebar.php'; ?>
@@ -124,7 +139,8 @@ $puestos = $pdo->query("SELECT * FROM puestos WHERE estado = 1 ORDER BY nivel_je
     <div class="page-header">
         <div>
             <h1 class="page-title">
-                <i class="fas fa-<?= $esEdicion ? 'user-edit' : 'user-plus' ?>" style="color: var(--accent-primary);"></i>
+                <i class="fas fa-<?= $esEdicion ? 'user-edit' : 'user-plus' ?>"
+                    style="color: var(--accent-primary);"></i>
                 <?= $esEdicion ? 'Editar Empleado' : 'Nuevo Empleado' ?>
             </h1>
             <p class="page-description">
@@ -135,7 +151,7 @@ $puestos = $pdo->query("SELECT * FROM puestos WHERE estado = 1 ORDER BY nivel_je
             <i class="fas fa-arrow-left"></i> Volver
         </a>
     </div>
-    
+
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger">
             <i class="fas fa-exclamation-circle"></i>
@@ -146,7 +162,7 @@ $puestos = $pdo->query("SELECT * FROM puestos WHERE estado = 1 ORDER BY nivel_je
             </ul>
         </div>
     <?php endif; ?>
-    
+
     <div class="card">
         <div class="card-body">
             <form method="POST">
@@ -156,75 +172,74 @@ $puestos = $pdo->query("SELECT * FROM puestos WHERE estado = 1 ORDER BY nivel_je
                         <h4 style="margin-bottom: 1rem; color: var(--accent-primary);">
                             <i class="fas fa-user"></i> Datos Personales
                         </h4>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Nombre(s) *</label>
                             <input type="text" name="nombre" class="form-control" required
-                                   value="<?= e($empleado['nombre'] ?? '') ?>">
+                                value="<?= e($empleado['nombres'] ?? '') ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Apellido Paterno *</label>
                             <input type="text" name="apellido_paterno" class="form-control" required
-                                   value="<?= e($empleado['apellido_paterno'] ?? '') ?>">
+                                value="<?= e($empleado['apellido_paterno'] ?? '') ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Apellido Materno</label>
                             <input type="text" name="apellido_materno" class="form-control"
-                                   value="<?= e($empleado['apellido_materno'] ?? '') ?>">
+                                value="<?= e($empleado['apellido_materno'] ?? '') ?>">
                         </div>
                     </div>
-                    
+
                     <!-- Información de contacto y laboral -->
                     <div>
                         <h4 style="margin-bottom: 1rem; color: var(--accent-secondary);">
                             <i class="fas fa-briefcase"></i> Información Laboral
                         </h4>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control"
-                                   value="<?= e($empleado['email'] ?? '') ?>">
+                                value="<?= e($empleado['email'] ?? '') ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Teléfono</label>
                             <input type="text" name="telefono" class="form-control"
-                                   value="<?= e($empleado['telefono'] ?? '') ?>">
+                                value="<?= e($empleado['telefono'] ?? '') ?>">
                         </div>
-                        
+
                         <div class="form-group">
-                            <label class="form-label">Área * 
+                            <label class="form-label">Área *
                                 <small style="color: var(--text-muted);">(Solo áreas a las que tienes acceso)</small>
                             </label>
                             <select name="id_area" class="form-control" required>
                                 <option value="">Seleccionar...</option>
                                 <?php foreach ($areas as $area): ?>
-                                    <option value="<?= $area['id'] ?>" 
-                                            <?= ($empleado['id_area'] ?? '') == $area['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= $area['id'] ?>" <?= ($empleado['id_area'] ?? '') == $area['id'] ? 'selected' : '' ?>>
                                         <?= e($area['nombre_area']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="form-label">Puesto *</label>
                             <select name="id_puesto" class="form-control" required>
                                 <option value="">Seleccionar...</option>
                                 <?php foreach ($puestos as $puesto): ?>
-                                    <option value="<?= $puesto['id'] ?>"
-                                            <?= ($empleado['id_puesto'] ?? '') == $puesto['id'] ? 'selected' : '' ?>>
-                                        <?= e($puesto['nombre_puesto']) ?>
+                                    <option value="<?= $puesto['id'] ?>" <?= ($empleado['puesto_trabajo_id'] ?? '') == $puesto['id'] ? 'selected' : '' ?>>
+                                        <?= e($puesto['nombre']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
                 </div>
-                
-                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-primary); display: flex; gap: 1rem; justify-content: flex-end;">
+
+                <div
+                    style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-primary); display: flex; gap: 1rem; justify-content: flex-end;">
                     <a href="<?= url('/recursos-humanos/empleados.php') ?>" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancelar
                     </a>
