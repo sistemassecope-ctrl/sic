@@ -38,7 +38,7 @@ $stmt_prog->execute([$id_programa_parent]);
 $prog_info = $stmt_prog->fetch();
 
 // --- Cargar Catálogos ---
-$cat_unidades = $pdo->query("SELECT id, nombre FROM areas WHERE activo = 1 ORDER BY nombre")->fetchAll();
+$cat_unidades = $pdo->query("SELECT id, nombre_area as nombre FROM areas WHERE estado = 1 AND id_tipo_area IN (1, 2, 3) ORDER BY nombre_area")->fetchAll();
 $cat_prioridades = $pdo->query("SELECT * FROM cat_prioridades WHERE activo = 1 ORDER BY nombre_prioridad")->fetchAll();
 $cat_ejes = $pdo->query("SELECT * FROM cat_ejes WHERE activo = 1 ORDER BY nombre_eje")->fetchAll();
 $cat_objetivos = $pdo->query("SELECT * FROM cat_objetivos WHERE activo = 1 ORDER BY nombre_objetivo")->fetchAll();
