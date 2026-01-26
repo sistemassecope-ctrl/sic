@@ -47,21 +47,30 @@ try {
     foreach ($employees as $emp) {
         $tempPassword = generateTempPassword(10);
         $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
-        $username = $emp['email_institucional']; // Use institutional email as username
-        
-        // Execute insert
-        $insertStmt->execute([
-            $emp['id'],
-            $username,
-            $hashedPassword
-        ]);
+        $username = $emp['email_institucional'];
 
-        $createdUsers[] = [
-            'id_empleado' => $emp['id'],
-            'nombre_completo' => $emp['nombres'] . ' ' . $emp['apellido_paterno'] . ' ' . $emp['apellido_materno'],
-            'usuario' => $username,
-            'password_temporal' => $tempPassword
-        ];
+        try {
+            // Execute insert
+            $insertStmt->execute([
+                $emp['id'],
+                $username,
+                $hashedPassword
+            ]);
+
+            $createdUsers[] = [
+                'id_empleado' => $emp['id'],
+                'nombre_completo' => $emp['nombres'] . ' ' . $emp['apellido_paterno'] . ' ' . $emp['apellido_materno'],
+                'usuario' => $username,
+                'password_temporal' => $tempPassword
+            ];
+        } catch (PDOException $e) {
+            // Check for duplicate entry error (Code 23000 usually)
+            if ($e->getCode() == '23000') {
+                echo "⚠️ Saltando duplicado para empleado ID {$emp['id']} ($username): Ya existe usuario.\n";
+            } else {
+                echo "❌ Error insertando empleado ID {$emp['id']}: " . $e->getMessage() . "\n";
+            }
+        }
     }
 
     $pdo->commit();
