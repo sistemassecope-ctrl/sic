@@ -140,55 +140,76 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 1.5rem 1.25rem;
     border-bottom: 1px solid var(--border-primary);
+    position: relative;
+    /* Ensure toggle button is positioned relative to header */
 }
 
-.logo {
+/* Logo Container - Vertical Layout */
+.logo-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    flex: 1;
+    padding-right: 40px;
+    /* Prevent overlap with toggle button */
 }
 
-.logo-icon {
-    width: 40px;
+.logo-img {
     height: 40px;
-    background: var(--gradient-primary);
-    border-radius: var(--radius-md);
-    display: flex;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    transition: all var(--transition-normal);
+}
+
+/* Toggle Button - Positioned to the right */
+/* UPDATED: 2026-01-26 11:45 - Fixed overlap issue with absolute positioning */
+.sidebar-toggle-btn {
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 1.25rem;
-    box-shadow: var(--shadow-glow);
-}
-
-.logo-text {
-    font-weight: 700;
-    font-size: 1.25rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.sidebar-collapsed .logo-text {
-    display: none;
-}
-
-.sidebar-toggle {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-md);
+    color: #ffffff;
     cursor: pointer;
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
     transition: all var(--transition-fast);
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+
+    /* Absolute positioning to float correctly */
+    position: absolute !important;
+    right: .25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
 }
 
-.sidebar-toggle:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
+.sidebar-toggle-btn:hover {
+    background: rgba(88, 166, 255, 0.2);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 12px rgba(88, 166, 255, 0.4);
+    transform: translateY(-50%) scale(1.05);
+    /* Maintain vertical centering while scaling */
+}
+
+.sidebar-toggle-btn i {
+    transition: transform var(--transition-normal);
+    font-size: 0.875rem;
+}
+
+.sidebar-collapsed .sidebar-toggle-btn i {
+    transform: rotate(180deg);
+}
+
+/* Collapsed State */
+.sidebar-collapsed .logo-img {
+    height: 30px;
 }
 
 /* User Section */
@@ -243,8 +264,37 @@ a:hover {
 /* Navigation */
 .sidebar-nav {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
+    /* Only show scrollbar on hover */
     padding: 1rem 0;
+}
+
+.sidebar-nav:hover {
+    overflow-y: auto;
+}
+
+.sidebar-collapsed .sidebar-nav {
+    overflow: hidden;
+}
+
+/* Sidebar Scrollbar Customization */
+.sidebar-nav::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: var(--border-primary);
+    border-radius: 20px;
+    border: 2px solid var(--bg-secondary);
+}
+
+.sidebar-nav::-webkit-scrollbar-button {
+    display: none;
 }
 
 .nav-list {
@@ -1061,16 +1111,38 @@ textarea.form-control {
    Responsive
    ============================================ */
 @media (max-width: 1024px) {
+
+    /* En móvil, ocultar el toggle de colapso */
+    .sidebar-toggle-btn {
+        display: none;
+    }
+
+    /* Sidebar oculto por defecto en móvil */
     .sidebar {
         transform: translateX(-100%);
+        width: var(--sidebar-width) !important;
     }
 
     .sidebar.open {
         transform: translateX(0);
+        box-shadow: var(--shadow-lg);
     }
 
     .main-content {
-        margin-left: 0;
+        margin-left: 0 !important;
+    }
+
+    /* Remover clase collapsed en móvil */
+    .sidebar-collapsed .sidebar {
+        width: var(--sidebar-width) !important;
+    }
+}
+
+@media (min-width: 1025px) {
+
+    /* En desktop, el toggle siempre visible */
+    .sidebar-toggle-btn {
+        display: flex;
     }
 }
 
@@ -1217,26 +1289,26 @@ textarea.form-control {
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-primary);
-    background-image: url('data:image/svg+xml,%3csvg xmlns=' http: //www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238b949e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e');
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 16px 12px;
-            appearance: none;
-    }
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238b949e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px 12px;
+    appearance: none;
+}
 
-    .btn-clear {
-        color: var(--text-secondary);
-        transition: color var(--transition-fast);
-        padding: 0.5rem;
-    }
+.btn-clear {
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+    padding: 0.5rem;
+}
 
-    .btn-clear:hover {
-        color: var(--accent-danger);
-    }
+.btn-clear:hover {
+    color: var(--accent-danger);
+}
 
-    @media (max-width: 992px) {
-        .search-filters-bar {
-            flex-direction: column;
-            align-items: stretch;
-        }
+@media (max-width: 992px) {
+    .search-filters-bar {
+        flex-direction: column;
+        align-items: stretch;
     }
+}
