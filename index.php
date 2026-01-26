@@ -193,6 +193,12 @@ $ultimosAccesos = $stmt->fetchAll();
                         <i class="fas fa-file-alt"></i>
                         Generar Reportes
                     </a>
+
+                    <!-- External Access -->
+                    <a href="<?= url('/modulos/concursos/padron/index.php') ?>" class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem; border-left: 4px solid var(--accent-purple);">
+                        <i class="fas fa-address-book"></i>
+                        Padrón de Contratistas
+                    </a>
                 </div>
                 
                 <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(88, 166, 255, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(88, 166, 255, 0.2);">

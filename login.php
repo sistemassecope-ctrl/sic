@@ -89,6 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
 
+            <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <a href="<?= url('/modulos/concursos/padron/index.php') ?>" class="btn btn-secondary" style="width: 100%; justify-content: center; border-left: 4px solid var(--accent-purple);">
+                    <i class="fas fa-address-book" style="color: var(--accent-purple); margin-right: 8px;"></i>
+                    Acceso a Contratistas
+                </a>
+                <p style="text-align: center; margin-top: 0.8rem; font-size: 0.85rem; color: var(--text-secondary);">
+                    ¿Deseas registrarte o consultar tu estado?
+                </p>
+            </div>
+
             <div style="margin-top: 2rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
                 <p>Usuarios de prueba:</p>
                 <p><strong>admin</strong> / password123</p>

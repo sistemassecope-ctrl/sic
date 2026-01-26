@@ -76,6 +76,22 @@ function getAccessibleModules(): array
 }
 
 $modulosMenu = getAccessibleModules();
+
+// Manually add Contratos menu (Temporary/Extension)
+$modulosMenu[] = [
+    'id' => 'custom-contratos',
+    'nombre_modulo' => 'Contratos',
+    'ruta' => null, // Folder/Parent
+    'icono' => 'fa-file-signature',
+    'orden' => 999,
+    'children' => [
+        [
+            'nombre_modulo' => 'Gestión de Contratos',
+            'ruta' => '/modulos/concursos/contratos/index.php',
+            'icono' => 'fa-file-contract'
+        ]
+    ]
+];
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 
