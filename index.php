@@ -11,39 +11,42 @@ requireAuth();
 $user = getCurrentUser();
 $pdo = getConnection();
 
-// Estadísticas
+// Estadísticas - Solo para administradores
 $stats = [];
+$ultimosAccesos = [];
 
-// Total empleados
-$stmt = $pdo->query("SELECT COUNT(*) FROM empleados WHERE activo = 1");
-$stats['empleados'] = $stmt->fetchColumn();
+if (isAdmin()) {
+    // Total empleados
+    $stmt = $pdo->query("SELECT COUNT(*) FROM empleados WHERE activo = 1");
+    $stats['empleados'] = $stmt->fetchColumn();
 
-// Total usuarios del sistema
-$stmt = $pdo->query("SELECT COUNT(*) FROM usuarios_sistema WHERE estado = 1");
-$stats['usuarios'] = $stmt->fetchColumn();
+    // Total usuarios del sistema
+    $stmt = $pdo->query("SELECT COUNT(*) FROM usuarios_sistema WHERE estado = 1");
+    $stats['usuarios'] = $stmt->fetchColumn();
 
-// Total áreas
-$stmt = $pdo->query("SELECT COUNT(*) FROM areas WHERE estado = 1");
-$stats['areas'] = $stmt->fetchColumn();
+    // Total áreas
+    $stmt = $pdo->query("SELECT COUNT(*) FROM areas WHERE estado = 1");
+    $stats['areas'] = $stmt->fetchColumn();
 
-// Total módulos
-$stmt = $pdo->query("SELECT COUNT(*) FROM modulos WHERE estado = 1");
-$stats['modulos'] = $stmt->fetchColumn();
+    // Total módulos
+    $stmt = $pdo->query("SELECT COUNT(*) FROM modulos WHERE estado = 1");
+    $stats['modulos'] = $stmt->fetchColumn();
 
-// Obtener últimos accesos
-$stmt = $pdo->query("
-    SELECT 
-        u.usuario, u.ultimo_acceso,
-        CONCAT(e.nombres, ' ', e.apellido_paterno) as nombre_completo,
-        a.nombre_area
-    FROM usuarios_sistema u
-    INNER JOIN empleados e ON u.id_empleado = e.id
-    INNER JOIN areas a ON e.area_id = a.id
-    WHERE u.ultimo_acceso IS NOT NULL
-    ORDER BY u.ultimo_acceso DESC
-    LIMIT 5
-");
-$ultimosAccesos = $stmt->fetchAll();
+    // Obtener últimos accesos (solo admins)
+    $stmt = $pdo->query("
+        SELECT 
+            u.usuario, u.ultimo_acceso,
+            CONCAT(e.nombres, ' ', e.apellido_paterno) as nombre_completo,
+            a.nombre_area
+        FROM usuarios_sistema u
+        INNER JOIN empleados e ON u.id_empleado = e.id
+        INNER JOIN areas a ON e.area_id = a.id
+        WHERE u.ultimo_acceso IS NOT NULL
+        ORDER BY u.ultimo_acceso DESC
+        LIMIT 5
+    ");
+    $ultimosAccesos = $stmt->fetchAll();
+}
 ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php include __DIR__ . '/includes/sidebar.php'; ?>
@@ -53,7 +56,7 @@ $ultimosAccesos = $stmt->fetchAll();
     <div class="page-header">
         <div>
             <h1 class="page-title">Dashboard</h1>
-            <p class="page-description">Bienvenido, <?= e($user['nombre']) ?>. Aquí tienes un resumen del sistema.</p>
+            <p class="page-description">Bienvenido, <?= e($user['nombre']) ?>.</p>
         </div>
         <div>
             <span class="badge badge-info" style="font-size: 0.9rem;">
@@ -65,14 +68,15 @@ $ultimosAccesos = $stmt->fetchAll();
     
     <?= renderFlashMessage() ?>
     
-    <!-- Stats Cards -->
+    <?php if (isAdmin()): ?>
+    <!-- Stats Cards - Solo para Administradores -->
     <div class="stats-grid fade-in">
         <div class="stat-card">
             <div class="stat-icon primary">
                 <i class="fas fa-users"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value"><?= number_format($stats['empleados']) ?></div>
+                <div class="stat-value"><?= number_format($stats['empleados'] ?? 0) ?></div>
                 <div class="stat-label">Empleados Activos</div>
             </div>
         </div>
@@ -82,7 +86,7 @@ $ultimosAccesos = $stmt->fetchAll();
                 <i class="fas fa-user-check"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value"><?= number_format($stats['usuarios']) ?></div>
+                <div class="stat-value"><?= number_format($stats['usuarios'] ?? 0) ?></div>
                 <div class="stat-label">Usuarios del Sistema</div>
             </div>
         </div>
@@ -92,7 +96,7 @@ $ultimosAccesos = $stmt->fetchAll();
                 <i class="fas fa-building"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value"><?= number_format($stats['areas']) ?></div>
+                <div class="stat-value"><?= number_format($stats['areas'] ?? 0) ?></div>
                 <div class="stat-label">Áreas Organizacionales</div>
             </div>
         </div>
@@ -102,13 +106,13 @@ $ultimosAccesos = $stmt->fetchAll();
                 <i class="fas fa-cubes"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value"><?= number_format($stats['modulos']) ?></div>
+                <div class="stat-value"><?= number_format($stats['modulos'] ?? 0) ?></div>
                 <div class="stat-label">Módulos Activos</div>
             </div>
         </div>
     </div>
     
-    <!-- Content Grid -->
+    <!-- Content Grid - Admin -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
         <!-- Recent Activity -->
         <div class="card fade-in">
@@ -174,7 +178,6 @@ $ultimosAccesos = $stmt->fetchAll();
             </div>
             <div class="card-body">
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                    <?php if (isAdmin()): ?>
                     <a href="<?= url('/admin/usuarios.php') ?>" class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;">
                         <i class="fas fa-user-plus"></i>
                         Nuevo Usuario
@@ -183,9 +186,7 @@ $ultimosAccesos = $stmt->fetchAll();
                         <i class="fas fa-key"></i>
                         Gestionar Permisos
                     </a>
-                    <?php endif; ?>
-                    
-                    <a href="<?= url('/recursos-humanos/empleados.php') ?>" class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;">
+                    <a href="<?= url('/modulos/recursos-humanos/empleados.php') ?>" class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;">
                         <i class="fas fa-id-card"></i>
                         Ver Empleados
                     </a>
@@ -193,27 +194,67 @@ $ultimosAccesos = $stmt->fetchAll();
                         <i class="fas fa-file-alt"></i>
                         Generar Reportes
                     </a>
-
-                    <!-- External Access -->
-                    <a href="<?= url('/modulos/concursos/padron/index.php') ?>" class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem; border-left: 4px solid var(--accent-purple);">
-                        <i class="fas fa-address-book"></i>
-                        Padrón de Contratistas
-                    </a>
-                </div>
-                
-                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(88, 166, 255, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(88, 166, 255, 0.2);">
-                    <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--accent-primary);">
-                        <i class="fas fa-info-circle"></i> Tu Información
-                    </h4>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
-                        <strong>Área:</strong> <?= e($user['nombre_area']) ?><br>
-                        <strong>Puesto:</strong> <?= e($user['nombre_puesto']) ?><br>
-                        <strong>Tipo de Usuario:</strong> <?= $user['tipo'] == 1 ? 'Administrador' : 'Usuario' ?>
-                    </p>
                 </div>
             </div>
         </div>
     </div>
+    
+    <?php else: ?>
+    <!-- Vista para Usuarios Normales (sin permisos de admin) -->
+    <div class="fade-in" style="max-width: 800px; margin: 0 auto;">
+        <!-- Card de Bienvenida -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="width: 80px; height: 80px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white; margin: 0 auto 1.5rem;">
+                <?= strtoupper(substr($user['nombre'] ?? 'U', 0, 1)) ?>
+            </div>
+            <h2 style="margin-bottom: 0.5rem; color: var(--text-primary);">
+                ¡Hola, <?= e($user['nombre']) ?>!
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Bienvenido al Sistema Integral de Control
+            </p>
+            
+            <!-- Tu Información -->
+            <div style="background: rgba(88, 166, 255, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(88, 166, 255, 0.2); padding: 1.5rem; text-align: left; margin-bottom: 2rem;">
+                <h4 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--accent-primary);">
+                    <i class="fas fa-info-circle"></i> Tu Información
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Área</div>
+                        <div style="font-weight: 500; color: var(--text-primary);"><?= e($user['nombre_area'] ?? 'No asignada') ?></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Puesto</div>
+                        <div style="font-weight: 500; color: var(--text-primary);"><?= e($user['nombre_puesto'] ?? 'No asignado') ?></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Acciones Disponibles -->
+            <h4 style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--text-secondary); text-align: left;">
+                <i class="fas fa-hand-pointer"></i> Acciones Disponibles
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <?php if (!empty($user['empleado_id'])): ?>
+                <a href="<?= url('/modulos/recursos-humanos/mi-expediente.php') ?>" class="btn btn-primary" style="padding: 1rem;">
+                    <i class="fas fa-user-circle"></i>
+                    Mi Expediente
+                </a>
+                <?php endif; ?>
+                <a href="<?= url('/logout.php') ?>" class="btn btn-secondary" style="padding: 1rem;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+            
+            <p style="margin-top: 2rem; font-size: 0.85rem; color: var(--text-muted);">
+                <i class="fas fa-lock"></i> 
+                Si necesitas acceso a módulos adicionales, contacta a tu administrador.
+            </p>
+        </div>
+    </div>
+    <?php endif; ?>
 </main>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

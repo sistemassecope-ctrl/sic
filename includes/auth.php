@@ -73,7 +73,7 @@ function login(string $usuario, string $password): array
     
     // Buscar usuario y su rol de empleado
     $stmt = $pdo->prepare("
-        SELECT u.id, u.contrasena, u.tipo, u.estado, u.intentos_fallidos, e.rol_sistema
+        SELECT u.id, u.contrasena, u.tipo, u.estado, u.intentos_fallidos, u.cambiar_password, e.rol_sistema
         FROM usuarios_sistema u
         LEFT JOIN empleados e ON u.id_empleado = e.id
         WHERE u.usuario = ?
@@ -105,6 +105,7 @@ function login(string $usuario, string $password): array
     $_SESSION['usuario_id'] = $user['id'];
     $_SESSION['usuario_tipo'] = $user['tipo'];
     $_SESSION['rol_sistema'] = $user['rol_sistema'] ?? 'usuario';
+    $_SESSION['cambiar_password'] = $user['cambiar_password'] == 1;
     
     // Resetear intentos fallidos y actualizar último acceso
     $stmt = $pdo->prepare("UPDATE usuarios_sistema SET intentos_fallidos = 0, ultimo_acceso = NOW() WHERE id = ?");
@@ -243,6 +244,19 @@ function requireAuth(): void
         $basePath = defined('BASE_PATH') ? BASE_PATH : '';
         header('Location: ' . $basePath . '/login.php');
         exit;
+    }
+    
+    // Verificar si se requiere cambio de contraseña
+    if (isset($_SESSION['cambiar_password']) && $_SESSION['cambiar_password'] === true) {
+        $currentScript = basename($_SERVER['PHP_SELF']);
+        // Permitir solo la página de cambio de contraseña, logout y endpoints de API/AJAX si fuera necesario que no rompan la sesión
+        if ($currentScript !== 'cambiar_password.php' && $currentScript !== 'logout.php') {
+            $basePath = defined('BASE_PATH') ? BASE_PATH : '';
+            // Ajustar ruta dependiendo de donde esté cambiar_password.php vs root
+            // Asumiendo que requireAuth se usa en contextos donde la ruta relativa funciona o usando BASE_PATH
+            header('Location: ' . $basePath . '/modulos/usuarios/cambiar_password.php');
+            exit;
+        }
     }
 }
 

@@ -77,21 +77,10 @@ function getAccessibleModules(): array
 
 $modulosMenu = getAccessibleModules();
 
-// Manually add Contratos menu (Temporary/Extension)
-$modulosMenu[] = [
-    'id' => 'custom-contratos',
-    'nombre_modulo' => 'Contratos',
-    'ruta' => null, // Folder/Parent
-    'icono' => 'fa-file-signature',
-    'orden' => 999,
-    'children' => [
-        [
-            'nombre_modulo' => 'Gestión de Contratos',
-            'ruta' => '/modulos/concursos/contratos/index.php',
-            'icono' => 'fa-file-contract'
-        ]
-    ]
-];
+// NOTA: El módulo de Contratos debe ser agregado a la tabla 'modulos' en la BD
+// para que aparezca correctamente según permisos asignados.
+// Ya no se agrega manualmente aquí para respetar el sistema de permisos.
+
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 
@@ -170,9 +159,16 @@ $currentPath = $_SERVER['REQUEST_URI'];
                 <span class="user-role"><?= e($user['nombre_area'] ?? '') ?></span>
             </div>
         </div>
-        <a href="<?= url('/logout.php') ?>" class="logout-btn" title="Cerrar sesión">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
+        <div class="sidebar-footer-actions">
+            <?php if (!empty($user['empleado_id'])): ?>
+            <a href="<?= url('/modulos/recursos-humanos/mi-expediente.php') ?>" class="footer-btn" title="Mi Expediente">
+                <i class="fas fa-id-card"></i>
+            </a>
+            <?php endif; ?>
+            <a href="<?= url('/logout.php') ?>" class="logout-btn" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </div>
 </aside>
 
