@@ -34,8 +34,8 @@ try {
     echo "Deleted " . $stmt->rowCount() . " users.\n";
 
     // 2. Fetch eligible employees
-    echo "Fetching employees with $targetDomain email...\n";
-    $stmt = $pdo->prepare("SELECT id, nombres, apellido_paterno, apellido_materno, email FROM empleados WHERE email LIKE ?");
+    echo "Fetching employees with $targetDomain in email_institucional...\n";
+    $stmt = $pdo->prepare("SELECT id, nombres, apellido_paterno, apellido_materno, email_institucional FROM empleados WHERE email_institucional LIKE ?");
     $stmt->execute(['%' . $targetDomain . '%']);
     $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
@@ -47,7 +47,7 @@ try {
     foreach ($employees as $emp) {
         $tempPassword = generateTempPassword(10);
         $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
-        $username = $emp['email']; // User requested email as username
+        $username = $emp['email_institucional']; // Use institutional email as username
         
         // Execute insert
         $insertStmt->execute([
