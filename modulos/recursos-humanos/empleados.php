@@ -102,6 +102,29 @@ $areasDisponibles = $pdo->query("SELECT id, nombre_area FROM areas WHERE estado 
 <?php include __DIR__ . '/../../includes/header.php'; ?>
 <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 
+<style>
+    /* Fix: Corrección de visibilidad de texto en inputs (Modo Oscuro) */
+    .search-input-group input.form-control,
+    .filter-select-group select.form-control {
+        background-color: var(--bg-tertiary, #21262d) !important;
+        color: var(--text-primary, #e6edf3) !important;
+        border-color: var(--border-primary, #30363d) !important;
+    }
+    
+    .search-input-group input.form-control::placeholder {
+        color: var(--text-secondary, #8b949e) !important;
+        opacity: 0.8;
+    }
+
+    .search-input-group input.form-control:focus,
+    .filter-select-group select.form-control:focus {
+        background-color: var(--bg-primary, #0d1117) !important;
+        color: var(--text-primary, #e6edf3) !important;
+        border-color: var(--accent-primary, #58a6ff) !important;
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15) !important;
+    }
+</style>
+
 <main class="main-content">
     <div class="page-header">
         <div>

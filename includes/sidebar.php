@@ -98,10 +98,8 @@ $currentPath = $_SERVER['REQUEST_URI'];
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo">
-            <span class="logo-icon">
-                <i class="fas fa-shield-alt"></i>
-            </span>
-            <span class="logo-text">PAO v2</span>
+            <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SIC" style="height: 40px; margin-right: 0.5rem;">
+            <span class="logo-text" style="font-size: 1.5rem;">SIC</span>
         </div>
         <button class="sidebar-toggle" id="sidebarToggle">
             <i class="fas fa-bars"></i>

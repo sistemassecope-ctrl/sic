@@ -944,7 +944,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Rol del Sistema</label>
-                            <select name="rol_sistema" class="form-control bg-white">
+                            <select name="rol_sistema" class="form-control">
                                 <option value="usuario" <?= ($empleado['rol_sistema'] ?? '') === 'usuario' ? 'selected' : '' ?>>Usuario Estándar</option>
                                 <option value="admin_area" <?= ($empleado['rol_sistema'] ?? '') === 'admin_area' ? 'selected' : '' ?>>Administrador de Área</option>
                                 <option value="admin_global" <?= ($empleado['rol_sistema'] ?? '') === 'admin_global' ? 'selected' : '' ?>>👑 Administrador Global</option>

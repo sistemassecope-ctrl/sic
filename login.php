@@ -56,11 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-card fade-in">
             <div class="login-header">
-                <div class="login-logo">
-                    <i class="fas fa-atom"></i>
+                <div class="login-logo" style="background: transparent; box-shadow: none; width: 100%; display: flex; justify-content: center; margin-bottom: 2rem;">
+                    <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SIC" style="max-height: 100px; width: auto; max-width: 100%; filter: brightness(0) invert(1);">
                 </div>
-                <h1 class="login-title">PAO v2</h1>
-                <p class="login-subtitle">SIC Sistema Integral de SECOPE</p>
+                <h1 class="login-title">SIC</h1>
+                <p class="login-subtitle">Sistema Integral de SECOPE</p>
             </div>
 
             <?php if ($error): ?>

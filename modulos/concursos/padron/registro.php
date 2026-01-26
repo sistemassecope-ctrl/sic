@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-light min-vh-100 d-flex flex-column align-items-center justify-content-start">
     <div class="text-center my-4">
         <!-- Logo from pao project -->
-        <a href="index.php"><img src="<?php echo BASE_URL; ?>/img/logo_secope.png" alt="Logo SECOPE" style="max-height:100px;"></a>
+        <a href="index.php"><img src="img/logoSecope.svg" alt="Logo SECOPE" style="max-height:100px;"></a>
     </div>
     <div class="container bg-white rounded-4 shadow p-4 mb-4" style="max-width:400px;">
         <h2 class="mb-3 text-primary">Registrarse en Padrón</h2>
