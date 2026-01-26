@@ -86,12 +86,11 @@ $currentPath = $_SERVER['REQUEST_URI'];
 
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <div class="logo">
-            <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SIC" style="height: 40px; margin-right: 0.5rem;">
-            <span class="logo-text" style="font-size: 1.5rem;">SIC</span>
+        <div class="logo-container">
+            <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SECOPE Logo" class="logo-img">
         </div>
-        <button class="sidebar-toggle" id="sidebarToggle">
-            <i class="fas fa-bars"></i>
+        <button class="sidebar-toggle-btn" id="sidebarToggle">
+            <i class="fas fa-chevron-left"></i>
         </button>
     </div>
 
@@ -173,6 +172,24 @@ $currentPath = $_SERVER['REQUEST_URI'];
 </aside>
 
 <script>
+    // Toggle sidebar collapse/expand
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const body = document.body;
+
+    // Restaurar estado del sidebar desde localStorage
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+        body.classList.add('sidebar-collapsed');
+    }
+
+    // Toggle al hacer click
+    sidebarToggle.addEventListener('click', function() {
+        body.classList.toggle('sidebar-collapsed');
+        const isCollapsed = body.classList.contains('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+
     // Toggle submenús
     document.querySelectorAll('.submenu-toggle').forEach(toggle => {
         toggle.addEventListener('click', function () {
