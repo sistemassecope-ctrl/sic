@@ -207,20 +207,30 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="row g-4">
                 <div class="col-12">
                     <label class="form-label x-small text-muted">VINCULAR PROYECTO (CATÁLOGO)</label>
-                    <?php if ($bloquearCaptura || $bloquearFinal): ?>
-                        <input type="hidden" name="id_proyecto" value="<?= $fua['id_proyecto'] ?>">
-                    <?php endif; ?>
-                    <select name="id_proyecto" id="id_proyecto" class="form-control select2"
-                        onchange="verificarSaldo()" <?= $attrDisabledC ?>>
-                        <option value="">-- SELECCIONE UN PROYECTO (OPCIONAL) --</option>
-                        <?php foreach ($proyectos as $p): ?>
-                            <option value="<?= $p['id_proyecto'] ?>" <?= (($is_editing && $fua['id_proyecto'] == $p['id_proyecto']) || ($id_proyecto == $p['id_proyecto'])) ? 'selected' : '' ?>>
-                                [
-                                <?= $p['ejercicio'] ?>]
-                                <?= e($p['nombre_proyecto']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div style="position: relative;">
+                        <?php if ($is_editing || $attrDisabledC): 
+                            $nombre_proy_elegido = 'SIN PROYECTO VINCULADO';
+                            foreach ($proyectos as $p) {
+                                if ($p['id_proyecto'] == $id_proyecto) {
+                                    $nombre_proy_elegido = "[" . $p['ejercicio'] . "] " . $p['nombre_proyecto'];
+                                    break;
+                                }
+                            }
+                        ?>
+                            <input type="text" class="form-control" value="<?= e($nombre_proy_elegido) ?>" readonly 
+                                style="background: rgba(255,255,255,0.05); color: #fff; font-weight: 600; cursor: not-allowed;">
+                            <input type="hidden" name="id_proyecto" value="<?= $id_proyecto ?>">
+                        <?php else: ?>
+                            <select name="id_proyecto" id="id_proyecto" class="form-control select2" onchange="verificarSaldo()">
+                                <option value="">-- SELECCIONE UN PROYECTO (OPCIONAL) --</option>
+                                <?php foreach ($proyectos as $p): ?>
+                                    <option value="<?= $p['id_proyecto'] ?>" <?= ($id_proyecto == $p['id_proyecto']) ? 'selected' : '' ?>>
+                                        [<?= $p['ejercicio'] ?>] <?= e($p['nombre_proyecto']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <div class="col-12">

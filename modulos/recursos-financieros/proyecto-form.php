@@ -44,6 +44,15 @@ if ($id_proyecto) {
     }
 }
 
+// Lógica de Bloqueo de Campos (si el proyecto ya tiene movimientos financieros)
+$stmtM = $pdo->prepare("SELECT COUNT(*) FROM solicitudes_suficiencia WHERE id_proyecto = ? AND estatus != 'CANCELADO'");
+$stmtM->execute([$id_proyecto ?: 0]);
+$hasMovements = (int) $stmtM->fetchColumn() > 0;
+
+$bloquearProyecto = $is_editing && $hasMovements;
+$attrDisabledP = $bloquearProyecto ? 'disabled' : '';
+$attrReadonlyP = $bloquearProyecto ? 'readonly' : '';
+
 if (!$id_programa_parent) {
     setFlashMessage('error', 'Programa no especificado.');
     redirect('modulos/recursos-financieros/poas.php');
@@ -177,7 +186,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <select name="id_unidad_responsable" class="form-control" required <?= $attrDisabledP ?>>
                         <option value="">-- SELECCIONE --</option>
                         <?php foreach ($cat_unidades as $u): ?>
-                            <option value="<?= $u['id'] ?>" <?= ($is_editing && $proyecto['id_unidad_responsable'] == $u['id']) ? 'selected' : '' ?>>
+                            <option value="<?= $u['id'] ?>" <?= (($is_editing && $proyecto['id_unidad_responsable'] == $u['id']) || (!$is_editing && $user['area_id'] == $u['id'])) ? 'selected' : '' ?>>
                                 <?= e($u['nombre']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -441,14 +450,14 @@ include __DIR__ . '/../../includes/sidebar.php';
 
     function calcTotal() {
         let total = 0;
-        document.querySelectorAll('.monto-input').forEach(i => {
+        document.querySelectorAll('.monto-calc').forEach(i => {
             total += parseFloat(i.value.replace(/,/g, '')) || 0;
         });
         document.getElementById('badgeTotal').textContent = '$' + total.toLocaleString('es-MX', { minimumFractionDigits: 2 });
     }
 
     function preSubmit() {
-        document.querySelectorAll('.monto-input').forEach(i => i.value = i.value.replace(/,/g, ''));
+        document.querySelectorAll('.monto-calc').forEach(i => i.value = i.value.replace(/,/g, ''));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
