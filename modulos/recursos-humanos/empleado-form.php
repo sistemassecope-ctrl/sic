@@ -61,6 +61,14 @@ if ($esEdicion) {
     $stmtH = $pdo->prepare("SELECT * FROM empleado_hijos WHERE empleado_id = ?");
     $stmtH->execute([$empleadoId]);
     $hijos = $stmtH->fetchAll();
+    
+    // Cargar información de firma digital (solo para Superadmin)
+    $firmaEmpleado = null;
+    if (isSuperAdmin()) {
+        $stmtFirma = $pdo->prepare("SELECT id, fecha_captura, ultima_modificacion_pin, estado FROM empleado_firmas WHERE empleado_id = ?");
+        $stmtFirma->execute([$empleadoId]);
+        $firmaEmpleado = $stmtFirma->fetch();
+    }
 }
 
 // Procesar formulario
@@ -562,6 +570,16 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     <button type="button" class="nav-link" data-target="sistema">
                         <i class="fas fa-shield-alt fa-fw"></i> Sistema y Accesos
                     </button>
+                    <?php if ($esEdicion && isSuperAdmin()): ?>
+                    <button type="button" class="nav-link" data-target="firma">
+                        <i class="fas fa-signature fa-fw"></i> Firma Digital
+                        <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
+                            <span class="badge bg-success" style="font-size: 0.65rem;">✓</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning" style="font-size: 0.65rem;">!</span>
+                        <?php endif; ?>
+                    </button>
+                    <?php endif; ?>
                     <?php if ($puedeVerSalarios): ?>
                     <button type="button" class="nav-link" data-target="finanzas">
                         <i class="fas fa-hand-holding-usd fa-fw"></i> Compensación
@@ -971,8 +989,58 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                         </div>
                     </div>
                 </div>
+                
+                <!-- 7. Firma Digital (Solo Superadmin y Edición) -->
+                <?php if ($esEdicion && isSuperAdmin()): ?>
+                <div id="firma" class="form-section">
+                    <div class="paper-header">
+                        <h2 class="section-title"><i class="fas fa-signature text-primary"></i> Firma Autógrafa Digital</h2>
+                        <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
+                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Registrada</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendiente</span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="alert alert-info border small mb-4">
+                        <i class="fas fa-info-circle me-1"></i>
+                        La firma autógrafa permite al empleado firmar documentos electrónicamente usando un PIN de 4 dígitos.
+                    </div>
+                    
+                    <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
+                        <div class="card mb-4" style="background: var(--bg-tertiary); border-color: var(--border-primary);">
+                            <div class="card-body">
+                                <h5 class="card-title" style="color: var(--text-primary);"><i class="fas fa-check-circle text-success me-2"></i>Firma Registrada</h5>
+                                <p class="card-text small" style="color: var(--text-secondary);">
+                                    <i class="fas fa-calendar-alt me-1"></i> Capturada: <?= date('d/m/Y H:i', strtotime($firmaEmpleado['fecha_captura'])) ?>
+                                </p>
+                                <?php if ($firmaEmpleado['ultima_modificacion_pin']): ?>
+                                <p class="card-text small" style="color: var(--text-secondary);">
+                                    <i class="fas fa-key me-1"></i> Último cambio de PIN: <?= date('d/m/Y H:i', strtotime($firmaEmpleado['ultima_modificacion_pin'])) ?>
+                                </p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i> Ver / Actualizar Firma
+                        </a>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <div style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;">
+                                <i class="fas fa-signature"></i>
+                            </div>
+                            <h4 style="color: var(--text-primary);">Sin Firma Registrada</h4>
+                            <p class="text-muted mb-4">Este empleado aún no tiene una firma autógrafa capturada en el sistema.</p>
+                            <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-primary btn-lg">
+                                <i class="fas fa-pen-nib me-2"></i> Capturar Firma Ahora
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
 
-                <!-- 7. Baja y Desvinculación (Solo Edición) -->
+                <!-- 8. Baja y Desvinculación (Solo Edición) -->
                 <?php if ($esEdicion): ?>
                 <div id="bajas" class="form-section">
                     <div class="paper-header">
