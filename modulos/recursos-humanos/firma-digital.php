@@ -7,7 +7,7 @@
  */
 
 require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/helpers.php';
 requireAuth();
 
 // Verificar que sea SUPERADMIN
@@ -58,7 +58,7 @@ $stmtEmpleados = $pdo->prepare("
            (SELECT COUNT(*) FROM empleado_firmas ef WHERE ef.empleado_id = e.id AND ef.estado = 1) as tiene_firma
     FROM empleados e
     LEFT JOIN areas a ON e.area_id = a.id
-    WHERE e.estado = 'A'
+    WHERE e.estatus = 'ACTIVO'
     ORDER BY e.apellido_paterno, e.apellido_materno, e.nombres
 ");
 $stmtEmpleados->execute();
