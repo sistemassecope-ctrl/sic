@@ -990,8 +990,8 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     </div>
                 </div>
                 
-                <!-- 7. Firma Digital (Solo Superadmin y Edición) -->
-                <?php if ($esEdicion && isSuperAdmin()): ?>
+                <!-- 7. Firma Digital (Solo Admin y Edición) -->
+                <?php if ($esEdicion && isAdmin()): ?>
                 <div id="firma" class="form-section">
                     <div class="paper-header">
                         <h2 class="section-title"><i class="fas fa-signature text-primary"></i> Firma Autógrafa Digital</h2>
