@@ -266,25 +266,29 @@ $currentPath = $_SERVER['REQUEST_URI'];
     // ==================== MENÚ MÓVIL ====================
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const sidebar = document.getElementById('sidebar');
+    const sidebarEl = document.getElementById('sidebar');
 
     function openMobileMenu() {
-        sidebar.classList.add('mobile-open');
-        sidebarOverlay.classList.add('active');
-        mobileMenuBtn.innerHTML = '<i class="fas fa-times"></i>';
-        document.body.style.overflow = 'hidden'; // Prevenir scroll
+        if (sidebarEl) {
+            sidebarEl.classList.add('mobile-open');
+            if (sidebarOverlay) sidebarOverlay.classList.add('active');
+            if (mobileMenuBtn) mobileMenuBtn.innerHTML = '<i class="fas fa-times"></i>';
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     function closeMobileMenu() {
-        sidebar.classList.remove('mobile-open');
-        sidebarOverlay.classList.remove('active');
-        mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-        document.body.style.overflow = ''; // Restaurar scroll
+        if (sidebarEl) {
+            sidebarEl.classList.remove('mobile-open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+            if (mobileMenuBtn) mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            document.body.style.overflow = '';
+        }
     }
 
     if (mobileMenuBtn) {
         mobileMenuBtn.addEventListener('click', function() {
-            if (sidebar.classList.contains('mobile-open')) {
+            if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
                 closeMobileMenu();
             } else {
                 openMobileMenu();
@@ -296,8 +300,8 @@ $currentPath = $_SERVER['REQUEST_URI'];
         sidebarOverlay.addEventListener('click', closeMobileMenu);
     }
 
-    // Cerrar menú al hacer clic en un link (en móvil)
-    document.querySelectorAll('.sidebar .nav-link, .sidebar .submenu-link').forEach(link => {
+    // Cerrar menú móvil al hacer clic en un link de navegación (SOLO submenu-link)
+    document.querySelectorAll('.sidebar .submenu-link').forEach(link => {
         link.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
                 closeMobileMenu();
