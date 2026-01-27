@@ -157,7 +157,7 @@ try {
     <?= renderFlashMessage() ?>
 
     <!-- Panel de Filtros (Estilo Legacy) -->
-    <<<<<<< Updated upstream <div class="card mb-4 bg-dark text-white border-secondary">
+    <div class="card mb-4 bg-dark text-white border-secondary">
         <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center py-2">
             <h6 class="mb-0 text-white"><i class="fas fa-filter"></i> Filtros de Búsqueda</h6>
             <button class="btn btn-link btn-sm text-decoration-none p-0 text-white" type="button"
@@ -559,12 +559,7 @@ try {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: bajaId, motivo: motivo })
             });
-<<<<<<< Updated upstream
 
-            const data = await response.json();
-
-=======
-            
             // Check if response is ok
             if (!response.ok) {
                 const text = await response.text();
@@ -579,8 +574,6 @@ try {
                 console.error("Invalid JSON:", text);
                 throw new Error("Respuesta inválida del servidor: " + text.substring(0, 100));
             }
-            
->>>>>>> Stashed changes
             if (data.success) {
                 if (bajaModal) bajaModal.hide();
                 location.reload();
@@ -650,6 +643,6 @@ try {
             });
     }
 </script>
-</script>
+
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>
