@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Flujo Autorización - PAO</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .role-switch {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-signed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-authorize {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-authorize:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+
+        .glass-modal .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .pin-input {
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px solid var(--border);
+            color: white;
+            text-align: center;
+            font-size: 2rem;
+            letter-spacing: 1rem;
+            border-radius: 12px;
+        }
+
+        .pin-input:focus {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: var(--primary);
+            box-shadow: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .preview-document {
+            background: white;
+            color: #334;
+            padding: 3rem;
+            border-radius: 4px;
+            margin-top: 2rem;
+            font-family: 'Times New Roman', serif;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .signature-seal {
+            position: absolute;
+            bottom: 3rem;
+            right: 3rem;
+            border: 2px solid #dc2626;
+            color: #dc2626;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transform: rotate(-15deg);
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <div class="role-switch">
+            <span><i class="fas fa-users-cog"></i> Simulador de Rol:</span>
+            <button class="btn btn-sm btn-outline-light active" onclick="switchRole('capturador')">Capturador</button>
+            <button class="btn btn-sm btn-outline-light" onclick="switchRole('autorizador')">Autorizador (Sello
+                FIEL)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1">Solicitud de Suficiencia Presupuestal</h4>
+                    <p class="text-muted mb-0 small">Folio: PAO-2026-0042</p>
+                </div>
+                <span id="mainStatus" class="status-badge status-pending">Pendiente de Firma</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Proyecto</label>
+                        <div class="fw-bold fs-5">Ampliación de Red Eléctrica - Sector Sur</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small">Importe Solicitado</label>
+                        <div class="fw-bold fs-5 text-success">$1,450,000.00</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small">Fecha Solicitud</label>
+                        <div>27/01/2026</div>
+                    </div>
+                </div>
+
+                <div class="preview-document mt-5">
+                    <div class="text-center mb-4">
+                        <h5>GOBIERNO DEL ESTADO</h5>
+                        <h6>OFICIO DE SUFICIENCIA PRESUPUESTAL</h6>
+                    </div>
+                    <p>Por medio del presente se hace constar que existe disponibilidad de recursos para el proyecto
+                        mencionado...</p>
+                    <div style="height: 150px;"></div>
+                    <div class="text-center">
+                        <hr style="width: 200px; margin: 0 auto; border-color: #333;">
+                        <small>Firma del Director de Finanzas</small>
+                    </div>
+                    <div id="signatureSeal" class="signature-seal">
+                        FIRMADO ELECTRÓNICAMENTE<br>
+                        CON FIEL DEL SAT<br>
+                        <small id="signStamp"></small>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between border-top pt-4">
+                    <button class="btn btn-outline-secondary">Regresar</button>
+
+                    <div id="capturadorActions">
+                        <button class="btn btn-primary d-none d-md-inline-block"><i class="fas fa-save me-2"></i>Guardar
+                            Borrador</button>
+                    </div>
+
+                    <div id="autorizadorActions" class="hidden">
+                        <button class="btn btn-authorize text-white" onclick="showPinModal()">
+                            <i class="fas fa-certificate me-2"></i>Autorizar con e.firma (FIEL)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal PIN -->
+    <div class="modal fade glass-modal" id="pinModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body p-5 text-center">
+                    <i class="fas fa-lock fa-3x text-warning mb-4"></i>
+                    <h4 class="mb-3">Autorización de Firma</h4>
+                    <p class="text-muted mb-4">Ingrese su PIN de 4 dígitos para autorizar esta suficiencia con su
+                        certificación FIEL.</p>
+
+                    <input type="password" maxlength="4" class="form-control pin-input mb-4" id="pinCode"
+                        placeholder="••••">
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg" id="btnConfirmSign" onclick="processSignature()">
+                            Firmar Documento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function switchRole(role) {
+            document.querySelectorAll('.role-switch button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (role === 'capturador') {
+                document.getElementById('capturadorActions').classList.remove('hidden');
+                document.getElementById('autorizadorActions').classList.add('hidden');
+            } else {
+                document.getElementById('capturadorActions').classList.add('hidden');
+                document.getElementById('autorizadorActions').classList.remove('hidden');
+            }
+        }
+
+        function showPinModal() {
+            new bootstrap.Modal(document.getElementById('pinModal')).show();
+        }
+
+        function processSignature() {
+            const btn = document.getElementById('btnConfirmSign');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando Sello Digital...';
+
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('pinModal'));
+                modal.hide();
+
+                // Actualizar UI
+                document.getElementById('mainStatus').innerText = 'Autorizado';
+                document.getElementById('mainStatus').className = 'status-badge status-signed';
+                document.getElementById('signatureSeal').style.display = 'block';
+                document.querySelector('.btn-authorize').innerText = 'Documento Firmado';
+                document.querySelector('.btn-authorize').disabled = true;
+                document.getElementById('signStamp').innerText = 'Timestamp: ' + new Date().toLocaleString();
+
+                alert('¡Oficio Autorizado Exitosamente!\nEl sello digital ha sido incrustado en el documento.');
+            }, 2000);
+        }
+    </script>
+
+</body>
+
+</html>

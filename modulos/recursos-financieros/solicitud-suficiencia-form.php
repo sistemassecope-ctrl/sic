@@ -60,6 +60,7 @@ $lockSFyA  = $bloquearFinal;
 
 // Catálogos
 $proyectos = $pdo->query("SELECT id_proyecto, nombre_proyecto, ejercicio FROM proyectos_obra ORDER BY ejercicio DESC, nombre_proyecto ASC")->fetchAll();
+$momentosGestion = $pdo->query("SELECT * FROM cat_momentos_suficiencia WHERE activo = 1 ORDER BY orden ASC")->fetchAll();
 
 // --- Procesar Guardado ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -86,16 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'fecha_firma_regreso' => !empty($_POST['fecha_firma_regreso']) ? $_POST['fecha_firma_regreso'] : null,
         'fecha_acuse_antes_fa' => !empty($_POST['fecha_acuse_antes_fa']) ? $_POST['fecha_acuse_antes_fa'] : null,
         'fecha_respuesta_sfa' => !empty($_POST['fecha_respuesta_sfa']) ? $_POST['fecha_respuesta_sfa'] : null,
+        'id_momento_gestion' => (int) ($_POST['id_momento_gestion'] ?? 1),
         'observaciones' => trim($_POST['observaciones'] ?? '')
     ];
 
     try {
         if ($is_editing) {
-            $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, observaciones=? WHERE id_fua=?";
+            $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, id_momento_gestion=?, observaciones=? WHERE id_fua=?";
             $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id_fua]));
             setFlashMessage('success', 'Solicitud actualizada correctamente');
         } else {
-            $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, id_momento_gestion, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $pdo->prepare($sql)->execute(array_values($data));
             setFlashMessage('success', 'Solicitud registrada correctamente');
         }
@@ -261,7 +263,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 CANCELADO</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label x-small text-muted">RESULTADO TRÁMITE</label>
                         <?php if ($bloquearFinal): ?><input type="hidden" name="resultado_tramite" value="<?= $fua['resultado_tramite'] ?>"><?php endif; ?>
                         <select name="resultado_tramite" class="form-control" <?= $bloquearFinal ? 'disabled' : '' ?>>
@@ -270,15 +272,27 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <option value="NO AUTORIZADO" <?= ($is_editing && $fua['resultado_tramite'] == 'NO AUTORIZADO') ? 'selected' : '' ?>>NO AUTORIZADO</option>
                         </select>
                     </div>
+                    <div class="col-md-12">
+                        <label class="form-label x-small text-muted text-primary fw-bold">MOMENTO DE GESTIÓN (ETAPA ACTUAL)</label>
+                        <select name="id_momento_gestion" class="form-control fw-bold border-primary" style="background: rgba(var(--accent-primary-rgb), 0.05);">
+                            <?php foreach ($momentosGestion as $m): ?>
+                                <option value="<?= $m['id'] ?>" <?= (($is_editing ? $fua['id_momento_gestion'] : 2) == $m['id']) ? 'selected' : '' ?>>
+                                    <?= $m['id'] ?>. <?= e($m['nombre']) ?> - <?= e($m['descripcion']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 <?php else: ?>
                     <?php if ($is_editing): ?>
                         <input type="hidden" name="tipo_suficiencia" value="<?= $fua['tipo_suficiencia'] ?>">
                         <input type="hidden" name="estatus" value="<?= $fua['estatus'] ?>">
                         <input type="hidden" name="resultado_tramite" value="<?= $fua['resultado_tramite'] ?>">
+                        <input type="hidden" name="id_momento_gestion" value="<?= $fua['id_momento_gestion'] ?>">
                     <?php else: ?>
                         <input type="hidden" name="tipo_suficiencia" value="NUEVA">
                         <input type="hidden" name="estatus" value="ACTIVO">
                         <input type="hidden" name="resultado_tramite" value="PENDIENTE">
+                        <input type="hidden" name="id_momento_gestion" value="2">
                     <?php endif; ?>
                 <?php endif; ?>
 

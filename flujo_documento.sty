@@ -1,0 +1,14 @@
+Ayudame a preparar el flujo de vida para  cualquier documento que genere del sistema. Deberá llevar sus respectivas bitácora de vida y de movimientos, la cual, será alimentada automáticamente en cada una de las fases.
+Todo documento tendrá las siguientes fases:
+
+*Generación (nace el documento)
+	Sucede cuando un usuario genera cualquier documento en el sistema
+*Aprobación 
+	El mismo usuario generador del documento, pudiera aprobarlo o no, ya que algunos documentos necesitan aprobación superior por diversos motivos (redacción, disponibilidad, etc)
+*Flujo de Firmas
+	Dentro del sistema, se generará un flujo de firmas donde el usuario generador / aprobador del documento (de acuerdo a sus roles y privilegios) establezca en un órden jerárquico (elegira en un formulario las personas que van a firmar el documento, en un orden estricto, cualquier persona firmante puede además de firmar (aprobar) rechazar el documento estableciendo una observación al mismo por el motivo del rechazo.  En este momento el documento regresa al prigen (padre del documento). Aqui se requiere establecer el flujo del trabajo de la manera mas practica para que en el panel del usuario dentro de su sesión del sistema le aparezca una cola de documentos para firmar/aprobar/rechazar y después de esto siga su flujo.
+*Gestión (interna/externa)
+	Si es interna, seguirá otro flujo dependiendo el tipo de documento (el cual se verá después) si es externo añadir a la bitácora del documento que está en trámite en alguna área o dependencia fuera de la institución.  En la gestión externa deberá tomar el dato hacia que área o dependencia va.
+*Resolución (muere el documento)
+	Es cuando la gestión al documento fue realizada y terminada sin importar el resultado, podrá ser marcado como finalizado en diversos modulos (se verá más delante)
+
