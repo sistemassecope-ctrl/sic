@@ -62,9 +62,9 @@ if ($esEdicion) {
     $stmtH->execute([$empleadoId]);
     $hijos = $stmtH->fetchAll();
     
-    // Cargar información de firma digital (solo para Superadmin)
+    // Cargar información de firma digital (solo para Admin)
     $firmaEmpleado = null;
-    if (isSuperAdmin()) {
+    if (isAdmin()) {
         $stmtFirma = $pdo->prepare("SELECT id, fecha_captura, ultima_modificacion_pin, estado FROM empleado_firmas WHERE empleado_id = ?");
         $stmtFirma->execute([$empleadoId]);
         $firmaEmpleado = $stmtFirma->fetch();
@@ -570,7 +570,7 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                     <button type="button" class="nav-link" data-target="sistema">
                         <i class="fas fa-shield-alt fa-fw"></i> Sistema y Accesos
                     </button>
-                    <?php if ($esEdicion && isSuperAdmin()): ?>
+                    <?php if ($esEdicion && isAdmin()): ?>
                     <button type="button" class="nav-link" data-target="firma">
                         <i class="fas fa-signature fa-fw"></i> Firma Digital
                         <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
