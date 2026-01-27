@@ -1,0 +1,41 @@
+0	<<Sin Asignar>>
+1	Canatlán
+2	Canelas
+3	Coneto de Comonfort
+4	Cuencamé
+5	Durango (capital)
+6	General Simón Bolívar
+7	Gómez Palacio
+8	Guadalupe Victoria
+9	Guanaceví
+10	Hidalgo
+11	Indé
+12	Lerdo
+13	Mapimí
+14	Mezquital
+15	Nazas
+16	Nombre de Dios
+17	Ocampo
+18	El Oro
+19	Otáez
+20	Pánuco de Coronado
+21	Peñón Blanco
+22	Poanas
+23	Pueblo Nuevo
+24	Rodeo
+25	San Bernardo
+26	San Dimas
+27	San Juan de Guadalupe
+28	San Juan del Río
+29	San Luis del Cordero
+30	San Pedro del Gallo
+31	Santa Clara
+32	Santiago Papasquiaro
+33	Súchil
+34	Tamazula
+35	Tepehuanes
+36	Tlahualilo
+37	Topia
+38	Vicente Guerrero
+39	Nuevo Ideal
+40	Varios Municipios

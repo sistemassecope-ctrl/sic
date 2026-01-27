@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($is_editing) {
             // Validation: New total >= Committed
-            $stmtC = $pdo->prepare("SELECT SUM(importe) FROM fuas WHERE id_proyecto = ? AND estatus != 'CANCELADO'");
+            $stmtC = $pdo->prepare("SELECT SUM(monto_total_solicitado) FROM solicitudes_suficiencia WHERE id_proyecto = ? AND estatus != 'CANCELADO'");
             $stmtC->execute([$id_proyecto]);
             $comprometido = (float) $stmtC->fetchColumn();
             $nuevo_total = $data['monto_federal'] + $data['monto_estatal'] + $data['monto_municipal'] + $data['monto_otros'];
@@ -171,7 +171,10 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="row g-4">
                 <div class="col-12">
                     <label class="form-label text-muted x-small">1. UNIDAD RESPONSABLE</label>
-                    <select name="id_unidad_responsable" class="form-control" required>
+                    <?php if ($bloquearProyecto): ?>
+                        <input type="hidden" name="id_unidad_responsable" value="<?= $proyecto['id_unidad_responsable'] ?>">
+                    <?php endif; ?>
+                    <select name="id_unidad_responsable" class="form-control" required <?= $attrDisabledP ?>>
                         <option value="">-- SELECCIONE --</option>
                         <?php foreach ($cat_unidades as $u): ?>
                             <option value="<?= $u['id'] ?>" <?= ($is_editing && $proyecto['id_unidad_responsable'] == $u['id']) ? 'selected' : '' ?>>
@@ -184,7 +187,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <div class="col-12">
                     <label class="form-label text-muted x-small">2. NOMBRE DEL PROYECTO</label>
                     <textarea name="nombre_proyecto" class="form-control text-uppercase" rows="2"
-                        required><?= $is_editing ? e($proyecto['nombre_proyecto']) : '' ?></textarea>
+                        required <?= $attrReadonlyP ?>><?= $is_editing ? e($proyecto['nombre_proyecto']) : '' ?></textarea>
                 </div>
 
                 <div class="col-12">
@@ -225,27 +228,39 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label x-small">FEDERAL</label>
-                            <input type="text" name="monto_federal" class="form-control text-end monto-input"
-                                value="<?= $is_editing ? number_format($proyecto['monto_federal'], 2) : '' ?>"
-                                oninput="formatCurrency(this)">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" name="monto_federal" class="form-control text-end monto-calc"
+                                    value="<?= $is_editing ? number_format($proyecto['monto_federal'], 2) : '' ?>"
+                                    oninput="formatCurrency(this)" <?= $attrReadonlyP ?>>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label x-small">ESTATAL</label>
-                            <input type="text" name="monto_estatal" class="form-control text-end monto-input"
-                                value="<?= $is_editing ? number_format($proyecto['monto_estatal'], 2) : '' ?>"
-                                oninput="formatCurrency(this)">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" name="monto_estatal" class="form-control text-end monto-calc"
+                                    value="<?= $is_editing ? number_format($proyecto['monto_estatal'], 2) : '' ?>"
+                                    oninput="formatCurrency(this)" <?= $attrReadonlyP ?>>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label x-small">MUNICIPAL</label>
-                            <input type="text" name="monto_municipal" class="form-control text-end monto-input"
-                                value="<?= $is_editing ? number_format($proyecto['monto_municipal'], 2) : '' ?>"
-                                oninput="formatCurrency(this)">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" name="monto_municipal" class="form-control text-end monto-calc"
+                                    value="<?= $is_editing ? number_format($proyecto['monto_municipal'], 2) : '' ?>"
+                                    oninput="formatCurrency(this)" <?= $attrReadonlyP ?>>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label x-small">OTROS</label>
-                            <input type="text" name="monto_otros" class="form-control text-end monto-input"
-                                value="<?= $is_editing ? number_format($proyecto['monto_otros'], 2) : '' ?>"
-                                oninput="formatCurrency(this)">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" name="monto_otros" class="form-control text-end monto-calc"
+                                    value="<?= $is_editing ? number_format($proyecto['monto_otros'], 2) : '' ?>"
+                                    oninput="formatCurrency(this)" <?= $attrReadonlyP ?>>
+                            </div>
                         </div>
                     </div>
                 </div>

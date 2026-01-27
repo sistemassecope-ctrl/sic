@@ -18,6 +18,7 @@ $puedeVer = in_array('ver', $permisos_user);
 $puedeCrear = in_array('crear', $permisos_user);
 $puedeEditar = in_array('editar', $permisos_user);
 $puedeEliminar = in_array('eliminar', $permisos_user);
+$puedeVerSalarios = in_array('ver_salarios', $permisos_user);
 
 $empleadoId = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $esEdicion = $empleadoId !== null;

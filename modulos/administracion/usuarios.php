@@ -125,11 +125,19 @@ $empleadosSinUsuario = $pdo->query("
             </h1>
             <p class="page-description">Administra los usuarios que tienen acceso al sistema</p>
         </div>
-        <?php if ($puedeCrear): ?>
-            <button class="btn btn-primary" onclick="document.getElementById('modalNuevo').style.display='flex'">
-                <i class="fas fa-plus"></i> Nuevo Usuario
-            </button>
-        <?php endif; ?>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="search-container" style="position: relative; width: 300px;">
+                <i class="fas fa-search"
+                    style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                <input type="text" id="userSearch" class="form-control" placeholder="Buscar usuario o empleado..."
+                    style="padding-left: 2.5rem; border-radius: 20px;" autocomplete="off">
+            </div>
+            <?php if ($puedeCrear): ?>
+                <button class="btn btn-primary" onclick="document.getElementById('modalNuevo').style.display='flex'">
+                    <i class="fas fa-plus"></i> Nuevo Usuario
+                </button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?= renderFlashMessage() ?>
@@ -284,5 +292,42 @@ $empleadosSinUsuario = $pdo->query("
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('userSearch');
+        const tableRows = document.querySelectorAll('.table tbody tr');
+
+        searchInput.addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase().trim();
+
+            // El requerimiento es: buscador por aproximación a partir de 4 caracteres
+            if (searchTerm.length >= 4) {
+                tableRows.forEach(row => {
+                    const usuario = row.querySelector('td:nth-child(1)').innerText.toLowerCase();
+                    const empleado = row.querySelector('td:nth-child(2)').innerText.toLowerCase();
+                    const area = row.querySelector('td:nth-child(3)').innerText.toLowerCase();
+
+                    if (usuario.includes(searchTerm) || empleado.includes(searchTerm) || area.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            } else {
+                tableRows.forEach(row => {
+                    row.style.display = '';
+                });
+            }
+        });
+
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                tableRows.forEach(row => row.style.display = '');
+            }
+        });
+    });
+</script>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

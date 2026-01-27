@@ -35,9 +35,9 @@ function getCurrentUser(): ?array
     if (!isAuthenticated()) {
         return null;
     }
-    
+
     static $user = null;
-    
+
     if ($user === null) {
         $pdo = getConnection();
         $stmt = $pdo->prepare("
@@ -57,7 +57,7 @@ function getCurrentUser(): ?array
         $row = $stmt->fetch();
         $user = $row ?: null;
     }
-    
+
     return $user;
 }
 
@@ -70,7 +70,7 @@ function getCurrentUser(): ?array
 function login(string $usuario, string $password): array
 {
     $pdo = getConnection();
-    
+
     // Buscar usuario y su rol de empleado
     $stmt = $pdo->prepare("
         SELECT u.id, u.contrasena, u.tipo, u.estado, u.intentos_fallidos, u.cambiar_password, e.rol_sistema
@@ -80,19 +80,19 @@ function login(string $usuario, string $password): array
     ");
     $stmt->execute([$usuario]);
     $user = $stmt->fetch();
-    
+
     if (!$user) {
         return ['success' => false, 'message' => 'Usuario no encontrado'];
     }
-    
+
     if ($user['estado'] != 1) {
         return ['success' => false, 'message' => 'Usuario inactivo'];
     }
-    
+
     if ($user['intentos_fallidos'] >= 5) {
         return ['success' => false, 'message' => 'Usuario bloqueado por múltiples intentos fallidos'];
     }
-    
+
     // Verificar contraseña
     if (!password_verify($password, $user['contrasena'])) {
         // Incrementar intentos fallidos
@@ -100,17 +100,17 @@ function login(string $usuario, string $password): array
         $stmt->execute([$user['id']]);
         return ['success' => false, 'message' => 'Contraseña incorrecta'];
     }
-    
+
     // Login exitoso
     $_SESSION['usuario_id'] = $user['id'];
     $_SESSION['usuario_tipo'] = $user['tipo'];
     $_SESSION['rol_sistema'] = $user['rol_sistema'] ?? 'usuario';
     $_SESSION['cambiar_password'] = $user['cambiar_password'] == 1;
-    
+
     // Resetear intentos fallidos y actualizar último acceso
     $stmt = $pdo->prepare("UPDATE usuarios_sistema SET intentos_fallidos = 0, ultimo_acceso = NOW() WHERE id = ?");
     $stmt->execute([$user['id']]);
-    
+
     return ['success' => true, 'message' => 'Login exitoso'];
 }
 
@@ -148,14 +148,14 @@ function getUserPermissions(int $moduloId): array
     if (!isAuthenticated()) {
         return [];
     }
-    
+
     // Los administradores tienen todos los permisos
     if (isAdmin()) {
         $pdo = getConnection();
         $stmt = $pdo->query("SELECT clave FROM permisos");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
-    
+
     $pdo = getConnection();
     $stmt = $pdo->prepare("
         SELECT p.clave
@@ -164,7 +164,7 @@ function getUserPermissions(int $moduloId): array
         WHERE ump.id_usuario = ? AND ump.id_modulo = ?
     ");
     $stmt->execute([getCurrentUserId(), $moduloId]);
-    
+
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
@@ -189,14 +189,14 @@ function getUserAreas(): array
     if (!isAuthenticated()) {
         return [];
     }
-    
+
     // Los administradores ven todas las áreas
     if (isAdmin()) {
         $pdo = getConnection();
         $stmt = $pdo->query("SELECT id FROM areas WHERE estado = 1");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
-    
+
     $pdo = getConnection();
     $stmt = $pdo->prepare("
         SELECT id_area
@@ -204,7 +204,7 @@ function getUserAreas(): array
         WHERE id_usuario = ?
     ");
     $stmt->execute([getCurrentUserId()]);
-    
+
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
@@ -226,12 +226,17 @@ function hasAccessToArea(int $areaId): bool
  */
 function getAreaFilterSQL(string $columnName = 'id_area'): string
 {
+    // Si es administrador, tiene acceso total a todas las áreas, incluyendo registros sin área (NULL)
+    if (isAdmin()) {
+        return "1=1";
+    }
+
     $areas = getUserAreas();
-    
+
     if (empty($areas)) {
         return "$columnName IN (0)"; // No tiene acceso a ninguna área
     }
-    
+
     return "$columnName IN (" . implode(',', array_map('intval', $areas)) . ")";
 }
 
@@ -245,7 +250,7 @@ function requireAuth(): void
         header('Location: ' . $basePath . '/login.php');
         exit;
     }
-    
+
     // Verificar si se requiere cambio de contraseña
     if (isset($_SESSION['cambiar_password']) && $_SESSION['cambiar_password'] === true) {
         $currentScript = basename($_SERVER['PHP_SELF']);
@@ -268,7 +273,7 @@ function requireAuth(): void
 function requirePermission(string $permisoClave, int $moduloId): void
 {
     requireAuth();
-    
+
     if (!hasPermission($permisoClave, $moduloId)) {
         http_response_code(403);
         die('No tienes permiso para realizar esta acción');
@@ -285,7 +290,7 @@ function logActivity(string $accion, string $detalles = ''): void
     if (!isAuthenticated()) {
         return;
     }
-    
+
     // Por ahora solo logueamos a archivo, después se puede guardar en BD
     $logEntry = sprintf(
         "[%s] Usuario ID %d: %s - %s\n",
@@ -294,6 +299,6 @@ function logActivity(string $accion, string $detalles = ''): void
         $accion,
         $detalles
     );
-    
+
     error_log($logEntry, 3, __DIR__ . '/../logs/activity.log');
 }

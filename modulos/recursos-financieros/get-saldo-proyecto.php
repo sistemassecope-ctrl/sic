@@ -30,8 +30,8 @@ try {
 
     $total_proyecto = (float) $proyecto['monto_total'];
 
-    // 2. Obtener Suma de FUAs existentes (activos), excluyendo el actual
-    $sqlFuas = "SELECT SUM(importe) as total_comprometido FROM fuas WHERE id_proyecto = ? AND estatus = 'ACTIVO'";
+    // 2. Obtener Suma de Solicitudes existentes (activas), excluyendo el actual
+    $sqlFuas = "SELECT SUM(monto_total_solicitado) as total_comprometido FROM solicitudes_suficiencia WHERE id_proyecto = ? AND estatus = 'ACTIVO'";
     $params = [$id_proyecto];
     if ($id_fua_actual > 0) {
         $sqlFuas .= " AND id_fua != ?";

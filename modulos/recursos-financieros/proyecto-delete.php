@@ -27,11 +27,11 @@ $id_programa = isset($_GET['id_programa']) ? (int) $_GET['id_programa'] : 0;
 
 if ($id > 0) {
     try {
-        // Check if has FUAs
-        $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM fuas WHERE id_proyecto = ?");
+        // Check if has Solicitudes
+        $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM solicitudes_suficiencia WHERE id_proyecto = ?");
         $stmt_check->execute([$id]);
         if ($stmt_check->fetchColumn() > 0) {
-            setFlashMessage('error', 'No se puede eliminar un proyecto que tiene suficiencias (FUAs) vinculadas.');
+            setFlashMessage('error', 'No se puede eliminar un proyecto que tiene solicitudes de suficiencia vinculadas.');
         } else {
             $pdo->prepare("DELETE FROM proyectos_obra WHERE id_proyecto = ?")->execute([$id]);
             setFlashMessage('success', 'Proyecto eliminado correctamente.');

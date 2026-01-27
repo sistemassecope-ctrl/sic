@@ -7,6 +7,7 @@
 ob_start();
 
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/utils_moneda.php';
 require_once __DIR__ . '/../../includes/libs/tcpdf/tcpdf.php';
 
@@ -23,7 +24,7 @@ if (!$id_fua) {
 // Obtener datos del FUA y Proyecto
 $stmt = $pdo->prepare("
     SELECT f.*, p.nombre_proyecto, p.ejercicio
-    FROM fuas f
+    FROM solicitudes_suficiencia f
     LEFT JOIN proyectos_obra p ON f.id_proyecto = p.id_proyecto
     WHERE f.id_fua = ?
 ");
@@ -34,8 +35,26 @@ if (!$fua) {
     die("No se encontró la información solicitada.");
 }
 
+// --- ACTUALIZAR FECHA DE AUTORIZACIÓN "AL VUELO" ---
+$user = getCurrentUser();
+$nombre_autorizador = getNombreCompleto($user);
+
+$stmt_upd = $pdo->prepare("
+    UPDATE solicitudes_suficiencia 
+    SET fecha_autorizacion = NOW(), 
+        autorizado_por = ? 
+    WHERE id_fua = ? AND fecha_autorizacion IS NULL
+");
+$stmt_upd->execute([$nombre_autorizador, $id_fua]);
+
+// --- OBTENER FIRMA DIGITAL DEL USUARIO EN SESIÓN ---
+$stmt_firma = $pdo->prepare("SELECT ruta_firma_imagen FROM usuarios_config_firma WHERE id_usuario = ?");
+$stmt_firma->execute([$user['id']]);
+$ruta_firma = $stmt_firma->fetchColumn();
+$img_firma_path = $ruta_firma ? __DIR__ . '/../../' . $ruta_firma : null;
+
 // Datos para el oficio
-$num_oficio = $fua['no_oficio_entrada'] ?: 'DC/____/' . date('Y');
+$num_oficio = $fua['num_oficio_tramite'] ?: 'DC/____/' . date('Y');
 
 // --- Parámetros "al vuelo" ---
 $destinatario_nombre = $_GET['dest_nom'] ?? 'C.P. MARLEN SÁNCHEZ GARCÍA';
@@ -46,7 +65,7 @@ $remitente_cargo = $_GET['rem_car'] ?? 'SUBSECRETARIO DE INFRAESTRUCTURA CARRETE
 $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 $fecha_formateada = date('d') . ' de ' . $meses[date('n') - 1] . ' de ' . date('Y');
 
-$importe_letras = NumeroALetras::convertir($fua['importe']);
+$importe_letras = NumeroALetras::convertir($fua['monto_total_solicitado']);
 $proyecto_nombre = $fua['nombre_proyecto_accion'] ?: $fua['nombre_proyecto'];
 
 // --- CONFIGURACIÓN PDF ---
@@ -82,7 +101,7 @@ $pdf->Ln(10);
 // --- CUERPO ---
 $pdf->SetFont('helvetica', '', 11);
 $texto_cuerpo = "POR MEDIO DE LA PRESENTE ME PERMITO SOLICITAR SUFICIENCIA PRESUPUESTAL PARA \"" . mb_strtoupper($proyecto_nombre) . "\", ";
-$texto_cuerpo .= "POR UN IMPORTE DE \$" . number_format($fua['importe'], 2) . " (" . mb_strtoupper($importe_letras) . "), ";
+$texto_cuerpo .= "POR UN IMPORTE DE \$" . number_format($fua['monto_total_solicitado'], 2) . " (" . mb_strtoupper($importe_letras) . "), ";
 $texto_cuerpo .= "A EFECTO DE QUE ESTA DIRECCIÓN ESTÉ EN CONDICIONES DE INICIAR LOS PROCEDIMIENTOS LEGALES APLICABLES Y AUTORIZACIONES QUE RESULTEN NECESARIOS.";
 
 $pdf->MultiCell(0, 7, $texto_cuerpo, 0, 'J');
@@ -101,6 +120,12 @@ $pdf->Ln(25);
 $pdf->SetFont('helvetica', 'B', 10);
 $pdf->Cell(0, 5, mb_strtoupper($remitente_nombre), 0, 1, 'C');
 $pdf->Cell(0, 5, mb_strtoupper($remitente_cargo), 0, 1, 'C');
+
+// --- SELLO / FIRMA DIGITAL SI EXISTE ---
+if ($img_firma_path && file_exists($img_firma_path)) {
+    // Posicionar la firma sobre el nombre del remitente
+    $pdf->Image($img_firma_path, 88, 145, 40, 0, 'PNG');
+}
 
 // --- C.C.P. ---
 $pdf->SetY(230);

@@ -77,9 +77,33 @@ function getAccessibleModules(): array
 
 $modulosMenu = getAccessibleModules();
 
-// NOTA: El módulo de Contratos debe ser agregado a la tabla 'modulos' en la BD
-// para que aparezca correctamente según permisos asignados.
-// Ya no se agrega manualmente aquí para respetar el sistema de permisos.
+// Manually add Contratos menu (Temporary/Extension)
+$modulosMenu[] = [
+    'id' => 'custom-contratos',
+    'nombre_modulo' => 'Contratos',
+    'ruta' => null, // Folder/Parent
+    'icono' => 'fa-file-signature',
+    'orden' => 999,
+    'children' => [
+        [
+            'nombre_modulo' => 'Gestión de Contratos',
+            'ruta' => '/modulos/concursos/contratos/index.php',
+            'icono' => 'fa-file-contract'
+        ]
+    ]
+];
+
+// Inyectar Bandeja de Gestión en Programas Operativos si existe
+foreach ($modulosMenu as &$m) {
+    if ($m['nombre_modulo'] == 'Programas Operativos' || $m['id'] == 52) {
+        $m['children'][] = [
+            'nombre_modulo' => 'Bandeja de Gestión',
+            'ruta' => '/modulos/recursos-financieros/bandeja-gestion.php',
+            'icono' => 'fa-inbox'
+        ];
+    }
+}
+unset($m);
 
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
@@ -120,7 +144,9 @@ $currentPath = $_SERVER['REQUEST_URI'];
                         <!-- Módulo con submenú -->
                         <a href="javascript:void(0)" class="nav-link submenu-toggle" data-target="submenu-<?= $modulo['id'] ?>">
                             <i class="fas <?= e($modulo['icono'] ?? 'fa-cube') ?>"></i>
-                            <span class="nav-text"><?= e($modulo['nombre_modulo']) ?></span>
+                            <span class="nav-text">
+                                <?= e($modulo['nombre_modulo']) ?>
+                            </span>
                             <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
                         <ul class="submenu <?= $childActive ? 'open' : '' ?>" id="submenu-<?= $modulo['id'] ?>">
@@ -131,7 +157,9 @@ $currentPath = $_SERVER['REQUEST_URI'];
                                 <li class="submenu-item">
                                     <a href="<?= $childUrl ?>" class="submenu-link <?= $childIsActive ? 'active' : '' ?>">
                                         <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"></i>
-                                        <span><?= e($child['nombre_modulo']) ?></span>
+                                        <span>
+                                            <?= e($child['nombre_modulo']) ?>
+                                        </span>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
@@ -140,7 +168,9 @@ $currentPath = $_SERVER['REQUEST_URI'];
                         <!-- Módulo sin submenú -->
                         <a href="<?= $moduleUrl ?>" class="nav-link <?= $isActive ? 'active' : '' ?>">
                             <i class="fas <?= e($modulo['icono'] ?? 'fa-cube') ?>"></i>
-                            <span class="nav-text"><?= e($modulo['nombre_modulo']) ?></span>
+                            <span class="nav-text">
+                                <?= e($modulo['nombre_modulo']) ?>
+                            </span>
                         </a>
                     <?php endif; ?>
                 </li>
@@ -154,15 +184,20 @@ $currentPath = $_SERVER['REQUEST_URI'];
                 <?= strtoupper(substr($user['nombre'] ?? 'U', 0, 1)) ?>
             </div>
             <div class="user-details">
-                <span class="user-name"><?= e($user['nombre'] ?? 'Usuario') ?></span>
-                <span class="user-role"><?= e($user['nombre_area'] ?? '') ?></span>
+                <span class="user-name">
+                    <?= e($user['nombre'] ?? 'Usuario') ?>
+                </span>
+                <span class="user-role">
+                    <?= e($user['nombre_area'] ?? '') ?>
+                </span>
             </div>
         </div>
         <div class="sidebar-footer-actions">
             <?php if (!empty($user['empleado_id'])): ?>
-            <a href="<?= url('/modulos/recursos-humanos/mi-expediente.php') ?>" class="footer-btn" title="Mi Expediente">
-                <i class="fas fa-id-card"></i>
-            </a>
+                <a href="<?= url('/modulos/recursos-humanos/mi-expediente.php') ?>" class="footer-btn"
+                    title="Mi Expediente">
+                    <i class="fas fa-id-card"></i>
+                </a>
             <?php endif; ?>
             <a href="<?= url('/logout.php') ?>" class="logout-btn" title="Cerrar sesión">
                 <i class="fas fa-sign-out-alt"></i>
@@ -184,7 +219,7 @@ $currentPath = $_SERVER['REQUEST_URI'];
     }
 
     // Toggle al hacer click
-    sidebarToggle.addEventListener('click', function() {
+    sidebarToggle.addEventListener('click', function () {
         body.classList.toggle('sidebar-collapsed');
         const isCollapsed = body.classList.contains('sidebar-collapsed');
         localStorage.setItem('sidebarCollapsed', isCollapsed);

@@ -1,7 +1,7 @@
 <?php
 /**
  * Acción: Eliminar FUA
- * Ubicación: /modulos/recursos-financieros/fua-delete.php
+ * Ubicación: /modulos/recursos-financieros/solicitud-suficiencia-delete.php
  */
 
 require_once __DIR__ . '/../../includes/auth.php';
@@ -18,7 +18,7 @@ $puedeEliminar = in_array('eliminar', $permisos_user);
 
 if (!$puedeEliminar) {
     setFlashMessage('error', 'No tienes permiso para eliminar suficiencias.');
-    redirect('modulos/recursos-financieros/fuas.php');
+    redirect('modulos/recursos-financieros/solicitudes-suficiencia.php');
 }
 
 $pdo = getConnection();
@@ -26,11 +26,13 @@ $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if ($id > 0) {
     try {
-        $pdo->prepare("DELETE FROM fuas WHERE id_fua = ?")->execute([$id]);
-        setFlashMessage('success', 'Suficiencia eliminada correctamente.');
+        $stmt = $pdo->prepare("DELETE FROM solicitudes_suficiencia WHERE id_fua = ?");
+        $stmt->execute([$id]);
+
+        setFlashMessage('success', 'Solicitud eliminada correctamente');
     } catch (Exception $e) {
-        setFlashMessage('error', 'Error: ' . $e->getMessage());
+        setFlashMessage('error', 'Error al eliminar: ' . $e->getMessage());
     }
 }
 
-redirect('modulos/recursos-financieros/fuas.php');
+redirect('modulos/recursos-financieros/solicitudes-suficiencia.php');

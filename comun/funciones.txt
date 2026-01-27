@@ -1,0 +1,7 @@
+RBAC
+
+if (tieneAccesoRegistro('mod_vehiculos', $areaDelVehiculo)) {
+    // Mostrar información
+} else {
+    // Ocultar o Denegar
+}
