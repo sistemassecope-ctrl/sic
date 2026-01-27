@@ -28,7 +28,7 @@ $perPage = isset($_GET['per_page']) && $_GET['per_page'] === 'all' ? null : 30;
 $currentPage = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 
 // También aplicamos filtro de área por seguridad
-$filtroAreas = getAreaFilterSQL('area_id');
+$filtroAreas = '1=1'; // Mostrar todo sin restricción de área
 
 // Contar total de registros
 $countSQL = "SELECT COUNT(*) FROM vehiculos_bajas WHERE $filtroAreas";

@@ -46,7 +46,7 @@ $f_resguardo = $_GET['resguardo'] ?? '';
 // Permitiremos buscar por nombre de area si el usuario quiere filtrar.
 $f_area_nombre = $_GET['area_nombre'] ?? '';
 
-$where = [getAreaFilterSQL('v.area_id')];
+$where = ['1=1']; // Mostrar todo sin restricción de área
 $params = [];
 
 if ($f_region) {
@@ -559,9 +559,28 @@ try {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: bajaId, motivo: motivo })
             });
+<<<<<<< Updated upstream
 
             const data = await response.json();
 
+=======
+            
+            // Check if response is ok
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`Server Error ${response.status}: ${text.substring(0, 100)}`);
+            }
+
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Invalid JSON:", text);
+                throw new Error("Respuesta inválida del servidor: " + text.substring(0, 100));
+            }
+            
+>>>>>>> Stashed changes
             if (data.success) {
                 if (bajaModal) bajaModal.hide();
                 location.reload();
@@ -570,7 +589,7 @@ try {
             }
         } catch (e) {
             console.error(e);
-            alert('Error de conexión');
+            alert('Error: ' + e.message);
         }
     }
 
