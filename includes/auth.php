@@ -139,6 +139,15 @@ function isAdmin(): bool
 }
 
 /**
+ * Verificar si el usuario es SUPERADMIN
+ * @return bool
+ */
+function isSuperAdmin(): bool
+{
+    return isset($_SESSION['rol_sistema']) && $_SESSION['rol_sistema'] === 'SUPERADMIN';
+}
+
+/**
  * Obtener los permisos del usuario actual para un módulo específico
  * @param int $moduloId
  * @return array Lista de claves de permisos
