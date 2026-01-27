@@ -1335,3 +1335,202 @@ textarea.form-control {
         align-items: stretch;
     }
 }
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+
+/* Botón hamburguesa para móviles */
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+/* Overlay para cerrar sidebar en móvil */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+    .main-content {
+        padding: 1.5rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Móviles */
+@media (max-width: 768px) {
+
+    /* Mostrar botón hamburguesa */
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    /* Mostrar overlay cuando sidebar está activo */
+    .sidebar-overlay {
+        display: block;
+        pointer-events: none;
+    }
+
+    .sidebar-overlay.active {
+        pointer-events: auto;
+    }
+
+    /* Sidebar oculto por defecto en móvil */
+    .sidebar {
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Sidebar visible cuando tiene clase mobile-open */
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    /* Main content ocupa todo el ancho */
+    .main-content {
+        margin-left: 0;
+        padding: 4.5rem 1rem 1rem 1rem;
+    }
+
+    .sidebar-collapsed .main-content {
+        margin-left: 0;
+    }
+
+    /* Page header responsivo */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .page-header .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Stats en una columna */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Tablas scroll horizontal */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Formularios en una columna */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Search filters bar apilados */
+    .search-filters-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .search-filters-bar .search-input-group,
+    .search-filters-bar .filter-select-group {
+        width: 100%;
+        min-width: unset;
+    }
+
+    /* Campo de búsqueda siempre visible */
+    .search-input-group {
+        display: flex !important;
+    }
+
+    .search-input-group input {
+        font-size: 16px;
+        /* Prevenir zoom en iOS */
+    }
+
+    /* Botones de acción más grandes para touch */
+    .btn {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    .btn-sm {
+        min-height: 36px;
+    }
+
+    /* Cards más compactas */
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 4rem 0.75rem 0.75rem 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    /* Tabla más compacta */
+    .table> :not(caption)>*>* {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+}

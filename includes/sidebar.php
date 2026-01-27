@@ -108,6 +108,14 @@ unset($m);
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 
+<!-- Botón hamburguesa para móviles -->
+<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menú">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Overlay para cerrar sidebar en móvil -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
@@ -252,6 +260,55 @@ $currentPath = $_SERVER['REQUEST_URI'];
         if (submenu) {
             submenu.classList.add('open');
             submenu.closest('.nav-item').classList.add('expanded');
+        }
+    });
+
+    // ==================== MENÚ MÓVIL ====================
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.getElementById('sidebar');
+
+    function openMobileMenu() {
+        sidebar.classList.add('mobile-open');
+        sidebarOverlay.classList.add('active');
+        mobileMenuBtn.innerHTML = '<i class="fas fa-times"></i>';
+        document.body.style.overflow = 'hidden'; // Prevenir scroll
+    }
+
+    function closeMobileMenu() {
+        sidebar.classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('active');
+        mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+        document.body.style.overflow = ''; // Restaurar scroll
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function() {
+            if (sidebar.classList.contains('mobile-open')) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        });
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeMobileMenu);
+    }
+
+    // Cerrar menú al hacer clic en un link (en móvil)
+    document.querySelectorAll('.sidebar .nav-link, .sidebar .submenu-link').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
+    });
+
+    // Cerrar menú al redimensionar a pantalla grande
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileMenu();
         }
     });
 </script>
