@@ -51,6 +51,11 @@ $puestoStmt = $pdo->prepare("SELECT nombre FROM puestos_trabajo WHERE id = ?");
 $puestoStmt->execute([$empleado['puesto_trabajo_id']]);
 $puestoNombre = $puestoStmt->fetchColumn() ?: 'Sin asignar';
 
+// Verificar si tiene firma digital registrada
+$stmtFirma = $pdo->prepare("SELECT id, fecha_captura, ultima_modificacion_pin FROM empleado_firmas WHERE empleado_id = ? AND estado = 1");
+$stmtFirma->execute([$empleadoId]);
+$firmaInfo = $stmtFirma->fetch();
+
 // Procesar formulario - SOLO campos permitidos
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
@@ -431,6 +436,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-users fa-fw"></i> Familiar / Social
                         <span class="badge bg-success">Editable</span>
                     </button>
+                    <button type="button" class="nav-link" data-target="firma">
+                        <i class="fas fa-signature fa-fw"></i> Firma Digital
+                        <?php if ($firmaInfo): ?>
+                            <span class="badge bg-success">Activa</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning">Pendiente</span>
+                        <?php endif; ?>
+                    </button>
                 </div>
             </aside>
             
@@ -730,6 +743,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
+                <!-- 6. Firma Digital (Cambiar PIN) -->
+                <div id="firma" class="form-section">
+                    <div class="paper-header">
+                        <h2 class="section-title"><i class="fas fa-signature text-primary"></i> Firma Digital</h2>
+                        <?php if ($firmaInfo): ?>
+                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Registrada</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendiente</span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if ($firmaInfo): ?>
+                        <div class="info-card">
+                            <h5><i class="fas fa-info-circle me-1"></i> Tu Firma está Registrada</h5>
+                            <p class="mb-1 small" style="color: var(--text-secondary);">
+                                <i class="fas fa-calendar-alt me-1"></i> Fecha de captura: <?= date('d/m/Y H:i', strtotime($firmaInfo['fecha_captura'])) ?>
+                            </p>
+                            <?php if ($firmaInfo['ultima_modificacion_pin']): ?>
+                            <p class="mb-0 small" style="color: var(--text-secondary);">
+                                <i class="fas fa-key me-1"></i> Último cambio de PIN: <?= date('d/m/Y H:i', strtotime($firmaInfo['ultima_modificacion_pin'])) ?>
+                            </p>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="mt-4" style="max-width: 500px;">
+                            <h4 style="font-size: 1rem; color: var(--text-primary); border-bottom: 1px dashed var(--border-primary); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+                                <i class="fas fa-key text-warning me-2"></i> Cambiar PIN de Firma
+                            </h4>
+                            <p class="small text-muted mb-3">
+                                Tu PIN te permite firmar documentos electrónicamente. Mantenlo seguro y no lo compartas con nadie.
+                            </p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">PIN Actual (4 dígitos)</label>
+                                <input type="password" class="form-control" id="pinActual" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" autocomplete="off" style="max-width: 150px; text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Nuevo PIN (4 dígitos)</label>
+                                <input type="password" class="form-control" id="pinNuevo" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" autocomplete="off" style="max-width: 150px; text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Confirmar Nuevo PIN</label>
+                                <input type="password" class="form-control" id="pinConfirmar" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" autocomplete="off" style="max-width: 150px; text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                                <div id="pinMatchMessage" class="small mt-2"></div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-warning" id="btnCambiarPin">
+                                <i class="fas fa-key me-1"></i> Cambiar PIN
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning" style="background: rgba(255, 170, 0, 0.1); border-color: rgba(255, 170, 0, 0.3);">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Tu firma aún no ha sido registrada.</strong>
+                            <p class="mb-0 mt-2 small">
+                                Para registrar tu firma autógrafa, acude al área de Recursos Humanos con tu identificación oficial. 
+                                Un administrador capturará tu firma y te ayudará a establecer tu PIN de seguridad.
+                            </p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
                 <div class="action-bar">
                     <a href="<?= url('/index.php') ?>" class="btn btn-light border">
                         <i class="fas fa-arrow-left me-1"></i> Volver al Inicio
@@ -809,6 +886,109 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length;
         const switchPM = document.getElementById('padreMadre');
         if (switchPM) switchPM.checked = count > 0;
+    }
+    
+    // ==================== Cambiar PIN ====================
+    const btnCambiarPin = document.getElementById('btnCambiarPin');
+    const pinNuevoInput = document.getElementById('pinNuevo');
+    const pinConfirmarInput = document.getElementById('pinConfirmar');
+    const pinMatchMessage = document.getElementById('pinMatchMessage');
+    
+    if (pinNuevoInput && pinConfirmarInput) {
+        [pinNuevoInput, pinConfirmarInput].forEach(input => {
+            input.addEventListener('input', function() {
+                // Solo permitir números
+                this.value = this.value.replace(/[^0-9]/g, '');
+                checkPinMatch();
+            });
+        });
+    }
+    
+    function checkPinMatch() {
+        if (!pinNuevoInput || !pinConfirmarInput || !pinMatchMessage) return;
+        
+        const pin1 = pinNuevoInput.value;
+        const pin2 = pinConfirmarInput.value;
+        
+        if (pin1.length < 4 || pin2.length < 4) {
+            pinMatchMessage.innerHTML = '';
+            return;
+        }
+        
+        if (pin1 === pin2) {
+            pinMatchMessage.innerHTML = '<span style="color: #2ea043;"><i class="fas fa-check-circle"></i> Los PINs coinciden</span>';
+        } else {
+            pinMatchMessage.innerHTML = '<span style="color: #f85149;"><i class="fas fa-times-circle"></i> Los PINs no coinciden</span>';
+        }
+    }
+    
+    if (btnCambiarPin) {
+        btnCambiarPin.addEventListener('click', async function() {
+            const pinActual = document.getElementById('pinActual').value;
+            const pinNuevo = document.getElementById('pinNuevo').value;
+            const pinConfirmar = document.getElementById('pinConfirmar').value;
+            
+            // Validaciones
+            if (!/^\d{4}$/.test(pinActual)) {
+                alert('El PIN actual debe tener exactamente 4 dígitos.');
+                return;
+            }
+            
+            if (!/^\d{4}$/.test(pinNuevo)) {
+                alert('El nuevo PIN debe tener exactamente 4 dígitos.');
+                return;
+            }
+            
+            if (pinNuevo !== pinConfirmar) {
+                alert('Los nuevos PINs no coinciden.');
+                return;
+            }
+            
+            if (pinActual === pinNuevo) {
+                alert('El nuevo PIN debe ser diferente al actual.');
+                return;
+            }
+            
+            if (!confirm('¿Está seguro de cambiar su PIN de firma?')) {
+                return;
+            }
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Cambiando...';
+            
+            try {
+                const response = await fetch('<?= url('/modulos/recursos-humanos/api/cambiar-pin.php') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pin_actual: pinActual,
+                        pin_nuevo: pinNuevo,
+                        pin_confirmar: pinConfirmar
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✓ ' + result.message);
+                    // Limpiar campos
+                    document.getElementById('pinActual').value = '';
+                    document.getElementById('pinNuevo').value = '';
+                    document.getElementById('pinConfirmar').value = '';
+                    pinMatchMessage.innerHTML = '';
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión. Por favor, intente nuevamente.');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-key me-1"></i> Cambiar PIN';
+            }
+        });
     }
 });
 </script>
