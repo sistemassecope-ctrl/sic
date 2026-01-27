@@ -8,7 +8,7 @@
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../includes/auth.php';
-require_once __DIR__ . '/../../../includes/functions.php';
+require_once __DIR__ . '/../../../includes/helpers.php';
 requireAuth();
 
 // Solo POST

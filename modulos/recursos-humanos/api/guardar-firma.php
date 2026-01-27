@@ -1,17 +1,19 @@
 <?php
 /**
- * API: Guardar Firma Digital
- * Guarda la firma autógrafa y el PIN del empleado
- * SOLO SUPERADMIN
+ * API: Guardar Firma Digital (ENCRIPTADA)
+ * Guarda la firma autógrafa encriptada y el PIN del empleado
+ * SOLO ADMIN
+ * 
+ * La firma se encripta antes de guardarse para protegerla en caso de hackeo
  */
 
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../includes/auth.php';
-require_once __DIR__ . '/../../../includes/functions.php';
+require_once __DIR__ . '/../../../includes/helpers.php';
 requireAuth();
 
-// Verificar que sea SUPERADMIN
+// Verificar que sea Admin
 if (!isAdmin()) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
@@ -23,6 +25,28 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Método no permitido']);
     exit;
+}
+
+/**
+ * Encripta la firma usando AES-256-GCM
+ * La clave se deriva del empleado_id + una clave secreta del sistema
+ */
+function encriptarFirma(string $firmaData, int $empleadoId): string {
+    // Clave secreta del sistema (en producción debería estar en variable de entorno)
+    $secretKey = 'PAO_FIRMA_SECRET_KEY_2026_SECOPE_DGO';
+    
+    // Derivar clave única para este empleado
+    $key = hash('sha256', $secretKey . '_EMP_' . $empleadoId, true);
+    
+    // Generar IV aleatorio
+    $iv = random_bytes(12);
+    
+    // Encriptar con AES-256-GCM
+    $tag = '';
+    $encrypted = openssl_encrypt($firmaData, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    
+    // Combinar IV + Tag + Datos encriptados y codificar en base64
+    return base64_encode($iv . $tag . $encrypted);
 }
 
 try {
@@ -54,6 +78,9 @@ try {
         throw new Exception('Empleado no encontrado');
     }
     
+    // ENCRIPTAR la firma antes de guardarla
+    $firmaEncriptada = encriptarFirma($firmaImagen, $empleadoId);
+    
     // Hash del PIN
     $pinHash = password_hash($pin, PASSWORD_DEFAULT);
     $userId = getCurrentUserId();
@@ -80,7 +107,7 @@ try {
                 updated_at = NOW()
             WHERE empleado_id = ?
         ");
-        $stmt->execute([$firmaImagen, $pinHash, $now, $userId, $empleadoId]);
+        $stmt->execute([$firmaEncriptada, $pinHash, $now, $userId, $empleadoId]);
     } else {
         // Insertar nueva firma
         $stmt = $pdo->prepare("
@@ -88,7 +115,7 @@ try {
             (empleado_id, firma_imagen, pin_hash, fecha_captura, capturado_por, estado)
             VALUES (?, ?, ?, ?, ?, 1)
         ");
-        $stmt->execute([$empleadoId, $firmaImagen, $pinHash, $now, $userId]);
+        $stmt->execute([$empleadoId, $firmaEncriptada, $pinHash, $now, $userId]);
     }
     
     // Registrar en log
@@ -102,7 +129,8 @@ try {
         $_SERVER['HTTP_USER_AGENT'] ?? null,
         json_encode([
             'capturado_por_usuario_id' => $userId,
-            'es_actualizacion' => $existingFirma ? true : false
+            'es_actualizacion' => $existingFirma ? true : false,
+            'firma_encriptada' => true
         ])
     ]);
     

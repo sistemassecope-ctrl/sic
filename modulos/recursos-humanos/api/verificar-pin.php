@@ -1,14 +1,14 @@
 <?php
 /**
- * API: Verificar PIN y Obtener Firma
- * Verifica el PIN del empleado y retorna la firma si es correcto
+ * API: Verificar PIN y Obtener Firma (DESENCRIPTADA)
+ * Verifica el PIN del empleado y retorna la firma desencriptada si es correcto
  * Usado para estampar firma en documentos
  */
 
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../includes/auth.php';
-require_once __DIR__ . '/../../../includes/functions.php';
+require_once __DIR__ . '/../../../includes/helpers.php';
 requireAuth();
 
 // Solo POST
@@ -16,6 +16,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Método no permitido']);
     exit;
+}
+
+/**
+ * Desencripta la firma usando AES-256-GCM
+ */
+function desencriptarFirma(string $firmaEncriptada, int $empleadoId): string {
+    // Clave secreta del sistema (debe ser la misma que en guardar-firma.php)
+    $secretKey = 'PAO_FIRMA_SECRET_KEY_2026_SECOPE_DGO';
+    
+    // Derivar clave única para este empleado
+    $key = hash('sha256', $secretKey . '_EMP_' . $empleadoId, true);
+    
+    // Decodificar datos
+    $data = base64_decode($firmaEncriptada);
+    
+    // Extraer IV (12 bytes), Tag (16 bytes) y datos encriptados
+    $iv = substr($data, 0, 12);
+    $tag = substr($data, 12, 16);
+    $encrypted = substr($data, 28);
+    
+    // Desencriptar
+    $decrypted = openssl_decrypt($encrypted, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    
+    if ($decrypted === false) {
+        throw new Exception('Error al desencriptar la firma');
+    }
+    
+    return $decrypted;
 }
 
 try {
@@ -123,10 +151,13 @@ try {
         logFirmaAccion($pdo, $empleadoId, 'FIRMA_ESTAMPADA', $documentoReferencia);
     }
     
+    // DESENCRIPTAR la firma antes de enviarla
+    $firmaDesencriptada = desencriptarFirma($firma['firma_imagen'], $empleadoId);
+    
     echo json_encode([
         'success' => true,
         'message' => 'PIN verificado correctamente',
-        'firma_imagen' => $firma['firma_imagen']
+        'firma_imagen' => $firmaDesencriptada
     ]);
     
 } catch (Exception $e) {

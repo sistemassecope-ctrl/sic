@@ -48,7 +48,40 @@ if ($empleadoId) {
         $stmtFirma = $pdo->prepare("SELECT * FROM empleado_firmas WHERE empleado_id = ? AND estado = 1");
         $stmtFirma->execute([$empleadoId]);
         $firmaExistente = $stmtFirma->fetch();
+        
+        // Desencriptar firma para vista previa (solo admin puede ver)
+        if ($firmaExistente && isAdmin()) {
+            $firmaExistente['firma_imagen_desencriptada'] = desencriptarFirmaParaVista($firmaExistente['firma_imagen'], $empleadoId);
+        }
     }
+}
+
+/**
+ * Desencripta la firma para mostrar en vista previa (solo admin)
+ */
+function desencriptarFirmaParaVista(string $firmaEncriptada, int $empleadoId): string {
+    $secretKey = 'PAO_FIRMA_SECRET_KEY_2026_SECOPE_DGO';
+    $key = hash('sha256', $secretKey . '_EMP_' . $empleadoId, true);
+    
+    $data = base64_decode($firmaEncriptada);
+    
+    // Si no está encriptada (formato antiguo), retornar como está
+    if (strpos($firmaEncriptada, 'data:image/png;base64,') === 0) {
+        return $firmaEncriptada;
+    }
+    
+    // Si no se puede decodificar, puede ser formato antiguo
+    if ($data === false || strlen($data) < 29) {
+        return $firmaEncriptada;
+    }
+    
+    $iv = substr($data, 0, 12);
+    $tag = substr($data, 12, 16);
+    $encrypted = substr($data, 28);
+    
+    $decrypted = openssl_decrypt($encrypted, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    
+    return $decrypted !== false ? $decrypted : $firmaEncriptada;
 }
 
 // Cargar lista de empleados para el selector
@@ -562,7 +595,7 @@ $empleados = $stmtEmpleados->fetchAll();
                     <p style="margin-bottom: 0.75rem; color: var(--text-primary); font-weight: 600;">
                         <i class="fas fa-signature"></i> Firma Actual
                     </p>
-                    <img src="<?= e($firmaExistente['firma_imagen']) ?>" alt="Firma actual">
+                    <img src="<?= e($firmaExistente['firma_imagen_desencriptada'] ?? '') ?>" alt="Firma actual">
                     <p>
                         <i class="fas fa-info-circle"></i> Esta firma se reemplazará al guardar una nueva
                     </p>
