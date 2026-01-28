@@ -62,14 +62,10 @@ if ($esEdicion) {
     $stmtH->execute([$empleadoId]);
     $hijos = $stmtH->fetchAll();
     
-    // Cargar información de firma digital (Solo Admin/Permisos)
+    // Cargar información de firma digital (solo para Admin)
     $firmaEmpleado = null;
     if (isAdmin()) {
-        /* REVERSION_MARK: FIEL_INTEGRATION_START */
-        $stmtFirma = $pdo->prepare("SELECT id, fecha_captura, ultima_modificacion_pin, estado, 
-                                   fiel_vencimiento, fiel_rfc, fiel_nombre, fiel_serie, fiel_estado 
-                                   FROM empleado_firmas WHERE empleado_id = ?");
-        /* REVERSION_MARK: FIEL_INTEGRATION_END */
+        $stmtFirma = $pdo->prepare("SELECT id, fecha_captura, ultima_modificacion_pin, estado FROM empleado_firmas WHERE empleado_id = ?");
         $stmtFirma->execute([$empleadoId]);
         $firmaEmpleado = $stmtFirma->fetch();
     }
@@ -317,8 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Catálogos
 $areas = $pdo->query("SELECT * FROM areas WHERE estado = 1 AND " . getAreaFilterSQL('id') . " ORDER BY nombre_area")->fetchAll();
-// Deduplicar puestos por nombre para evitar repeticiones visuales
-$puestos = $pdo->query("SELECT MIN(id) as id, nombre FROM puestos_trabajo WHERE activo = 1 GROUP BY nombre ORDER BY nombre ASC")->fetchAll();
+$puestos = $pdo->query("SELECT * FROM puestos_trabajo WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
 $catTiposBaja = $pdo->query("SELECT * FROM cat_tipos_baja WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
 $catTiposDocBaja = $pdo->query("SELECT * FROM cat_tipos_documento_baja WHERE activo = 1 ORDER BY nombre ASC")->fetchAll();
 
@@ -773,22 +768,8 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                             <label class="form-label">Puesto Oficial *</label>
                             <select name="puesto_trabajo_id" class="form-control" required>
                                 <option value="">Seleccione Puesto...</option>
-                                <?php 
-                                // Obtener el nombre del puesto actual del empleado si existe
-                                $nombrePuestoActual = '';
-                                if ($esEdicion && !empty($empleado['puesto_trabajo_id'])) {
-                                    $stmtP = $pdo->prepare("SELECT nombre FROM puestos_trabajo WHERE id = ?");
-                                    $stmtP->execute([$empleado['puesto_trabajo_id']]);
-                                    $resP = $stmtP->fetch();
-                                    $nombrePuestoActual = $resP['nombre'] ?? '';
-                                }
-
-                                foreach ($puestos as $puesto): 
-                                    // Seleccionar si el ID coincide O si el nombre coincide (para casos de duplicados)
-                                    $isSelected = ($empleado['puesto_trabajo_id'] ?? '') == $puesto['id'] || 
-                                                 ($nombrePuestoActual !== '' && $nombrePuestoActual === $puesto['nombre']);
-                                ?>
-                                    <option value="<?= $puesto['id'] ?>" <?= $isSelected ? 'selected' : '' ?>>
+                                <?php foreach ($puestos as $puesto): ?>
+                                    <option value="<?= $puesto['id'] ?>" <?= ($empleado['puesto_trabajo_id'] ?? '') == $puesto['id'] ? 'selected' : '' ?>>
                                         <?= e($puesto['nombre']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -1013,85 +994,50 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
                 <?php if ($esEdicion && isAdmin()): ?>
                 <div id="firma" class="form-section">
                     <div class="paper-header">
-                        <h2 class="section-title"><i class="fas fa-signature text-primary"></i> Métodos de Firma Digital</h2>
-                        <?php 
-                        $tieneAutografa = $firmaEmpleado && $firmaEmpleado['estado'];
-                        $tieneFIEL = $firmaEmpleado && $firmaEmpleado['fiel_estado'];
-                        ?>
+                        <h2 class="section-title"><i class="fas fa-signature text-primary"></i> Firma Autógrafa Digital</h2>
+                        <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
+                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Registrada</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendiente</span>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="alert alert-info border small mb-4">
                         <i class="fas fa-info-circle me-1"></i>
-                        El empleado puede contar con dos modalidades de firma para agilizar trámites y oficios.
+                        La firma autógrafa permite al empleado firmar documentos electrónicamente usando un PIN de 4 dígitos.
                     </div>
-
-                    <div class="row">
-                        <!-- Firma Autógrafa -->
-                        <div class="col-md-6">
-                            <div class="card h-100" style="background: var(--bg-tertiary); border-color: var(--border-primary);">
-                                <div class="card-body">
-                                    <h5 class="card-title" style="color: var(--text-primary);">
-                                        <i class="fas fa-pen-nib text-info me-2"></i>Firma Autógrafa (PIN)
-                                    </h5>
-                                    <hr style="border-color: rgba(255,255,255,0.1)">
-                                    
-                                    <?php if ($tieneAutografa): ?>
-                                        <div class="mb-3">
-                                            <span class="badge bg-success mb-2">ACTIVA</span>
-                                            <p class="card-text small mb-1" style="color: var(--text-secondary);">
-                                                <i class="fas fa-calendar-alt me-1"></i> Registrada: <?= date('d/m/Y', strtotime($firmaEmpleado['fecha_captura'])) ?>
-                                            </p>
-                                        </div>
-                                        <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-sm btn-outline-info">
-                                            <i class="fas fa-edit me-1"></i> Gestionar Firma Autógrafa
-                                        </a>
-                                    <?php else: ?>
-                                        <p class="text-muted small">No se ha capturado la firma autógrafa digitalizada.</p>
-                                        <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-plus me-1"></i> Capturar Ahora
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
+                    
+                    <?php if ($firmaEmpleado && $firmaEmpleado['estado']): ?>
+                        <div class="card mb-4" style="background: var(--bg-tertiary); border-color: var(--border-primary);">
+                            <div class="card-body">
+                                <h5 class="card-title" style="color: var(--text-primary);"><i class="fas fa-check-circle text-success me-2"></i>Firma Registrada</h5>
+                                <p class="card-text small" style="color: var(--text-secondary);">
+                                    <i class="fas fa-calendar-alt me-1"></i> Capturada: <?= date('d/m/Y H:i', strtotime($firmaEmpleado['fecha_captura'])) ?>
+                                </p>
+                                <?php if ($firmaEmpleado['ultima_modificacion_pin']): ?>
+                                <p class="card-text small" style="color: var(--text-secondary);">
+                                    <i class="fas fa-key me-1"></i> Último cambio de PIN: <?= date('d/m/Y H:i', strtotime($firmaEmpleado['ultima_modificacion_pin'])) ?>
+                                </p>
+                                <?php endif; ?>
                             </div>
                         </div>
-
-                        <!-- Firma FIEL (e.firma) -->
-                        <div class="col-md-6">
-                            <div class="card h-100" style="background: var(--bg-tertiary); border-color: var(--border-primary);">
-                                <div class="card-body">
-                                    <h5 class="card-title" style="color: var(--text-primary);">
-                                        <i class="fas fa-certificate text-warning me-2"></i>Firma FIEL (e.firma SAT)
-                                    </h5>
-                                    <hr style="border-color: rgba(255,255,255,0.1)">
-
-                                    <?php if ($tieneFIEL): ?>
-                                        <div class="mb-3">
-                                            <?php 
-                                            $vencido = strtotime($firmaEmpleado['fiel_vencimiento']) < time();
-                                            ?>
-                                            <span class="badge <?= $vencido ? 'bg-danger' : 'bg-success' ?> mb-2">
-                                                <?= $vencido ? 'VENCIDA' : 'VIGENTE' ?>
-                                            </span>
-                                            <div class="small" style="color: var(--text-primary);">
-                                                <strong>RFC:</strong> <?= e($firmaEmpleado['fiel_rfc']) ?><br>
-                                                <strong>Nombre:</strong> <?= e($firmaEmpleado['fiel_nombre']) ?><br>
-                                                <strong>Vence:</strong> <?= date('d/m/Y', strtotime($firmaEmpleado['fiel_vencimiento'])) ?>
-                                            </div>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="abrirModalFIEL()">
-                                            <i class="fas fa-sync me-1"></i> Actualizar Certificado
-                                        </button>
-                                    <?php else: ?>
-                                        <p class="text-muted small">El empleado aún no ha dado de alta su certificado oficial (e.firma).</p>
-                                        <button type="button" class="btn btn-sm btn-warning" onclick="abrirModalFIEL()">
-                                            <i class="fas fa-upload me-1"></i> Dar de Alta FIEL
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
+                        
+                        <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i> Ver / Actualizar Firma
+                        </a>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <div style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;">
+                                <i class="fas fa-signature"></i>
                             </div>
+                            <h4 style="color: var(--text-primary);">Sin Firma Registrada</h4>
+                            <p class="text-muted mb-4">Este empleado aún no tiene una firma autógrafa capturada en el sistema.</p>
+                            <a href="<?= url('/modulos/recursos-humanos/firma-digital.php?id=' . $empleadoId) ?>" class="btn btn-primary btn-lg">
+                                <i class="fas fa-pen-nib me-2"></i> Capturar Firma Ahora
+                            </a>
                         </div>
-                    </div>
-
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
 
                 <!-- 8. Baja y Desvinculación (Solo Edición) -->
@@ -1165,166 +1111,25 @@ if ($puedeVerSalarios && !empty($empleado['puesto_trabajo_id'])) {
     </form>
 </main>
 
-<!-- Modal para Carga de FIEL (Fuera del formulario principal para evitar nesting) -->
-<?php if ($esEdicion && isAdmin()): ?>
-<div class="modal fade" id="modalFIEL" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-primary);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--border-primary);">
-                <h5 class="modal-title" style="color: var(--text-primary);"><i class="fas fa-certificate text-warning me-2"></i>Registrar e.firma (FIEL)</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="formFIELUpload" enctype="multipart/form-data">
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="save_fiel">
-                    <input type="hidden" name="empleado_id" value="<?= $empleadoId ?>">
-                    
-                    <div class="mb-3">
-                        <label class="form-label small">Certificado (.cer)</label>
-                        <input type="file" name="fiel_cer" class="form-control" accept=".cer" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small">Clave Privada (.key)</label>
-                        <input type="file" name="fiel_key" class="form-control" accept=".key" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small">Contraseña de Clave Privada</label>
-                        <input type="password" name="fiel_pass" class="form-control" placeholder="Entregada por el SAT" required>
-                    </div>
-
-                    <!-- Nuevo Campo de PIN -->
-                    <div class="mb-3">
-                        <label class="form-label small">Definir PIN de Acceso (4 dígitos)</label>
-                        <input type="password" name="fiel_pin" class="form-control" placeholder="Ej: 1234" maxlength="4" pattern="^[0-9]{4}$" required>
-                        <small class="text-muted">Este PIN se usará para autorizar firmas con FIEL dentro del sistema.</small>
-                    </div>
-                    
-                    <div id="fielResponse" class="mt-3"></div>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--border-primary);">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" id="btnGuardarFIEL" onclick="procesarRegistroFIEL()">
-                        <i class="fas fa-save me-1"></i> Validar y Guardar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
-
 <script>
-/**
- * Gestión de FIEL (Funciones Globales)
- * Se definen fuera de DOMContentLoaded para asegurar disponibilidad inmediata
- */
-(function(window) {
-    console.log('Script de Expediente cargandose...');
-
-    window.abrirModalFIEL = () => {
-        try {
-            const modalElement = document.getElementById('modalFIEL');
-            if (!modalElement) throw new Error('Capa del modal no encontrada (modalFIEL)');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } catch (e) {
-            console.error('Error al abrir modal:', e);
-            alert('Error al abrir modal: ' + e.message);
-        }
-    };
-
-    window.procesarRegistroFIEL = async () => {
-        const formFIEL = document.getElementById('formFIELUpload');
-        const btn = document.getElementById('btnGuardarFIEL');
-        const responseDiv = document.getElementById('fielResponse');
-        
-        console.log('--- EVENTO: procesarRegistroFIEL disparado ---');
-        
-        if (!formFIEL) {
-            console.error('Error: Formulario formFIELUpload no encontrado');
-            return;
-        }
-
-        if (!formFIEL.checkValidity()) {
-            formFIEL.reportValidity();
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Validando...';
-        responseDiv.innerHTML = '<div class="alert alert-info small shadow-sm">Conectando con el servidor especializado...</div>';
-
-        const formData = new FormData(formFIEL);
-        try {
-            // Intentar obtener la base URL de forma más segura
-            const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            const apiPath = baseUrl + 'api/guardar-fiel.php';
-            
-            console.log('Iniciando Fetch a:', apiPath);
-            
-            const response = await fetch(apiPath, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            
-            console.log('Estado de respuesta HTTP:', response.status, response.statusText);
-            
-            const rawText = await response.text();
-            console.log('Respuesta bruta del servidor:', rawText);
-            
-            let result;
-            try {
-                result = JSON.parse(rawText);
-            } catch(e) {
-                console.error('Fallo en parseo JSON:', e);
-                throw new Error('La respuesta del servidor no tiene un formato JSON válido. Revise la consola para ver el contenido bruto.');
-            }
-            
-            if (result.success) {
-                console.log('Registro exitoso:', result);
-                responseDiv.innerHTML = `<div class="alert alert-success shadow-sm">
-                    <strong>¡Éxito!</strong> ${result.message}<br>
-                    <small>Sincronizando expediente...</small>
-                </div>`;
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                console.warn('Error devuelto por API:', result.error);
-                responseDiv.innerHTML = `<div class="alert alert-danger font-weight-bold shadow-sm" style="border: 2px solid #dc3545;">
-                    <strong>Atención:</strong> ${result.error || 'Error desconocido'}
-                </div>`;
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save me-1"></i> Validar y Guardar';
-                // Solo alertar en fallos críticos o si el usuario no ve el mensaje
-                // alert('VALIDACIÓN FALLIDA: ' + result.error);
-            }
-        } catch (err) {
-            console.error('Error crítico en el flujo:', err);
-            responseDiv.innerHTML = `<div class="alert alert-danger font-weight-bold shadow-sm" style="border: 2px solid #dc3545;">
-                <strong>Fallo del Sistema de Comunicación:</strong> ${err.message}
-            </div>`;
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-1"></i> Validar y Guardar';
-            alert('ERROR CRÍTICO: ' + err.message);
-        }
-    };
-})(window);
-
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Totalmente cargado. Inicializando Listeners.');
-
     const tabs = document.querySelectorAll('.nav-link[data-target]');
     const sections = document.querySelectorAll('.form-section');
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+            // Remove active class from all tabs
             tabs.forEach(t => t.classList.remove('active'));
+            // Add active to clicked tab
             tab.classList.add('active');
-            sections.forEach(s => s.classList.remove('active'));
-            const targetId = tab.dataset.target;
-            const targetEl = document.getElementById(targetId);
-            if(targetEl) targetEl.classList.add('active');
             
+            // Hide all sections
+            sections.forEach(s => s.classList.remove('active'));
+            // Show target section
+            const targetId = tab.dataset.target;
+            document.getElementById(targetId).classList.add('active');
+            
+            // Smooth scroll to top of content on mobile
             if (window.innerWidth < 900) {
                 document.querySelector('.expediente-content').scrollIntoView({behavior: 'smooth'});
             }
@@ -1341,23 +1146,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function marcarComoModificado() {
         if (!haCambiado && esEdicion) {
             haCambiado = true;
-            if (btnGuardar) {
-                btnGuardar.innerHTML = '<i class="fas fa-save me-2"></i> Guardar Expediente';
-                btnGuardar.classList.remove('btn-secondary');
-                btnGuardar.classList.add('btn-primary');
-            }
-            if (btnCancelar) btnCancelar.innerHTML = '<i class="fas fa-undo me-1"></i> Descartar Cambios';
+            btnGuardar.innerHTML = '<i class="fas fa-save me-2"></i> Guardar Expediente';
+            btnGuardar.classList.remove('btn-secondary');
+            btnGuardar.classList.add('btn-primary');
+            btnCancelar.innerHTML = '<i class="fas fa-undo me-1"></i> Descartar Cambios';
         }
     }
 
-    if (form) {
-        form.querySelectorAll('input, select, textarea').forEach(el => {
-            el.addEventListener('input', marcarComoModificado);
-            el.addEventListener('change', marcarComoModificado);
-        });
-    }
+    // Escuchar cambios en todos los inputs
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input', marcarComoModificado);
+        el.addEventListener('change', marcarComoModificado);
+    });
 
-    if (esEdicion && btnGuardar) {
+    // Configuración Inicial Modo Edición
+    if (esEdicion) {
         btnGuardar.innerHTML = '<i class="fas fa-times me-2"></i> Cerrar';
         btnGuardar.classList.remove('btn-primary');
         btnGuardar.classList.add('btn-secondary');
@@ -1373,9 +1176,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gestión Dinámica de Hijos
     const addHijoBtn = document.getElementById('addHijoBtn');
     const hijosContainer = document.getElementById('hijosContainer');
-    let hijoIdx = hijosContainer ? hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length : 0;
+    let hijoIdx = hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length;
 
-    if (addHijoBtn && hijosContainer) {
+    if (addHijoBtn) {
         addHijoBtn.addEventListener('click', () => {
             const noHijosRow = hijosContainer.querySelector('.no-hijos-row');
             if (noHijosRow) noHijosRow.remove();
@@ -1394,6 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             hijosContainer.appendChild(row);
             
+            // Agregar listeners a los nuevos inputs
             row.querySelectorAll('input, select').forEach(el => {
                 el.addEventListener('input', marcarComoModificado);
                 el.addEventListener('change', marcarComoModificado);
@@ -1403,7 +1207,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateHijosCount();
             marcarComoModificado();
         });
+    }
 
+    if (hijosContainer) {
         hijosContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('.remove-hijo');
             if (btn) {
@@ -1418,13 +1224,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateHijosCount() {
-        if (!hijosContainer) return;
         const count = hijosContainer.querySelectorAll('tr:not(.no-hijos-row)').length;
         const switchPM = document.getElementById('padreMadre');
         if (switchPM) switchPM.checked = count > 0;
     }
 });
 </script>
-
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

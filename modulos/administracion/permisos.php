@@ -64,12 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
 
 // Obtener usuarios
 $usuarios = $pdo->query("
-    SELECT u.*, CONCAT(e.nombres, ' ', e.apellido_paterno) as nombre_completo, a.nombre_area
+    SELECT u.*, 
+           TRIM(CONCAT(e.apellido_paterno, ' ', IFNULL(e.apellido_materno, ''), ' ', e.nombres)) as nombre_completo, 
+           a.nombre_area
     FROM usuarios_sistema u
     INNER JOIN empleados e ON u.id_empleado = e.id
     INNER JOIN areas a ON e.area_id = a.id
     WHERE u.estado = 1
-    ORDER BY nombre_completo
+    ORDER BY e.apellido_paterno, e.apellido_materno, e.nombres
 ")->fetchAll();
 
 // Obtener módulos (estructura jerárquica)
@@ -154,7 +156,14 @@ if ($userId) {
                 </h3>
             </div>
             <div class="card-body" style="padding: 0.5rem;">
-                <div style="max-height: 600px; overflow-y: auto;">
+                <div style="padding: 0.5rem;">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="userSearch" class="form-control" placeholder="Buscar usuario..."
+                            style="padding-left: 2.5rem; background: var(--bg-tertiary); border-color: var(--border-primary); color: var(--text-primary);">
+                    </div>
+                </div>
+                <div id="userList" style="max-height: 550px; overflow-y: auto;">
                     <?php foreach ($usuarios as $u): ?>
                         <a href="?usuario=<?= $u['id'] ?>"
                             class="user-list-item <?= $userId == $u['id'] ? 'active' : '' ?>">
@@ -424,6 +433,49 @@ if ($userId) {
     .area-checkbox:hover .area-checkbox-label {
         border-color: var(--border-hover);
     }
+
+    /* Buscador */
+    .search-container {
+        position: relative;
+        margin-bottom: 0.5rem;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('userSearch');
+        const userList = document.getElementById('userList');
+        const userItems = userList.getElementsByClassName('user-list-item');
+
+        searchInput.addEventListener('input', function () {
+            const term = this.value.toLowerCase().trim();
+
+            Array.from(userItems).forEach(item => {
+                const name = item.querySelector('.user-name-sm').textContent.toLowerCase();
+                const meta = item.querySelector('.user-meta-sm').textContent.toLowerCase();
+
+                if (name.includes(term) || meta.includes(term)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // Mantener el scroll al usuario seleccionado
+        const activeItem = userList.querySelector('.user-list-item.active');
+        if (activeItem) {
+            activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    });
+</script>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

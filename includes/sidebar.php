@@ -128,6 +128,22 @@ foreach ($modulosMenu as &$m) {
 }
 unset($m);
 
+// Inyectar Gestión Documental
+$modulosMenu[] = [
+    'id' => 'gestion-doc-direct',
+    'nombre_modulo' => 'Gestión Documental',
+    'ruta' => null,
+    'icono' => 'fa-folder-open',
+    'orden' => 5,
+    'children' => [
+        [
+            'nombre_modulo' => 'Mi Buzón',
+            'ruta' => '/modulos/gestion-documental/buzon.php',
+            'icono' => 'fa-mailbox'
+        ]
+    ]
+];
+
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 
@@ -317,7 +333,7 @@ $currentPath = $_SERVER['REQUEST_URI'];
     }
 
     if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener('click', function() {
+        mobileMenuBtn.addEventListener('click', function () {
             if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
                 closeMobileMenu();
             } else {
@@ -332,7 +348,7 @@ $currentPath = $_SERVER['REQUEST_URI'];
 
     // Cerrar menú móvil al hacer clic en un link de navegación (SOLO submenu-link)
     document.querySelectorAll('.sidebar .submenu-link').forEach(link => {
-        link.addEventListener('click', function() {
+        link.addEventListener('click', function () {
             if (window.innerWidth <= 768) {
                 closeMobileMenu();
             }
@@ -340,7 +356,7 @@ $currentPath = $_SERVER['REQUEST_URI'];
     });
 
     // Cerrar menú al redimensionar a pantalla grande
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         if (window.innerWidth > 768) {
             closeMobileMenu();
         }

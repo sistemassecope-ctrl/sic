@@ -50,11 +50,12 @@ $areaFilter = getAreaFilterSQL('p.id_unidad_responsable');
 
 // Listado de Proyectos
 $stmt_proy = $pdo->prepare("
-    SELECT p.*, m.nombre_municipio,
+    SELECT p.*, m.nombre_municipio, a.nombre_area as unidad_responsable,
            (SELECT COUNT(*) FROM solicitudes_suficiencia f WHERE f.id_proyecto = p.id_proyecto) as num_fuas,
            (SELECT SUM(monto_total_solicitado) FROM solicitudes_suficiencia f WHERE f.id_proyecto = p.id_proyecto AND f.estatus != 'CANCELADO') as total_fua
     FROM proyectos_obra p
     LEFT JOIN cat_municipios m ON p.id_municipio = m.id_municipio
+    LEFT JOIN areas a ON p.id_unidad_responsable = a.id
     WHERE p.id_programa = ? AND $areaFilter
     ORDER BY p.id_proyecto DESC
 ");
@@ -177,7 +178,11 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <!-- Paso 2: Detalles del Proyecto -->
                             <div class="row-step step-details">
                                 <h4 class="proyecto-name"><?= e($p['nombre_proyecto']) ?></h4>
-                                <div class="area-badge"><i class="fas fa-info-circle me-1"></i><?= e($p['breve_descripcion']) ?>
+                                <div class="area-badge">
+                                    <span class="text-primary fw-bold"><i
+                                            class="fas fa-building me-1"></i><?= e($p['unidad_responsable'] ?: 'Área no asignada') ?></span>
+                                    <span class="mx-2">|</span>
+                                    <i class="fas fa-info-circle me-1"></i><?= e($p['breve_descripcion']) ?>
                                 </div>
                             </div>
 

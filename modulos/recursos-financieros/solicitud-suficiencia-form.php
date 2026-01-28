@@ -9,6 +9,10 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// Servicios de Gestión Documental
+require_once __DIR__ . '/../../includes/services/DocumentoService.php';
+require_once __DIR__ . '/../../includes/services/SignatureFlowService.php';
+
 // ID del módulo de Solicitudes de Suficiencia
 define('MODULO_ID', 54);
 
@@ -60,6 +64,7 @@ $lockSFyA  = $bloquearFinal;
 
 // Catálogos
 $proyectos = $pdo->query("SELECT id_proyecto, nombre_proyecto, ejercicio FROM proyectos_obra ORDER BY ejercicio DESC, nombre_proyecto ASC")->fetchAll();
+$momentosGestion = $pdo->query("SELECT * FROM cat_momentos_suficiencia WHERE activo = 1 ORDER BY orden ASC")->fetchAll();
 
 // --- Procesar Guardado ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -86,18 +91,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'fecha_firma_regreso' => !empty($_POST['fecha_firma_regreso']) ? $_POST['fecha_firma_regreso'] : null,
         'fecha_acuse_antes_fa' => !empty($_POST['fecha_acuse_antes_fa']) ? $_POST['fecha_acuse_antes_fa'] : null,
         'fecha_respuesta_sfa' => !empty($_POST['fecha_respuesta_sfa']) ? $_POST['fecha_respuesta_sfa'] : null,
+        'id_momento_gestion' => (int) ($_POST['id_momento_gestion'] ?? 1),
         'observaciones' => trim($_POST['observaciones'] ?? '')
     ];
 
+    $documentoService = new \SIC\Services\DocumentoService($pdo);
+    $flowService = new \SIC\Services\SignatureFlowService($pdo);
+
     try {
         if ($is_editing) {
-            $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, observaciones=? WHERE id_fua=?";
+            $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, id_momento_gestion=?, observaciones=? WHERE id_fua=?";
             $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id_fua]));
+            
+            // INTEGRACIÓN: Registrar cambio en bitácora documental
+            try {
+                $documentoId = $documentoService->buscarPorReferenciaExterno('SUFPRE', $id_fua);
+                if ($documentoId) {
+                    $cambios = [];
+                    if ($fua['id_momento_gestion'] != $data['id_momento_gestion']) $cambios[] = "Etapa: " . $data['id_momento_gestion'];
+                    if ($fua['resultado_tramite'] != $data['resultado_tramite']) $cambios[] = "Resultado: " . $data['resultado_tramite'];
+                    
+                    if (!empty($cambios)) {
+                        $documentoService->registrarHito(
+                            $documentoId, 
+                            $user['id'], 
+                            'ACTUALIZAR', 
+                            "Cambios detectados en la solicitud: " . implode(", ", $cambios),
+                            $data['observaciones']
+                        );
+                    }
+                }
+            } catch (Exception $eDoc) {
+                error_log("Error bitácora edición: " . $eDoc->getMessage());
+            }
+
             setFlashMessage('success', 'Solicitud actualizada correctamente');
         } else {
-            $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, id_momento_gestion, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $pdo->prepare($sql)->execute(array_values($data));
-            setFlashMessage('success', 'Solicitud registrada correctamente');
+            $id_nueva_suficiencia = $pdo->lastInsertId();
+
+            // INTEGRACIÓN: Registrar en el Sistema de Gestión Documental
+            try {
+                $documentoId = $documentoService->crear([
+                    'codigo_tipo' => 'SUFPRE',
+                    'titulo' => "Suficiencia: " . $data['nombre_proyecto_accion'],
+                    'usuario_id' => $user['id'],
+                    'prioridad' => 'normal',
+                    'contenido' => [
+                        'id_fua' => $id_nueva_suficiencia,
+                        'monto' => $data['monto_total_solicitado'],
+                        'oficio' => $data['num_oficio_tramite'],
+                        'proyecto_id' => $data['id_proyecto']
+                    ]
+                ]);
+
+                // INICIAR FLUJO DE FIRMAS AUTOMÁTICAMENTE
+                try {
+                    $flowService->iniciarFlujo($documentoId);
+                    $msg_ext = " e inicio de flujo documental exitoso.";
+                } catch (Exception $flowEx) {
+                    error_log("Error al iniciar flujo: " . $flowEx->getMessage());
+                    $msg_ext = " (Flujo documental pendiente).";
+                }
+                
+            } catch (Exception $docEx) {
+                // No detenemos el flujo principal si falla el registro documental
+                error_log("Error al registrar documento: " . $docEx->getMessage());
+                $msg_ext = "";
+            }
+
+            setFlashMessage('success', 'Solicitud registrada correctamente.' . $msg_ext);
         }
         redirect('modulos/recursos-financieros/solicitudes-suficiencia.php' . ($data['id_proyecto'] ? "?id_proyecto=" . $data['id_proyecto'] : ""));
     } catch (Exception $e) {
@@ -207,20 +271,30 @@ include __DIR__ . '/../../includes/sidebar.php';
             <div class="row g-4">
                 <div class="col-12">
                     <label class="form-label x-small text-muted">VINCULAR PROYECTO (CATÁLOGO)</label>
-                    <?php if ($bloquearCaptura || $bloquearFinal): ?>
-                        <input type="hidden" name="id_proyecto" value="<?= $fua['id_proyecto'] ?>">
-                    <?php endif; ?>
-                    <select name="id_proyecto" id="id_proyecto" class="form-control select2"
-                        onchange="verificarSaldo()" <?= $attrDisabledC ?>>
-                        <option value="">-- SELECCIONE UN PROYECTO (OPCIONAL) --</option>
-                        <?php foreach ($proyectos as $p): ?>
-                            <option value="<?= $p['id_proyecto'] ?>" <?= (($is_editing && $fua['id_proyecto'] == $p['id_proyecto']) || ($id_proyecto == $p['id_proyecto'])) ? 'selected' : '' ?>>
-                                [
-                                <?= $p['ejercicio'] ?>]
-                                <?= e($p['nombre_proyecto']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div style="position: relative;">
+                        <?php if ($is_editing || $attrDisabledC): 
+                            $nombre_proy_elegido = 'SIN PROYECTO VINCULADO';
+                            foreach ($proyectos as $p) {
+                                if ($p['id_proyecto'] == $id_proyecto) {
+                                    $nombre_proy_elegido = "[" . $p['ejercicio'] . "] " . $p['nombre_proyecto'];
+                                    break;
+                                }
+                            }
+                        ?>
+                            <input type="text" class="form-control" value="<?= e($nombre_proy_elegido) ?>" readonly 
+                                style="background: rgba(255,255,255,0.05); color: #fff; font-weight: 600; cursor: not-allowed;">
+                            <input type="hidden" name="id_proyecto" value="<?= $id_proyecto ?>">
+                        <?php else: ?>
+                            <select name="id_proyecto" id="id_proyecto" class="form-control select2" onchange="verificarSaldo()">
+                                <option value="">-- SELECCIONE UN PROYECTO (OPCIONAL) --</option>
+                                <?php foreach ($proyectos as $p): ?>
+                                    <option value="<?= $p['id_proyecto'] ?>" <?= ($id_proyecto == $p['id_proyecto']) ? 'selected' : '' ?>>
+                                        [<?= $p['ejercicio'] ?>] <?= e($p['nombre_proyecto']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <div class="col-12">
@@ -251,7 +325,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 CANCELADO</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label x-small text-muted">RESULTADO TRÁMITE</label>
                         <?php if ($bloquearFinal): ?><input type="hidden" name="resultado_tramite" value="<?= $fua['resultado_tramite'] ?>"><?php endif; ?>
                         <select name="resultado_tramite" class="form-control" <?= $bloquearFinal ? 'disabled' : '' ?>>
@@ -260,15 +334,27 @@ include __DIR__ . '/../../includes/sidebar.php';
                             <option value="NO AUTORIZADO" <?= ($is_editing && $fua['resultado_tramite'] == 'NO AUTORIZADO') ? 'selected' : '' ?>>NO AUTORIZADO</option>
                         </select>
                     </div>
+                    <div class="col-md-12">
+                        <label class="form-label x-small text-muted text-primary fw-bold">MOMENTO DE GESTIÓN (ETAPA ACTUAL)</label>
+                        <select name="id_momento_gestion" class="form-control fw-bold border-primary" style="background: rgba(var(--accent-primary-rgb), 0.05);">
+                            <?php foreach ($momentosGestion as $m): ?>
+                                <option value="<?= $m['id'] ?>" <?= (($is_editing ? $fua['id_momento_gestion'] : 2) == $m['id']) ? 'selected' : '' ?>>
+                                    <?= $m['id'] ?>. <?= e($m['nombre']) ?> - <?= e($m['descripcion']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 <?php else: ?>
                     <?php if ($is_editing): ?>
                         <input type="hidden" name="tipo_suficiencia" value="<?= $fua['tipo_suficiencia'] ?>">
                         <input type="hidden" name="estatus" value="<?= $fua['estatus'] ?>">
                         <input type="hidden" name="resultado_tramite" value="<?= $fua['resultado_tramite'] ?>">
+                        <input type="hidden" name="id_momento_gestion" value="<?= $fua['id_momento_gestion'] ?>">
                     <?php else: ?>
                         <input type="hidden" name="tipo_suficiencia" value="NUEVA">
                         <input type="hidden" name="estatus" value="ACTIVO">
                         <input type="hidden" name="resultado_tramite" value="PENDIENTE">
+                        <input type="hidden" name="id_momento_gestion" value="2">
                     <?php endif; ?>
                 <?php endif; ?>
 
