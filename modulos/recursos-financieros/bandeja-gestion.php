@@ -83,10 +83,14 @@ if ($tab === 1) {
             f.created_at,
             f.id_momento_gestion,
             m.nombre as momento_nombre,
-            m.color as momento_color
+            m.color as momento_color,
+            d.id as documento_id,
+            d.fase_actual as doc_fase,
+            d.estatus as doc_estatus
         FROM proyectos_obra po
         LEFT JOIN areas a ON po.id_unidad_responsable = a.id
         LEFT JOIN solicitudes_suficiencia f ON po.id_proyecto = f.id_proyecto AND f.estatus = 'ACTIVO'
+        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_EXTRACT(d.contenido_json, '$.id_fua') = f.id_fua
         LEFT JOIN cat_momentos_suficiencia m ON COALESCE(f.id_momento_gestion, 1) = m.id
         WHERE ($areaFilter)
           AND (f.id_momento_gestion IS NULL OR f.id_momento_gestion = 1)
@@ -97,10 +101,12 @@ if ($tab === 1) {
     ";
 } else {
     $sql = "
-        SELECT f.*, po.nombre_proyecto, a.nombre_area, m.nombre as momento_nombre, m.color as momento_color
+        SELECT f.*, po.nombre_proyecto, a.nombre_area, m.nombre as momento_nombre, m.color as momento_color,
+               d.id as documento_id, d.fase_actual as doc_fase, d.estatus as doc_estatus
         FROM solicitudes_suficiencia f
         LEFT JOIN proyectos_obra po ON f.id_proyecto = po.id_proyecto
         LEFT JOIN areas a ON po.id_unidad_responsable = a.id
+        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_EXTRACT(d.contenido_json, '$.id_fua') = f.id_fua
         LEFT JOIN cat_momentos_suficiencia m ON f.id_momento_gestion = m.id
         WHERE f.estatus = 'ACTIVO' AND f.id_momento_gestion = $tab AND ($areaFilter OR f.id_proyecto IS NULL)
         ORDER BY f.created_at ASC
@@ -257,6 +263,12 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </a>
                             <?php endif; ?>
                             <?php if ($s['id_fua']): ?>
+                                <?php if ($s['documento_id']): ?>
+                                    <button type="button" class="btn-action-row info" onclick="showTimeline(<?= $s['documento_id'] ?>)"
+                                        title="Ver Trazabilidad Documental">
+                                        <i class="fas fa-history"></i>
+                                    </button>
+                                <?php endif; ?>
                                 <a href="generar-oficio.php?id=<?= $s['id_fua'] ?>" target="_blank" class="btn-action-row secondary"
                                     title="Oficio">
                                     <i class="fas fa-file-pdf"></i>
@@ -322,6 +334,23 @@ include __DIR__ . '/../../includes/sidebar.php';
     .kpi-icon.warning {
         background: rgba(210, 153, 34, 0.1);
         color: #d29922;
+    }
+
+    .kpi-icon.info {
+        background: rgba(88, 166, 255, 0.1);
+        color: #58a6ff;
+    }
+
+    .btn-action-row.info {
+        background: rgba(163, 113, 247, 0.1);
+        color: #a371f7;
+        border: 1px solid rgba(163, 113, 247, 0.2);
+    }
+
+    .btn-action-row.info:hover {
+        background: #a371f7;
+        color: #fff;
+        transform: scale(1.1);
     }
 
     .kpi-value {
@@ -571,5 +600,48 @@ include __DIR__ . '/../../includes/sidebar.php';
         border-radius: 20px;
     }
 </style>
+
+<!-- Modal para Timeline -->
+<div class="modal fade" id="modalTimeline" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content glass-vibrant-bg border-primary shadow-lg"
+            style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
+            <div class="modal-header border-bottom border-primary">
+                <h5 class="modal-title fw-bold text-white"><i class="fas fa-stream me-2 text-primary"></i>Trazabilidad
+                    Documental</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="timelineContent" style="min-height: 400px;">
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTimeline(documentoId) {
+        const modalElement = document.getElementById('modalTimeline');
+        const modal = new bootstrap.Modal(modalElement);
+        const content = document.getElementById('timelineContent');
+
+        content.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Cargando bitácora...</p></div>';
+        modal.show();
+
+        fetch(`ajax-timeline.php?id=${documentoId}`)
+            .then(response => response.text())
+            .then(html => {
+                content.innerHTML = html;
+            })
+            .catch(err => {
+                content.innerHTML = '<div class="alert alert-danger mx-3 my-3">Error al cargar el historial. Revise su conexión o contacte al administrador.</div>';
+            });
+    }
+</script>
+
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

@@ -9,6 +9,10 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireAuth();
 
+// Servicios de Gestión Documental
+require_once __DIR__ . '/../../includes/services/DocumentoService.php';
+require_once __DIR__ . '/../../includes/services/SignatureFlowService.php';
+
 // ID del módulo de Solicitudes de Suficiencia
 define('MODULO_ID', 54);
 
@@ -91,15 +95,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'observaciones' => trim($_POST['observaciones'] ?? '')
     ];
 
+    $documentoService = new \SIC\Services\DocumentoService($pdo);
+    $flowService = new \SIC\Services\SignatureFlowService($pdo);
+
     try {
         if ($is_editing) {
             $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, id_momento_gestion=?, observaciones=? WHERE id_fua=?";
             $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id_fua]));
+            
+            // INTEGRACIÓN: Registrar cambio en bitácora documental
+            try {
+                $documentoId = $documentoService->buscarPorReferenciaExterno('SUFPRE', $id_fua);
+                if ($documentoId) {
+                    $cambios = [];
+                    if ($fua['id_momento_gestion'] != $data['id_momento_gestion']) $cambios[] = "Etapa: " . $data['id_momento_gestion'];
+                    if ($fua['resultado_tramite'] != $data['resultado_tramite']) $cambios[] = "Resultado: " . $data['resultado_tramite'];
+                    
+                    if (!empty($cambios)) {
+                        $documentoService->registrarHito(
+                            $documentoId, 
+                            $user['id'], 
+                            'ACTUALIZAR', 
+                            "Cambios detectados en la solicitud: " . implode(", ", $cambios),
+                            $data['observaciones']
+                        );
+                    }
+                }
+            } catch (Exception $eDoc) {
+                error_log("Error bitácora edición: " . $eDoc->getMessage());
+            }
+
             setFlashMessage('success', 'Solicitud actualizada correctamente');
         } else {
             $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, id_momento_gestion, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $pdo->prepare($sql)->execute(array_values($data));
-            setFlashMessage('success', 'Solicitud registrada correctamente');
+            $id_nueva_suficiencia = $pdo->lastInsertId();
+
+            // INTEGRACIÓN: Registrar en el Sistema de Gestión Documental
+            try {
+                $documentoId = $documentoService->crear([
+                    'codigo_tipo' => 'SUFPRE',
+                    'titulo' => "Suficiencia: " . $data['nombre_proyecto_accion'],
+                    'usuario_id' => $user['id'],
+                    'prioridad' => 'normal',
+                    'contenido' => [
+                        'id_fua' => $id_nueva_suficiencia,
+                        'monto' => $data['monto_total_solicitado'],
+                        'oficio' => $data['num_oficio_tramite'],
+                        'proyecto_id' => $data['id_proyecto']
+                    ]
+                ]);
+
+                // INICIAR FLUJO DE FIRMAS AUTOMÁTICAMENTE
+                try {
+                    $flowService->iniciarFlujo($documentoId);
+                    $msg_ext = " e inicio de flujo documental exitoso.";
+                } catch (Exception $flowEx) {
+                    error_log("Error al iniciar flujo: " . $flowEx->getMessage());
+                    $msg_ext = " (Flujo documental pendiente).";
+                }
+                
+            } catch (Exception $docEx) {
+                // No detenemos el flujo principal si falla el registro documental
+                error_log("Error al registrar documento: " . $docEx->getMessage());
+                $msg_ext = "";
+            }
+
+            setFlashMessage('success', 'Solicitud registrada correctamente.' . $msg_ext);
         }
         redirect('modulos/recursos-financieros/solicitudes-suficiencia.php' . ($data['id_proyecto'] ? "?id_proyecto=" . $data['id_proyecto'] : ""));
     } catch (Exception $e) {

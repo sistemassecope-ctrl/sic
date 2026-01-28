@@ -105,6 +105,22 @@ foreach ($modulosMenu as &$m) {
 }
 unset($m);
 
+// Inyectar Gestión Documental
+$modulosMenu[] = [
+    'id' => 'gestion-doc-direct',
+    'nombre_modulo' => 'Gestión Documental',
+    'ruta' => null,
+    'icono' => 'fa-folder-open',
+    'orden' => 5,
+    'children' => [
+        [
+            'nombre_modulo' => 'Mi Buzón',
+            'ruta' => '/modulos/gestion-documental/buzon.php',
+            'icono' => 'fa-mailbox'
+        ]
+    ]
+];
+
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 

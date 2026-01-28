@@ -1,6 +1,7 @@
 <?php
 /**
- * Servicio simplificado de notificaciones (correo y panel interno).
+ * Servicio de notificaciones (correo y panel interno) adaptado al nuevo sistema documental.
+ * Archivo: includes/services/NotificadorService.php
  */
 
 namespace SIC\Services;
@@ -16,38 +17,62 @@ class NotificadorService
         $this->pdo = $pdo;
     }
 
+    /**
+     * Notifica a un usuario que tiene un documento pendiente de firmar.
+     */
     public function notificarAsignacion(int $documentoFlujoId): void
     {
-        $stmt = $this->pdo->prepare('SELECT df.documento_id, df.actor_id, u.email, u.username FROM documento_flujos df JOIN usuarios_sistema u ON df.actor_id = u.id WHERE df.id = ?');
+        // 1. Obtener información del paso y del documento
+        $stmt = $this->pdo->prepare("
+            SELECT df.documento_id, df.firmante_id, u.email, u.username, d.titulo, d.folio_sistema
+            FROM documento_flujo_firmas df
+            JOIN documentos d ON df.documento_id = d.id
+            JOIN usuarios_sistema u ON df.firmante_id = u.id
+            WHERE df.id = ?
+        ");
         $stmt->execute([$documentoFlujoId]);
         $destinatario = $stmt->fetch(PDO::FETCH_ASSOC);
+
         if (!$destinatario) {
             return;
         }
 
-        $this->registrarNotificacionPanel($documentoFlujoId, (int) $destinatario['actor_id'], 'Se te asignó un documento para revisión.');
-        $this->enviarCorreoAsignacion($destinatario);
+        $mensaje = "Se le ha asignado el documento {$destinatario['folio_sistema']}: \"{$destinatario['titulo']}\" para su firma.";
+
+        // 2. Registrar notificación en el panel (usando la tabla de la bandeja universal o una dedicada)
+        $this->registrarNotificacionPanel($destinatario['documento_id'], (int) $destinatario['firmante_id'], $mensaje);
+
+        // 3. Enviar correo electrónico
+        $this->enviarCorreoAsignacion($destinatario, $mensaje);
     }
 
-    public function notificarRechazo(int $documentoId, array $actores, string $mensaje): void
+    /**
+     * Notifica a los intervinientes previos que un documento fue rechazado.
+     */
+    public function notificarRechazo(int $documentoId, array $actoresPrevios, string $mensaje): void
     {
-        foreach ($actores as $actor) {
-            $destinatario = $actor['actor_id'] ?? $actor['id'] ?? null;
-            if ($destinatario) {
-                $this->registrarNotificacionPanel(null, (int) $destinatario, $mensaje, $documentoId);
+        foreach ($actoresPrevios as $actor) {
+            $destinatarioId = $actor['firmante_id'] ?? $actor['id'] ?? null;
+            if ($destinatarioId) {
+                $this->registrarNotificacionPanel($documentoId, (int) $destinatarioId, "RECHAZO: " . $mensaje);
             }
         }
     }
 
-    private function registrarNotificacionPanel(?int $documentoFlujoId, int $destinatarioId, string $mensaje, ?int $documentoId = null): void
+    private function registrarNotificacionPanel(int $documentoId, int $destinatarioId, string $mensaje): void
     {
-        $stmt = $this->pdo->prepare('INSERT INTO documento_notificaciones (documento_flujo_id, destinatario_id, tipo, enviado_en) VALUES (?, ?, "panel", NOW())');
-        $stmt->execute([$documentoFlujoId, $destinatarioId]);
-        // Aquí podríamos guardar el mensaje en una tabla de mensajes/alertas adicional.
+        // Verificar si ya existe en la bandeja universal para evitar duplicados
+        $stmt = $this->pdo->prepare("
+            INSERT INTO usuario_bandeja_documentos (usuario_id, documento_id, tipo_accion_requerida, notas_internas, fecha_asignacion)
+            VALUES (?, ?, 'revisar', ?, NOW())
+            ON DUPLICATE KEY UPDATE notas_internas = ?, updated_at = NOW()
+        ");
+        $stmt->execute([$destinatarioId, $documentoId, $mensaje, $mensaje]);
     }
 
-    private function enviarCorreoAsignacion(array $destinatario): void
+    private function enviarCorreoAsignacion(array $destinatario, string $mensaje): void
     {
-        // Placeholder: integrar PHPMailer u otra librería para envío real.
+        // Placeholder: Aquí se integraría PHPMailer
+        // error_log("Simulación envío correo a {$destinatario['email']}: $mensaje");
     }
 }
