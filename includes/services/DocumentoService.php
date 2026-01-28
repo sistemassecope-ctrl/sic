@@ -9,13 +9,20 @@ namespace SIC\Services;
 use PDO;
 use RuntimeException;
 
+require_once __DIR__ . '/BitacoraService.php';
+require_once __DIR__ . '/FolioService.php';
+
 class DocumentoService
 {
     private PDO $pdo;
+    private BitacoraService $bitacora;
+    private FolioService $folios;
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+        $this->bitacora = new BitacoraService($pdo);
+        $this->folios = new FolioService($pdo);
     }
 
     /**
@@ -23,13 +30,18 @@ class DocumentoService
      */
     public function crear(array $datos): int
     {
-        $this->pdo->beginTransaction();
+        $startedTransaction = false;
+        if (!$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
+            $startedTransaction = true;
+        }
+
         try {
             // 1. Obtener tipo de documento
             $tipoId = $this->obtenerTipoId($datos['codigo_tipo']);
 
-            // 2. Generar Folio
-            $folio = $this->generarFolio($tipoId);
+            // 2. Generar Folio usando FolioService
+            $folio = $this->folios->generar($tipoId);
 
             // 3. Insertar Documento
             $stmt = $this->pdo->prepare("
@@ -50,8 +62,8 @@ class DocumentoService
 
             $documentoId = (int) $this->pdo->lastInsertId();
 
-            // 4. Registrar en Bitácora
-            $this->registrarBitacora([
+            // 4. Registrar en Bitácora usando BitacoraService
+            $this->bitacora->registrar([
                 'documento_id' => $documentoId,
                 'fase_nueva' => 'generacion',
                 'estatus_nuevo' => 'borrador',
@@ -60,10 +72,14 @@ class DocumentoService
                 'usuario_id' => $datos['usuario_id']
             ]);
 
-            $this->pdo->commit();
+            if ($startedTransaction) {
+                $this->pdo->commit();
+            }
             return $documentoId;
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw new RuntimeException("Error al crear documento: " . $e->getMessage());
         }
     }
@@ -73,9 +89,15 @@ class DocumentoService
      */
     public function actualizarFase(int $documentoId, string $faseNueva, string $estatusNuevo, int $usuarioId, string $accion, string $descripcion, ?string $observaciones = null): void
     {
-        $this->pdo->beginTransaction();
+        $startedTransaction = false;
+        if (!$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
+            $startedTransaction = true;
+        }
+
         try {
             // 1. Obtener estado anterior
+            // Use FOR UPDATE only if in a transaction, which we are.
             $stmt = $this->pdo->prepare("SELECT fase_actual, estatus FROM documentos WHERE id = ? FOR UPDATE");
             $stmt->execute([$documentoId]);
             $actual = $stmt->fetch();
@@ -93,8 +115,8 @@ class DocumentoService
             ");
             $update->execute([$faseNueva, $estatusNuevo, $documentoId]);
 
-            // 3. Registrar en Bitácora
-            $this->registrarBitacora([
+            // 3. Registrar en Bitácora usando BitacoraService
+            $this->bitacora->registrar([
                 'documento_id' => $documentoId,
                 'fase_anterior' => $actual['fase_actual'],
                 'fase_nueva' => $faseNueva,
@@ -106,9 +128,13 @@ class DocumentoService
                 'usuario_id' => $usuarioId
             ]);
 
-            $this->pdo->commit();
+            if ($startedTransaction) {
+                $this->pdo->commit();
+            }
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw new RuntimeException("Error al actualizar fase: " . $e->getMessage());
         }
     }
@@ -122,7 +148,7 @@ class DocumentoService
         $stmt->execute([$documentoId]);
         $actual = $stmt->fetch();
 
-        $this->registrarBitacora([
+        $this->bitacora->registrar([
             'documento_id' => $documentoId,
             'fase_anterior' => $actual['fase_actual'] ?? null,
             'fase_nueva' => $actual['fase_actual'] ?? null,
@@ -153,33 +179,11 @@ class DocumentoService
     }
 
     /**
-     * Registra un evento en la bitácora inmutable.
+     * Pasarela para BitacoraService (compatibilidad)
      */
     public function registrarBitacora(array $log): void
     {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO documento_bitacora (
-                documento_id, fase_anterior, fase_nueva, estatus_anterior, estatus_nuevo,
-                accion, descripcion, observaciones, usuario_id, ip_address, user_agent,
-                firma_tipo, firma_hash, timestamp_evento
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(6))
-        ");
-
-        $stmt->execute([
-            $log['documento_id'],
-            $log['fase_anterior'] ?? null,
-            $log['fase_nueva'] ?? null,
-            $log['estatus_anterior'] ?? null,
-            $log['estatus_nuevo'] ?? null,
-            $log['accion'],
-            $log['descripcion'],
-            $log['observaciones'] ?? null,
-            $log['usuario_id'],
-            $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
-            $_SERVER['HTTP_USER_AGENT'] ?? 'CLI/System',
-            $log['firma_tipo'] ?? 'ninguna',
-            $log['firma_hash'] ?? null
-        ]);
+        $this->bitacora->registrar($log);
     }
 
     private function obtenerTipoId(string $codigo): int
@@ -190,20 +194,5 @@ class DocumentoService
         if (!$id)
             throw new RuntimeException("Tipo de documento '$codigo' no encontrado.");
         return (int) $id;
-    }
-
-    private function generarFolio(int $tipoId): string
-    {
-        $stmt = $this->pdo->prepare("SELECT prefijo_folio, ultimo_folio FROM cat_tipos_documento WHERE id = ? FOR UPDATE");
-        $stmt->execute([$tipoId]);
-        $tipo = $stmt->fetch();
-
-        $nuevoFolio = (int) $tipo['ultimo_folio'] + 1;
-        $folioFormateado = $tipo['prefijo_folio'] . "-" . date('Y') . "-" . str_pad($nuevoFolio, 5, '0', STR_PAD_LEFT);
-
-        $update = $this->pdo->prepare("UPDATE cat_tipos_documento SET ultimo_folio = ? WHERE id = ?");
-        $update->execute([$nuevoFolio, $tipoId]);
-
-        return $folioFormateado;
     }
 }

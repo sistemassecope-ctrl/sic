@@ -37,7 +37,7 @@ class DocumentoTimeline
 
         // 2. Obtener flujo de firmas
         $stmtFlujo = $this->pdo->prepare("
-            SELECT df.*, u.username, u.id_empleado, e.nombre as nombre_empleado, e.apellido_paterno
+            SELECT df.*, u.usuario as username, u.id_empleado, e.nombres as nombre_empleado, e.apellido_paterno
             FROM documento_flujo_firmas df
             JOIN usuarios_sistema u ON df.firmante_id = u.id
             LEFT JOIN empleados e ON u.id_empleado = e.id
@@ -49,7 +49,7 @@ class DocumentoTimeline
 
         // 3. Obtener bitácora
         $stmtBitacora = $this->pdo->prepare("
-            SELECT b.*, u.username
+            SELECT b.*, u.usuario as username
             FROM documento_bitacora b
             JOIN usuarios_sistema u ON b.usuario_id = u.id
             WHERE b.documento_id = ?

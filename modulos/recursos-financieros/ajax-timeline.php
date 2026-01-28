@@ -17,6 +17,11 @@ if ($documentoId <= 0) {
 }
 
 $pdo = getConnection();
-$timeline = new \SIC\Components\DocumentoTimeline($pdo);
 
-echo $timeline->render($documentoId);
+try {
+    $timeline = new \SIC\Components\DocumentoTimeline($pdo);
+    $timeline->render($documentoId);
+} catch (Exception $e) {
+    echo '<div class="alert alert-danger">Error al cargar el timeline: ' . e($e->getMessage()) . '</div>';
+    error_log("Error en ajax-timeline.php: " . $e->getMessage());
+}

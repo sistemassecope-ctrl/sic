@@ -25,7 +25,7 @@ $tab = $_GET['tab'] ?? 'pendientes'; // pendientes, procesados, informativos
 $sqlPendientes = "
     SELECT ub.*, d.folio_sistema, d.titulo, d.fase_actual, d.estatus as doc_estatus, d.prioridad,
            ctd.nombre as tipo_nombre, ctd.codigo as tipo_codigo,
-           df.id as flujo_id
+           df.id as flujo_id, df.tipo_firma
     FROM usuario_bandeja_documentos ub
     JOIN documentos d ON ub.documento_id = d.id
     JOIN cat_tipos_documento ctd ON d.tipo_documento_id = ctd.id
@@ -165,7 +165,7 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                         <div class="doc-actions">
                             <button type="button" class="btn btn-primary btn-sm rounded-pill px-3"
-                                onclick="abrirModalFirma(<?= $doc['flujo_id'] ?? 0 ?>, '<?= e($doc['folio_sistema']) ?>', '<?= e($doc['tipo_accion_requerida']) ?>')">
+                                onclick="abrirModalFirma(<?= $doc['flujo_id'] ?? 0 ?>, '<?= e($doc['folio_sistema']) ?>', '<?= e($doc['tipo_accion_requerida']) ?>', '<?= e($doc['tipo_firma'] ?? 'pin') ?>')">
                                 <i class="fas fa-signature me-1"></i> Atender
                             </button>
                         </div>
@@ -196,7 +196,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                         </div>
                         <div class="doc-actions">
                             <?php if ($doc['archivo_pdf']): ?>
-                                <a href="<?= url('/' . $doc['archivo_pdf']) ?>" target="_blank" class="btn btn-success btn-sm rounded-pill px-3">
+                                <a href="<?= url('/' . $doc['archivo_pdf']) ?>" target="_blank"
+                                    class="btn btn-success btn-sm rounded-pill px-3">
                                     <i class="fas fa-file-pdf me-1"></i> Ver Final
                                 </a>
                             <?php else: ?>
@@ -222,32 +223,67 @@ include __DIR__ . '/../../includes/sidebar.php';
             </div>
             <form id="formFirma">
                 <input type="hidden" id="f_flujo_id" name="flujo_id">
+                <input type="hidden" id="f_tipo_firma" name="tipo_firma">
                 <div class="modal-body py-4">
                     <div class="text-center mb-4">
                         <div class="doc-preview-icon mb-2">
                             <i class="fas fa-file-signature fa-2x text-accent"></i>
                         </div>
                         <h6 id="f_folio" class="text-accent fw-bold mb-1">FOLIO</h6>
-                        <p class="text-muted small">Por favor, ingresa tu PIN de seguridad para autorizar este
-                            documento.</p>
+                        <p id="f_instrucciones" class="text-muted small">Instrucciones de firma.</p>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label class="form-label small text-muted text-uppercase fw-bold">PIN de 4 Dígitos</label>
-                        <div class="pin-input-container">
-                            <input type="password" name="pin" id="f_pin"
-                                class="form-control form-control-lg text-center letter-spacing-lg" maxlength="4"
-                                placeholder="••••" required autofocus>
+                    <div id="firma_pin_container" class="d-none">
+                        <div class="form-group mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold">PIN de Seguridad (4
+                                Dígitos)</label>
+                            <div class="pin-input-container">
+                                <input type="password" name="pin" id="f_pin"
+                                    class="form-control form-control-lg text-center letter-spacing-lg" maxlength="4"
+                                    placeholder="••••">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="firma_fiel_container" class="d-none">
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Requiere Certificados e.Firma (SAT)
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted">Archivo .cer</label>
+                            <input type="file" name="fiel_cer" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Archivo .key</label>
+                            <input type="file" name="fiel_key" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Contraseña de la llave privada</label>
+                            <input type="password" name="fiel_pass" class="form-control" placeholder="Contraseña">
+                        </div>
+                    </div>
+
+                    <div id="firma_autografa_container" class="d-none">
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle me-2"></i> <strong>Firma Autógrafa:</strong> Al confirmar,
+                            declaras que imprimirás el documento para recabar la firma física. El sistema esperará la
+                            carga del archivo escaneado para continuar.
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirm_autografa" required>
+                            <label class="form-check-label small" for="confirm_autografa">
+                                Entiendo y confirmo que procederé con la firma física.
+                            </label>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                            <i class="fas fa-check-circle me-2"></i>Confirmar Firma
+                            <i class="fas fa-check-circle me-2"></i>Confirmar Acción
                         </button>
                     </div>
 
-                    <div class="text-center mt-3">
+                    <div class="text-center mt-3" id="pin_forgot_container">
                         <a href="#" class="text-muted small text-decoration-none">¿Olvidaste tu PIN?</a>
                     </div>
                 </div>
@@ -257,9 +293,35 @@ include __DIR__ . '/../../includes/sidebar.php';
 </div>
 
 <script>
-    function abrirModalFirma(id, folio, accion) {
-        document.getElementById('f_flujo_id').value = id; // En una versión real buscaríamos el ID del paso de flujo
+    function abrirModalFirma(id, folio, accion, tipoFirma) {
+        document.getElementById('f_flujo_id').value = id;
         document.getElementById('f_folio').innerText = folio;
+        document.getElementById('f_tipo_firma').value = tipoFirma;
+
+        // Ocultar todos los contenedores
+        document.getElementById('firma_pin_container').classList.add('d-none');
+        document.getElementById('firma_fiel_container').classList.add('d-none');
+        document.getElementById('firma_autografa_container').classList.add('d-none');
+        document.getElementById('pin_forgot_container').classList.add('d-none');
+
+        const instrucciones = document.getElementById('f_instrucciones');
+        const pinInput = document.getElementById('f_pin');
+
+        if (tipoFirma === 'pin') {
+            document.getElementById('firma_pin_container').classList.remove('d-none');
+            document.getElementById('pin_forgot_container').classList.remove('d-none');
+            instrucciones.innerText = "Ingresa tu PIN de seguridad de 4 dígitos para firmar.";
+            pinInput.required = true;
+        } else if (tipoFirma === 'fiel') {
+            document.getElementById('firma_fiel_container').classList.remove('d-none');
+            instrucciones.innerText = "Carga tus archivos de e.Firma (SAT) para validar legalmente.";
+            pinInput.required = false;
+        } else if (tipoFirma === 'autografa') {
+            document.getElementById('firma_autografa_container').classList.remove('d-none');
+            instrucciones.innerText = "Confirma el inicio del proceso de firma física.";
+            pinInput.required = false;
+        }
+
         const modal = new bootstrap.Modal(document.getElementById('modalFirma'));
         modal.show();
     }

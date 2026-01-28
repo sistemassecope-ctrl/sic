@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Firma Digital</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .info strong {
+            color: #2196F3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>🔐 Test de Firma Digital</h2>
+
+        <div class="info">
+            <strong>ℹ️ Información de prueba:</strong><br>
+            • PIN de prueba: <strong>1234</strong><br>
+            • Usuario: admin<br>
+            • Este formulario simula el modal de firma
+        </div>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="flujo_id">ID del Flujo de Firma:</label>
+                <input type="number" id="flujo_id" name="flujo_id" value="1" required>
+                <small style="color: #999;">Ingresa el ID del paso de firma a probar</small>
+            </div>
+
+            <div class="form-group">
+                <label for="pin">PIN (4-6 dígitos):</label>
+                <input type="password" id="pin" name="pin" value="1234" maxlength="6" required>
+            </div>
+
+            <input type="hidden" name="tipo_firma" value="pin">
+
+            <button type="submit" id="submitBtn">Probar Firma</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 4px; font-size: 14px;">
+            <strong>⚠️ Nota:</strong> Si obtienes "ID de flujo inválido", es normal si no hay un flujo creado.
+            El objetivo es verificar que el endpoint responde correctamente.
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            const result = document.getElementById('result');
+            const originalText = btn.textContent;
+
+            // Disable button
+            btn.disabled = true;
+            btn.textContent = '⏳ Procesando...';
+
+            // Hide previous result
+            result.style.display = 'none';
+            result.className = 'result';
+
+            try {
+                const formData = new FormData(this);
+
+                console.log('Enviando solicitud a:', 'modulos/recursos-financieros/procesar-firma.php');
+                console.log('Datos:', Object.fromEntries(formData));
+
+                const response = await fetch('modulos/recursos-financieros/procesar-firma.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('Respuesta recibida:', response.status, response.statusText);
+
+                const data = await response.json();
+
+                console.log('Datos parseados:', data);
+
+                // Show result
+                result.style.display = 'block';
+                if (data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <strong>✅ Éxito!</strong><br>
+                        ${data.message || 'Firma procesada correctamente'}
+                    `;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `
+                        <strong>❌ Error:</strong><br>
+                        ${data.message || 'Error desconocido'}
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Error en fetch:', error);
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = `
+                    <strong>❌ Error de Conexión:</strong><br>
+                    ${error.message}<br><br>
+                    <small>Verifica que el servidor esté corriendo y que el archivo exista en:<br>
+                    <code>modulos/recursos-financieros/procesar-firma.php</code></small>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+    </script>
+</body>
+
+</html>

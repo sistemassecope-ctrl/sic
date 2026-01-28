@@ -103,10 +103,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "UPDATE solicitudes_suficiencia SET id_proyecto=?, nombre_proyecto_accion=?, tipo_suficiencia=?, estatus=?, resultado_tramite=?, folio_fua=?, num_oficio_tramite=?, oficio_desf_ya=?, clave_presupuestal=?, monto_obra=?, monto_supervision=?, monto_total_solicitado=?, autorizado_por=?, elaborado_por=?, fecha_elaboracion=?, fecha_autorizacion=?, fecha_ingreso_admvo=?, fecha_ingreso_cotrl_ptal=?, fecha_titular=?, fecha_firma_regreso=?, fecha_acuse_antes_fa=?, fecha_respuesta_sfa=?, id_momento_gestion=?, observaciones=? WHERE id_fua=?";
             $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id_fua]));
             
-            // INTEGRACIÓN: Registrar cambio en bitácora documental
+            // INTEGRACIÓN: Registrar cambio en bitácora documental o crear si no existe
             try {
                 $documentoId = $documentoService->buscarPorReferenciaExterno('SUFPRE', $id_fua);
-                if ($documentoId) {
+                
+                if (!$documentoId) {
+                    // Si no existe el documento (ej: registros previos al nuevo sistema), lo creamos
+                    $documentoId = $documentoService->crear([
+                        'codigo_tipo' => 'SUFPRE',
+                        'titulo' => "Suficiencia: " . $data['nombre_proyecto_accion'],
+                        'usuario_id' => $user['id'],
+                        'prioridad' => 'normal',
+                        'contenido' => [
+                            'id_fua' => $id_fua,
+                            'monto' => $data['monto_total_solicitado'],
+                            'oficio' => $data['num_oficio_tramite'],
+                            'proyecto_id' => $data['id_proyecto']
+                        ]
+                    ]);
+                    
+                    // Iniciamos el flujo de firmas
+                    try {
+                        $flowService->iniciarFlujo($documentoId);
+                        $msg_ext = " e inicio de flujo documental.";
+                    } catch (Exception $flowEx) {
+                        error_log("Error al iniciar flujo en edición: " . $flowEx->getMessage());
+                        $msg_ext = " (Flujo pendiente).";
+                    }
+                } else {
+                    // Si ya existe, registramos el hito de actualización
                     $cambios = [];
                     if ($fua['id_momento_gestion'] != $data['id_momento_gestion']) $cambios[] = "Etapa: " . $data['id_momento_gestion'];
                     if ($fua['resultado_tramite'] != $data['resultado_tramite']) $cambios[] = "Resultado: " . $data['resultado_tramite'];
@@ -120,12 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $data['observaciones']
                         );
                     }
+                    $msg_ext = "";
                 }
             } catch (Exception $eDoc) {
-                error_log("Error bitácora edición: " . $eDoc->getMessage());
+                error_log("Error integración documental edición: " . $eDoc->getMessage());
+                $msg_ext = "";
             }
 
-            setFlashMessage('success', 'Solicitud actualizada correctamente');
+            setFlashMessage('success', 'Solicitud actualizada correctamente' . $msg_ext);
         } else {
             $sql = "INSERT INTO solicitudes_suficiencia (id_proyecto, nombre_proyecto_accion, tipo_suficiencia, estatus, resultado_tramite, folio_fua, num_oficio_tramite, oficio_desf_ya, clave_presupuestal, monto_obra, monto_supervision, monto_total_solicitado, autorizado_por, elaborado_por, fecha_elaboracion, fecha_autorizacion, fecha_ingreso_admvo, fecha_ingreso_cotrl_ptal, fecha_titular, fecha_firma_regreso, fecha_acuse_antes_fa, fecha_respuesta_sfa, id_momento_gestion, observaciones) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $pdo->prepare($sql)->execute(array_values($data));
@@ -146,10 +173,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]
                 ]);
 
-                // INICIAR FLUJO DE FIRMAS AUTOMÁTICAMENTE
+                // INICIAR FLUJO DE FIRMAS
+                $participantes = !empty($_POST['participantes_json']) ? json_decode($_POST['participantes_json'], true) : null;
                 try {
-                    $flowService->iniciarFlujo($documentoId);
-                    $msg_ext = " e inicio de flujo documental exitoso.";
+                    if ($participantes) {
+                        $flowService->iniciarFlujoPersonalizado($documentoId, $participantes);
+                        $msg_ext = " e inicio de flujo personalizado exitoso.";
+                    } else {
+                        $flowService->iniciarFlujo($documentoId);
+                        $msg_ext = " e inicio de flujo documental exitoso.";
+                    }
                 } catch (Exception $flowEx) {
                     error_log("Error al iniciar flujo: " . $flowEx->getMessage());
                     $msg_ext = " (Flujo documental pendiente).";
@@ -192,7 +225,8 @@ include __DIR__ . '/../../includes/sidebar.php';
 
     <?= renderFlashMessage() ?>
 
-    <form method="POST" onsubmit="preSubmit()">
+    <form id="fuaForm" method="POST" onsubmit="preSubmit(event)">
+        <input type="hidden" name="participantes_json" id="participantes_json">
         <div class="hoja-papel">
             <div class="sheet-header">
                 <div>
@@ -471,7 +505,8 @@ include __DIR__ . '/../../includes/sidebar.php';
 
             <div class="mt-5 pt-4 border-top text-end">
                 <a href="solicitudes-suficiencia.php" class="btn btn-secondary px-4 me-2">CANCELAR</a>
-                <button type="submit" id="btn_submit" class="btn btn-primary px-5 fw-bold">GUARDAR SOLICITUD</button>
+                <button type="button" onclick="showParticipantesModal()" id="btn_pre_submit" class="btn btn-primary px-5 fw-bold">GUARDAR Y CONFIGURAR FIRMAS</button>
+                <button type="submit" id="btn_submit" class="d-none"></button>
             </div>
         </div>
     </form>
@@ -606,8 +641,25 @@ include __DIR__ . '/../../includes/sidebar.php';
         }
     }
 
-    function preSubmit() {
+    function preSubmit(e) {
         document.querySelectorAll('.monto-calc, #m_total').forEach(i => i.value = i.value.replace(/,/g, ''));
+    }
+
+    function showParticipantesModal() {
+        const form = document.getElementById('fuaForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const defaults = [
+            { id: '<?= $user['id'] ?>', name: '<?= e(getNombreCompleto($user)) ?>', role: 'ELABORA', fixed: false }
+        ];
+
+        setupParticipantes(defaults, function(participantes) {
+            document.getElementById('participantes_json').value = JSON.stringify(participantes);
+            document.getElementById('btn_submit').click();
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {

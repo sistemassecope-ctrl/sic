@@ -10,6 +10,7 @@ use PDO;
 use RuntimeException;
 use Exception;
 
+require_once __DIR__ . '/DocumentoService.php';
 require_once __DIR__ . '/FirmaService.php';
 require_once __DIR__ . '/ExpedienteDigitalService.php';
 require_once __DIR__ . '/NotificadorService.php';
@@ -34,9 +35,14 @@ class SignatureFlowService
      */
     public function iniciarFlujo(int $documentoId): void
     {
-        $this->pdo->beginTransaction();
+        $startedTransaction = false;
+        if (!$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
+            $startedTransaction = true;
+        }
+
         try {
-            // 1. Obtener la plantilla del tipo de documento
+            // 1. Obtener la plantilla del tipo de documento y la configuración Global de firmas
             $stmt = $this->pdo->prepare("
                 SELECT ctd.plantilla_flujo_id
                 FROM documentos d
@@ -45,6 +51,10 @@ class SignatureFlowService
             ");
             $stmt->execute([$documentoId]);
             $plantillaId = $stmt->fetchColumn();
+
+            // Fetch Global Config
+            $stmtConfig = $this->pdo->query("SELECT valor FROM configuracion_sistema WHERE clave = 'tipo_firma_global'");
+            $tipoFirmaGlobal = $stmtConfig->fetchColumn() ?: 'pin'; // Default to PIN if not set
 
             if (!$plantillaId) {
                 throw new RuntimeException("El documento no tiene una plantilla de flujo asociada.");
@@ -70,12 +80,14 @@ class SignatureFlowService
             ");
 
             foreach ($detalles as $d) {
+                $tipoFirmaAplicar = $tipoFirmaGlobal;
+
                 $insertPaso->execute([
                     $documentoId,
                     $d['orden'],
                     $d['actor_usuario_id'],
                     $d['actor_rol'],
-                    $d['tipo_firma'],
+                    $tipoFirmaAplicar, // Override
                     $d['tiempo_maximo_horas']
                 ]);
             }
@@ -88,7 +100,6 @@ class SignatureFlowService
                 ) VALUES (?, ?, 'firmar', 2, NOW())
             ");
             $stmtBandeja->execute([$primerPaso['actor_usuario_id'], $documentoId]);
-            $stepId = (int) $this->pdo->lastInsertId(); // This is wrong, lastInsertId of bandeja not flujo.
 
             // Wait, we need the ID of the step in documento_flujo_firmas to notify.
             $stmtLastFlow = $this->pdo->prepare("SELECT id FROM documento_flujo_firmas WHERE documento_id = ? AND orden = 1");
@@ -105,13 +116,101 @@ class SignatureFlowService
                 'pendiente',
                 0, // Sistema
                 'INICIAR',
-                "Iniciando flujo de firmas basado en plantilla estándar."
+                "Iniciando flujo de firmas ($tipoFirmaGlobal)."
             );
 
-            $this->pdo->commit();
+            if ($startedTransaction) {
+                $this->pdo->commit();
+            }
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw new RuntimeException("Error al iniciar flujo: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Inicia un flujo de firmas con participantes seleccionados manualmente.
+     * @param int $documentoId
+     * @param array $participantes Array de ['usuario_id' => int, 'rol' => string, 'orden' => int]
+     */
+    public function iniciarFlujoPersonalizado(int $documentoId, array $participantes): void
+    {
+        if (empty($participantes)) {
+            throw new RuntimeException("No se han proporcionado participantes para el flujo.");
+        }
+
+        $startedTransaction = false;
+        if (!$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
+            $startedTransaction = true;
+        }
+
+        try {
+            // Fetch Global Config
+            $stmtConfig = $this->pdo->query("SELECT valor FROM configuracion_sistema WHERE clave = 'tipo_firma_global'");
+            $tipoFirmaGlobal = $stmtConfig->fetchColumn() ?: 'pin';
+
+            $insertPaso = $this->pdo->prepare("
+                INSERT INTO documento_flujo_firmas (
+                    documento_id, orden, firmante_id, rol_firmante, tipo_firma, fecha_asignacion, fecha_limite
+                ) VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 48 HOUR))
+            ");
+
+            foreach ($participantes as $p) {
+                $insertPaso->execute([
+                    $documentoId,
+                    $p['orden'],
+                    $p['usuario_id'],
+                    $p['rol'],
+                    $tipoFirmaGlobal
+                ]);
+            }
+
+            // Activar el primer paso (orden 1)
+            $primerFirmante = null;
+            foreach ($participantes as $p) {
+                if ($p['orden'] == 1) {
+                    $primerFirmante = $p['usuario_id'];
+                    break;
+                }
+            }
+
+            if (!$primerFirmante) {
+                throw new RuntimeException("No se encontró un participante con orden 1.");
+            }
+
+            $stmtBandeja = $this->pdo->prepare("
+                INSERT INTO usuario_bandeja_documentos (
+                    usuario_id, documento_id, tipo_accion_requerida, prioridad, fecha_asignacion
+                ) VALUES (?, ?, 'firmar', 2, NOW())
+            ");
+            $stmtBandeja->execute([$primerFirmante, $documentoId]);
+
+            $stmtLastFlow = $this->pdo->prepare("SELECT id FROM documento_flujo_firmas WHERE documento_id = ? AND orden = 1");
+            $stmtLastFlow->execute([$documentoId]);
+            $flowStepId = $stmtLastFlow->fetchColumn();
+
+            $this->notificador->notificarAsignacion($flowStepId);
+
+            $this->docService->actualizarFase(
+                $documentoId,
+                'aprobacion',
+                'pendiente',
+                0, // Sistema
+                'INICIAR_CUSTOM',
+                "Iniciando flujo de firmas personalizado ($tipoFirmaGlobal)."
+            );
+
+            if ($startedTransaction) {
+                $this->pdo->commit();
+            }
+        } catch (Exception $e) {
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw new RuntimeException("Error al iniciar flujo personalizado: " . $e->getMessage());
         }
     }
 
@@ -143,8 +242,12 @@ class SignatureFlowService
                 $resultado = $this->validarFirmaPin($usuarioId, $datosFirma['pin']);
             } else if ($tipoFirma === 'fiel') {
                 $resultado = $this->validarFirmaFiel($paso['hash_integridad'], $datosFirma);
+            } else if ($tipoFirma === 'autografa') {
+                // Para firma autógrafa, se asume que el usuario confirma que ya tiene el documento firmado en físico (o lo subirá).
+                // Por ahora solo validamos que sea el usuario correcto (ya hecho por la query anterior)
+                $resultado = ['hash' => 'FIRMADO_AUTOGRAFA_CONFIRMACION_MANUAL'];
             } else {
-                throw new RuntimeException("Tipo de firma no soportado.");
+                throw new RuntimeException("Tipo de firma no soportado: " . $tipoFirma);
             }
 
             // 2. Registrar firma en la tabla de flujo

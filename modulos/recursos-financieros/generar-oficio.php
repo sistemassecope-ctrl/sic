@@ -21,11 +21,17 @@ if (!$id_fua) {
     die("ID de FUA no proporcionado.");
 }
 
-// Obtener datos del FUA y Proyecto
+// Obtener datos del FUA, Proyecto y Documento asociado
 $stmt = $pdo->prepare("
-    SELECT f.*, p.nombre_proyecto, p.ejercicio
+    SELECT f.*, 
+           p.nombre_proyecto, 
+           p.ejercicio,
+           d.id as documento_id,
+           d.folio_sistema
     FROM solicitudes_suficiencia f
     LEFT JOIN proyectos_obra p ON f.id_proyecto = p.id_proyecto
+    LEFT JOIN documentos d ON d.tipo_documento_id = (SELECT id FROM cat_tipos_documento WHERE codigo = 'SUFI')
+        AND JSON_EXTRACT(d.contenido_json, '$.id_fua') = f.id_fua
     WHERE f.id_fua = ?
 ");
 $stmt->execute([$id_fua]);
@@ -35,7 +41,30 @@ if (!$fua) {
     die("No se encontró la información solicitada.");
 }
 
-// --- ACTUALIZAR FECHA DE AUTORIZACIÓN "AL VUELO" ---
+// Obtener firmantes configurados en el flujo de firmas del documento
+$firmantes = [];
+if ($fua['documento_id']) {
+    $stmt_firmantes = $pdo->prepare("
+        SELECT 
+            dff.orden,
+            dff.rol_firmante,
+            e.nombres,
+            e.apellido_paterno,
+            e.apellido_materno,
+            e.cargo,
+            u.usuario,
+            dff.estatus
+        FROM documento_flujo_firmas dff
+        JOIN empleados e ON e.id = dff.firmante_id
+        LEFT JOIN usuarios_sistema u ON u.id_empleado = e.id
+        WHERE dff.documento_id = ?
+        ORDER BY dff.orden ASC
+    ");
+    $stmt_firmantes->execute([$fua['documento_id']]);
+    $firmantes = $stmt_firmantes->fetchAll();
+}
+
+// --- ACTUALIZAR FECHA DE AUTORIZACIÓN \"AL VUELO\" ---
 $user = getCurrentUser();
 $nombre_autorizador = getNombreCompleto($user);
 
@@ -48,19 +77,52 @@ $stmt_upd = $pdo->prepare("
 $stmt_upd->execute([$nombre_autorizador, $id_fua]);
 
 // --- OBTENER FIRMA DIGITAL DEL USUARIO EN SESIÓN ---
-$stmt_firma = $pdo->prepare("SELECT ruta_firma_imagen FROM usuarios_config_firma WHERE id_usuario = ?");
+// Usar la tabla empleado_firmas que contiene las firmas autógrafas registradas
+$stmt_firma = $pdo->prepare("
+    SELECT ef.firma_imagen 
+    FROM empleado_firmas ef
+    JOIN usuarios_sistema u ON u.id_empleado = ef.empleado_id
+    WHERE u.id = ?
+");
 $stmt_firma->execute([$user['id']]);
-$ruta_firma = $stmt_firma->fetchColumn();
-$img_firma_path = $ruta_firma ? __DIR__ . '/../../' . $ruta_firma : null;
+$firma_base64 = $stmt_firma->fetchColumn();
+
+// La firma viene en formato base64 (data:image/png;base64,...)
+// TCPDF puede usar directamente la imagen base64 con el método Image()
+$tiene_firma = !empty($firma_base64);
 
 // Datos para el oficio
 $num_oficio = $fua['num_oficio_tramite'] ?: 'DC/____/' . date('Y');
 
-// --- Parámetros "al vuelo" ---
-$destinatario_nombre = $_GET['dest_nom'] ?? 'C.P. MARLEN SÁNCHEZ GARCÍA';
-$destinatario_cargo = $_GET['dest_car'] ?? 'DIRECTORA DE ADMINISTRACIÓN';
-$remitente_nombre = $_GET['rem_nom'] ?? 'ING. CÉSAR OTHÓN RODRÍGUEZ GÓMEZ';
-$remitente_cargo = $_GET['rem_car'] ?? 'SUBSECRETARIO DE INFRAESTRUCTURA CARRETERA';
+// --- Obtener nombres de firmantes o usar valores por defecto ---
+// El REMITENTE es el primer firmante (quien solicita/genera)
+// El DESTINATARIO es típicamente el último firmante (quien autoriza)
+$remitente_nombre = '';
+$remitente_cargo = '';
+$destinatario_nombre = '';
+$destinatario_cargo = '';
+
+if (count($firmantes) > 0) {
+    // Primer firmante = REMITENTE (quien solicita)
+    $primer_firmante = $firmantes[0];
+    $remitente_nombre = trim($primer_firmante['nombres'] . ' ' .
+        $primer_firmante['apellido_paterno'] . ' ' .
+        ($primer_firmante['apellido_materno'] ?: ''));
+    $remitente_cargo = $primer_firmante['cargo'] ?: $primer_firmante['rol_firmante'];
+
+    // Último firmante = DESTINATARIO (quien autoriza)
+    $ultimo_firmante = $firmantes[count($firmantes) - 1];
+    $destinatario_nombre = trim($ultimo_firmante['nombres'] . ' ' .
+        $ultimo_firmante['apellido_paterno'] . ' ' .
+        ($ultimo_firmante['apellido_materno'] ?: ''));
+    $destinatario_cargo = $ultimo_firmante['cargo'] ?: $ultimo_firmante['rol_firmante'];
+}
+
+// Permitir override por parámetros GET (para casos especiales)
+$destinatario_nombre = $_GET['dest_nom'] ?? $destinatario_nombre ?: 'C.P. MARLEN SÁNCHEZ GARCÍA';
+$destinatario_cargo = $_GET['dest_car'] ?? $destinatario_cargo ?: 'DIRECTORA DE ADMINISTRACIÓN';
+$remitente_nombre = $_GET['rem_nom'] ?? $remitente_nombre ?: 'ING. CÉSAR OTHÓN RODRÍGUEZ GÓMEZ';
+$remitente_cargo = $_GET['rem_car'] ?? $remitente_cargo ?: 'SUBSECRETARIO DE INFRAESTRUCTURA CARRETERA';
 
 $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 $fecha_formateada = date('d') . ' de ' . $meses[date('n') - 1] . ' de ' . date('Y');
@@ -122,9 +184,14 @@ $pdf->Cell(0, 5, mb_strtoupper($remitente_nombre), 0, 1, 'C');
 $pdf->Cell(0, 5, mb_strtoupper($remitente_cargo), 0, 1, 'C');
 
 // --- SELLO / FIRMA DIGITAL SI EXISTE ---
-if ($img_firma_path && file_exists($img_firma_path)) {
-    // Posicionar la firma sobre el nombre del remitente
-    $pdf->Image($img_firma_path, 88, 145, 40, 0, 'PNG');
+if ($tiene_firma) {
+    // Extraer datos binarios del base64
+    $base64Data = preg_replace('/^data:image\/\w+;base64,/', '', $firma_base64);
+    $imageData = base64_decode($base64Data);
+
+    // TCPDF acepta datos binarios con el prefijo '@'
+    // Este es el método más confiable y compatible
+    $pdf->Image('@' . $imageData, 88, 145, 40, 0, 'PNG', '', '', false, 300, '', false, false, 0);
 }
 
 // --- C.C.P. ---

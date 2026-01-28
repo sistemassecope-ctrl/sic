@@ -262,7 +262,27 @@ $currentPath = $_SERVER['REQUEST_URI'];
                         </a>
                     <?php endif; ?>
                 </li>
+                </li>
             <?php endforeach; ?>
+
+            <!-- Módulo de Configuración (Inyectado) -->
+            <?php if ($isAdmin): ?>
+                <li class="nav-item">
+                    <a href="javascript:void(0)" class="nav-link submenu-toggle" data-target="submenu-config">
+                        <i class="fas fa-cogs"></i>
+                        <span class="nav-text">Configuración</span>
+                        <i class="fas fa-chevron-down submenu-arrow"></i>
+                    </a>
+                    <ul class="submenu" id="submenu-config">
+                        <li class="submenu-item">
+                            <a href="<?= url('/modulos/admin/firma-config.php') ?>" class="submenu-link">
+                                <i class="fas fa-pen-nib"></i>
+                                <span>Firmas</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            <?php endif; ?>
         </ul>
     </nav>
 

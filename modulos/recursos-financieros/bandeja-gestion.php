@@ -86,11 +86,13 @@ if ($tab === 1) {
             m.color as momento_color,
             d.id as documento_id,
             d.fase_actual as doc_fase,
-            d.estatus as doc_estatus
+            d.estatus as doc_estatus,
+            (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_id,
+            (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_type
         FROM proyectos_obra po
         LEFT JOIN areas a ON po.id_unidad_responsable = a.id
         LEFT JOIN solicitudes_suficiencia f ON po.id_proyecto = f.id_proyecto AND f.estatus = 'ACTIVO'
-        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_EXTRACT(d.contenido_json, '$.id_fua') = f.id_fua
+        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = f.id_fua
         LEFT JOIN cat_momentos_suficiencia m ON COALESCE(f.id_momento_gestion, 1) = m.id
         WHERE ($areaFilter)
           AND (f.id_momento_gestion IS NULL OR f.id_momento_gestion = 1)
@@ -102,11 +104,13 @@ if ($tab === 1) {
 } else {
     $sql = "
         SELECT f.*, po.nombre_proyecto, a.nombre_area, m.nombre as momento_nombre, m.color as momento_color,
-               d.id as documento_id, d.fase_actual as doc_fase, d.estatus as doc_estatus
+               d.id as documento_id, d.fase_actual as doc_fase, d.estatus as doc_estatus,
+                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_id,
+                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_type
         FROM solicitudes_suficiencia f
         LEFT JOIN proyectos_obra po ON f.id_proyecto = po.id_proyecto
         LEFT JOIN areas a ON po.id_unidad_responsable = a.id
-        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_EXTRACT(d.contenido_json, '$.id_fua') = f.id_fua
+        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = f.id_fua
         LEFT JOIN cat_momentos_suficiencia m ON f.id_momento_gestion = m.id
         WHERE f.estatus = 'ACTIVO' AND f.id_momento_gestion = $tab AND ($areaFilter OR f.id_proyecto IS NULL)
         ORDER BY f.created_at ASC
@@ -263,6 +267,18 @@ include __DIR__ . '/../../includes/sidebar.php';
                                 </a>
                             <?php endif; ?>
                             <?php if ($s['id_fua']): ?>
+                                <?php if (!empty($s['pending_flow_id'])): ?>
+                                    <button type="button" class="btn-action-row warning pulse-btn"
+                                        onclick="openSignatureModal(<?= $s['pending_flow_id'] ?>, '<?= e($s['num_oficio_tramite']) ?>', '<?= e($s['pending_flow_type']) ?>')"
+                                        title="Firmar Documento Pendiente">
+                                        <?php if ($s['pending_flow_type'] == 'autografa'): ?>
+                                            <i class="fas fa-file-pen"></i>
+                                        <?php else: ?>
+                                            <i class="fas fa-pen-fancy"></i>
+                                        <?php endif; ?>
+                                    </button>
+                                <?php endif; ?>
+
                                 <?php if ($s['documento_id']): ?>
                                     <button type="button" class="btn-action-row info" onclick="showTimeline(<?= $s['documento_id'] ?>)"
                                         title="Ver Trazabilidad Documental">
@@ -579,6 +595,36 @@ include __DIR__ . '/../../includes/sidebar.php';
         transform: scale(1.1);
     }
 
+    .btn-action-row.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .btn-action-row.warning:hover {
+        background: #f59e0b;
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+    .pulse-btn {
+        animation: pulse-animation 2s infinite;
+    }
+
+    @keyframes pulse-animation {
+        0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+    }
+
     .btn-action-row.secondary {
         background: rgba(255, 255, 255, 0.05);
         color: var(--text-secondary);
@@ -623,6 +669,107 @@ include __DIR__ . '/../../includes/sidebar.php';
     </div>
 </div>
 
+</script>
+
+<!-- Modal de Firma -->
+<div class="modal fade" id="modalFirma" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-vibrant-bg border-warning shadow-lg"
+            style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
+            <div class="modal-header border-bottom border-warning">
+                <h5 class="modal-title fw-bold text-white">
+                    <i class="fas fa-pen-fancy me-2 text-warning"></i>Firmar Documento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-white">
+                <p class="text-muted small mb-3">Estás a punto de firmar el documento <strong id="lblFolioFirma"
+                        class="text-warning"></strong>. Esta acción es legalmente vinculante.</p>
+
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active btn-sm" id="pills-pin-tab" data-bs-toggle="pill"
+                        data-bs-target="#pills-pin" type="button" role="tab"><i
+                            class="fas fa-key me-1"></i>Digital</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link btn-sm" id="pills-fiel-tab" data-bs-toggle="pill"
+                        data-bs-target="#pills-fiel" type="button" role="tab"><i
+                            class="fas fa-file-signature me-1"></i>FIEL</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link btn-sm" id="pills-auto-tab" data-bs-toggle="pill"
+                        data-bs-target="#pills-auto" type="button" role="tab"><i
+                            class="fas fa-pen-nib me-1"></i>Autógrafa</button>
+                </li>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <!-- PIN FORM -->
+                    <div class="tab-pane fade show active" id="pills-pin" role="tabpanel">
+                        <form id="formFirmaPin">
+                            <input type="hidden" name="flujo_id" id="valFlujoId">
+                            <input type="hidden" name="tipo_firma" value="pin">
+
+                            <div class="mb-3">
+                                <label class="form-label x-small text-muted">Ingresa tu PIN de 4-6 dígitos</label>
+                                <input type="password"
+                                    class="form-control bg-dark border-secondary text-white text-center fs-4 letter-spacing-lg"
+                                    name="pin" maxlength="6" required placeholder="• • • • • •">
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-warning fw-bold">
+                                    <i class="fas fa-check-circle me-2"></i>AUTORIZAR CON PIN
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- FIEL FORM (Simulado para Demo) -->
+                    <div class="tab-pane fade" id="pills-fiel" role="tabpanel">
+                        <div class="text-center p-4 border border-dashed border-secondary rounded mb-3">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="small text-muted mb-0">Arrastra tus archivos .cer y .key aquí</p>
+                            <button type="button" class="btn btn-outline-light btn-sm mt-2">Seleccionar
+                                Archivos</button>
+                        </div>
+                        <div class="alert alert-info x-small">
+                            <i class="fas fa-info-circle me-1"></i> El módulo de FIEL se encuentra en modo de pruebas.
+                            Use Digital por el momento.
+                        </div>
+                    </div>
+
+                    <!-- AUTOGRAFA FORM -->
+                    <div class="tab-pane fade" id="pills-auto" role="tabpanel">
+                        <form id="formFirmaAuto">
+                            <input type="hidden" name="flujo_id" id="valFlujoIdAuto">
+                            <input type="hidden" name="tipo_firma" value="autografa">
+
+                            <div class="text-center mb-4">
+                                <i class="fas fa-print fa-3x text-secondary mb-3"></i>
+                                <h6 class="text-white">Proceso de Firma Autógrafa</h6>
+                                <p class="small text-muted">
+                                    1. Descargue el documento.<br>
+                                    2. Imprímalo y fírmelo con bolígrafo.<br>
+                                    3. Confirme aquí para cambiar el estado a "Firmado".
+                                </p>
+                                <button type="button" class="btn btn-outline-info btn-sm mb-3">
+                                    <i class="fas fa-download me-1"></i> Descargar PDF
+                                </button>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success fw-bold">
+                                    <i class="fas fa-check me-2"></i>CONFIRMAR FIRMA
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function showTimeline(documentoId) {
         const modalElement = document.getElementById('modalTimeline');
@@ -641,7 +788,83 @@ include __DIR__ . '/../../includes/sidebar.php';
                 content.innerHTML = '<div class="alert alert-danger mx-3 my-3">Error al cargar el historial. Revise su conexión o contacte al administrador.</div>';
             });
     }
-</script>
 
+    function openSignatureModal(flujoId, folio, tipoFirma) {
+        document.getElementById('valFlujoId').value = flujoId;
+        document.getElementById('valFlujoIdAuto').value = flujoId;
+        document.getElementById('lblFolioFirma').textContent = folio;
+
+        // Reset tabs
+        const triggerElPin = document.querySelector('#pills-pin-tab')
+        const triggerElFiel = document.querySelector('#pills-fiel-tab')
+        const triggerElAuto = document.querySelector('#pills-auto-tab')
+
+        // Hide all first? Or just show the one we need?
+        // Let's activate the correct tab based on type
+        if (tipoFirma === 'autografa') {
+            bootstrap.Tab.getOrCreateInstance(triggerElAuto).show();
+        } else if (tipoFirma === 'fiel') {
+            bootstrap.Tab.getOrCreateInstance(triggerElFiel).show();
+        } else {
+            bootstrap.Tab.getOrCreateInstance(triggerElPin).show();
+        }
+
+        new bootstrap.Modal(document.getElementById('modalFirma')).show();
+    }
+
+    document.getElementById('formFirmaAuto').addEventListener('submit', function (e) {
+        e.preventDefault();
+        // Same logic as PIN form
+        const btn = this.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+
+        const formData = new FormData(this);
+        fetch('procesar-firma.php', {
+            method: 'POST', body: formData
+        }).then(res => res.json()).then(data => {
+            if (data.success) { alert('✅ Firma registrada.'); location.reload(); }
+            else { alert('❌ Error: ' + data.message); btn.disabled = false; btn.innerHTML = originalText; }
+        }).catch(err => {
+            alert('Error de conexión.'); btn.disabled = false; btn.innerHTML = originalText;
+        });
+    });
+
+    document.getElementById('formFirmaPin').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verificando...';
+
+        const formData = new FormData(this);
+
+        // Adjust path to ajax-firmar.php based on your structure
+        fetch('procesar-firma.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success popup using sweetalert if available or standard alert
+                    alert('✅ Documento firmado correctamente.');
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error de conexión.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+    });
+</script>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

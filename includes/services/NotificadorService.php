@@ -24,7 +24,7 @@ class NotificadorService
     {
         // 1. Obtener información del paso y del documento
         $stmt = $this->pdo->prepare("
-            SELECT df.documento_id, df.firmante_id, u.email, u.username, d.titulo, d.folio_sistema
+            SELECT df.documento_id, df.firmante_id, u.usuario as email, u.usuario as username, d.titulo, d.folio_sistema
             FROM documento_flujo_firmas df
             JOIN documentos d ON df.documento_id = d.id
             JOIN usuarios_sistema u ON df.firmante_id = u.id

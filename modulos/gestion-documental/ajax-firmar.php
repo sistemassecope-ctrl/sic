@@ -27,10 +27,23 @@ $tipoFirma = $_POST['tipo_firma'] ?? 'pin';
 try {
     if ($tipoFirma === 'pin') {
         $resultado = $flowService->procesarFirma($flujoId, $user['id'], 'pin', ['pin' => $_POST['pin'] ?? '']);
+    } else if ($tipoFirma === 'fiel') {
+        // Manejo de carga de archivos temporales para FIEL
+        if (!isset($_FILES['fiel_cer']) || !isset($_FILES['fiel_key'])) {
+            throw new Exception("Se requieren los archivos .cer y .key para la firma FIEL.");
+        }
+
+        $datosFirma = [
+            'ruta_cer' => $_FILES['fiel_cer']['tmp_name'],
+            'ruta_key' => $_FILES['fiel_key']['tmp_name'],
+            'password' => $_POST['fiel_pass'] ?? ''
+        ];
+
+        $resultado = $flowService->procesarFirma($flujoId, $user['id'], 'fiel', $datosFirma);
+    } else if ($tipoFirma === 'autografa') {
+        $resultado = $flowService->procesarFirma($flujoId, $user['id'], 'autografa', []);
     } else {
-        // Para FIEL en este demo/pilot básico asumimos que los archivos vienen en el POST o ya están en el servidor
-        // En una implementación real se subirían archivos temporales aquí.
-        throw new Exception("Firma FIEL requiere carga de certificados (en desarrollo). Por ahora use Firma por PIN.");
+        throw new Exception("Tipo de firma no reconocido: " . $tipoFirma);
     }
 
     echo json_encode($resultado);
