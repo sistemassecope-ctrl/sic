@@ -108,8 +108,8 @@
                 <div class="col-md-3">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="en_proceso_baja" value="SI" id="switchBaja"
-                               <?= ($v['en_proceso_baja'] ?? 'NO') == 'SI' ? 'checked' : '' ?>>
-                        <label class="form-check-label text-danger fw-bold" for="switchBaja">En Proceso de Baja</label>
+                               <?= ($v['en_proceso_baja'] ?? 'NO') == 'SI' ? 'checked' : '' ?> disabled>
+                        <label class="form-check-label text-muted fw-bold" for="switchBaja" title="Gestionar en Bandeja de Bajas">En Proceso de Baja</label>
                     </div>
                 </div>
             </div>

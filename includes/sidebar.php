@@ -93,6 +93,19 @@ $modulosMenu[] = [
     ]
 ];
 
+// --- Badge Counters ---
+$bajasPendientesCount = 0;
+if ($isAdmin) {
+    // Admin: Count all pending requests requiring approval
+    $stmtCount = $pdo->query("SELECT COUNT(*) FROM solicitudes_baja WHERE estado = 'pendiente'");
+    $bajasPendientesCount = $stmtCount->fetchColumn();
+} else {
+    // User: Count their own pending requests (optional, but good feedback)
+    $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM solicitudes_baja WHERE solicitante_id = ? AND estado = 'pendiente'");
+    $stmtCount->execute([$userId]);
+    $bajasPendientesCount = $stmtCount->fetchColumn();
+}
+
 // Inyectar Bandeja de Gestión en Programas Operativos si existe
 foreach ($modulosMenu as &$m) {
     if ($m['nombre_modulo'] == 'Programas Operativos' || $m['id'] == 52) {
@@ -100,6 +113,16 @@ foreach ($modulosMenu as &$m) {
             'nombre_modulo' => 'Bandeja de Gestión',
             'ruta' => '/modulos/recursos-financieros/bandeja-gestion.php',
             'icono' => 'fa-inbox'
+        ];
+    }
+    // Inject Bandeja de Bajas for Vehicles (ID 45)
+    if ($m['nombre_modulo'] == 'Vehículos' || $m['id'] == 45) {
+        $m['children'][] = [
+            'nombre_modulo' => 'Bandeja de Bajas',
+            'ruta' => '/modulos/vehiculos/bandeja_bajas.php',
+            'icono' => 'fa-inbox',
+            'badge' => $bajasPendientesCount > 0 ? $bajasPendientesCount : null,
+            'badge_class' => 'bg-warning text-dark'
         ];
     }
 }
@@ -163,11 +186,18 @@ $currentPath = $_SERVER['REQUEST_URI'];
                                 $childIsActive = $child['ruta'] && strpos($currentPath, $child['ruta']) !== false;
                                 ?>
                                 <li class="submenu-item">
-                                    <a href="<?= $childUrl ?>" class="submenu-link <?= $childIsActive ? 'active' : '' ?>">
-                                        <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"></i>
-                                        <span>
-                                            <?= e($child['nombre_modulo']) ?>
-                                        </span>
+                                    <a href="<?= $childUrl ?>" class="submenu-link <?= $childIsActive ? 'active' : '' ?> d-flex justify-content-between align-items-center pe-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"></i>
+                                            <span>
+                                                <?= e($child['nombre_modulo']) ?>
+                                            </span>
+                                        </div>
+                                        <?php if (!empty($child['badge'])): ?>
+                                            <span class="badge rounded-pill <?= $child['badge_class'] ?? 'bg-danger' ?>" style="font-size: 0.7em;">
+                                                <?= $child['badge'] ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>

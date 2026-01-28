@@ -145,7 +145,10 @@ try {
             </h1>
             <p class="page-description">Unidades activas</p>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            <a href="bandeja_bajas.php" class="btn btn-outline-warning text-dark">
+                <i class="fas fa-inbox me-1"></i> Bandeja de Bajas
+            </a>
             <?php if ($puedeCrear): ?>
                 <a href="create.php" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Nuevo Vehículo
@@ -436,30 +439,35 @@ try {
 <div class="modal fade" id="modalBaja" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">Confirmar Baja Definitiva</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Solicitar Baja Vehicular</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>¿Estás seguro de que deseas dar de baja el vehículo <strong id="bajaEco"></strong>?</p>
-                <div class="alert alert-danger py-2">
-                    <small>Esta acción moverá el vehículo al histórico y lo eliminará del padrón activo.</small>
+                <p>¿Deseas iniciar el trámite de baja para el vehículo <strong id="bajaEco"></strong>?</p>
+                <div class="alert alert-info py-2">
+                    <small>Esta acción enviará una solicitud a la Dirección Administrativa para su aprobación.</small>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Motivo de Baja:</label>
                     <select id="motivoBaja" class="form-select">
-                        <option value="Baja Definitiva">Baja Definitiva</option>
+                        <option value="Fin de Vida Útil">Fin de Vida Útil</option>
                         <option value="Siniestro">Siniestro</option>
                         <option value="Robo">Robo</option>
-                        <option value="Venta">Venta</option>
+                        <option value="Venta / Subasta">Venta / Subasta</option>
+                        <option value="Otro">Otro</option>
                     </select>
+                </div>
+                <div class="mb-3">
+                     <label class="form-label">Detalles Adicionales:</label>
+                     <textarea id="motivoAdicional" class="form-control" rows="2" placeholder="Describe brevemente..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" onclick="ejecutarBaja()">Confirmar Baja</button>
+                <button type="button" class="btn btn-warning" onclick="ejecutarSolicitudBaja()">Enviar Solicitud</button>
             </div>
         </div>
     </div>
@@ -548,16 +556,22 @@ try {
         }
     }
 
-    async function ejecutarBaja() {
+    async function ejecutarSolicitudBaja() {
         if (!bajaId) return;
 
-        const motivo = document.getElementById('motivoBaja').value;
+        const motivoSelect = document.getElementById('motivoBaja').value;
+        const motivoText = document.getElementById('motivoAdicional').value;
+        const finalMotivo = motivoSelect + (motivoText ? ": " + motivoText : "");
 
         try {
-            const response = await fetch('api/baja.php', {
+            const formData = new FormData();
+            formData.append('action', 'solicitar_baja');
+            formData.append('vehiculo_id', bajaId);
+            formData.append('motivo', finalMotivo);
+
+            const response = await fetch('acciones_baja.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: bajaId, motivo: motivo })
+                body: formData
             });
 
             // Check if response is ok
@@ -566,16 +580,12 @@ try {
                 throw new Error(`Server Error ${response.status}: ${text.substring(0, 100)}`);
             }
 
-            const text = await response.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error("Invalid JSON:", text);
-                throw new Error("Respuesta inválida del servidor: " + text.substring(0, 100));
-            }
+            const data = await response.json();
+            
             if (data.success) {
                 if (bajaModal) bajaModal.hide();
+                // Swal would be nicer but using alert for consistency with existing code unless swal is available
+                alert('Solicitud enviada: ' + data.message);
                 location.reload();
             } else {
                 alert('Error: ' + data.message);
