@@ -1,0 +1,13 @@
+=== MODIFICANDO ENUM ===
+ALTER TABLE ejecutado correctamente
+
+=== ACTUALIZANDO NOTAS ===
+Nota 182 actualizada: 1 rows
+Nota 183 actualizada: 1 rows
+
+=== VERIFICAR ===
+ID:182 tipo:'SOLICITUD_BAJA'
+ID:183 tipo:'AUTORIZACION_BAJA'
+
+=== NOTAS TIPO BAJA PARA VEHICULO 99 ===
+Total: 2

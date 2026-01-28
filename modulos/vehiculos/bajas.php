@@ -140,17 +140,21 @@ $bajas = $pdo->query($sql)->fetchAll();
                                                 onclick="restaurarBaja(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
                                                 <i class="fas fa-sync-alt"></i>
                                             </button>
-                                            <!-- Editar - Azul -->
-                                            <a href="edit_baja.php?id=<?= $v['id'] ?>" class="btn btn-sm btn-outline-primary"
-                                                title="Editar Datos de Baja">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <!-- Notas Trigger (Histórico) -->
-                                            <button type="button" class="btn btn-sm btn-outline-info" title="Bitácora Histórica"
-                                                onclick="verNotas(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
-                                                <i class="fas fa-clipboard-list"></i>
-                                            </button>
                                         <?php endif; ?>
+
+                                        <!-- Ver / Editar - Azul/Info -->
+                                        <!-- Ver / Editar - Azul/Info -->
+                                        <a href="edit_baja.php?id=<?= $v['id'] ?>" class="btn btn-sm <?= $puedeEditar ? 'btn-outline-primary' : 'btn-info' ?>"
+                                            title="<?= $puedeEditar ? 'Editar Datos de Baja' : 'Ver Detalles' ?>">
+                                            <i class="fas <?= $puedeEditar ? 'fa-edit' : 'fa-eye' ?>"></i>
+                                            <?= !$puedeEditar ? 'Ver' : '' ?>
+                                        </a>
+                                        
+                                        <!-- Notas Quick View (Opcional, mantenemos por conveniencia) -->
+                                        <button type="button" class="btn btn-sm btn-outline-info" title="Bitácora Histórica"
+                                            onclick="verNotas(<?= $v['id'] ?>, '<?= e($v['numero_economico']) ?>')">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

@@ -53,13 +53,6 @@ try {
         case 'responder_solicitud':
             // Verificar permisos de Director o Admin
             if (!isAdmin() && !hasPermission('autorizar_bajas', 54)) { 
-                // Nota: ID 54 asumido del plan, pero idealmente verificar permisos reales. 
-                // Por ahora, isAdmin() es seguro. Si es Director específico, agregar lógica aquí.
-                // Como Marlen es Directora Administrativa, asumimos que tiene rol admin o permiso especial.
-                // Para simplificar según requerimiento: Admin o Rol Específico
-                
-                // Si NO es admin, verificamos si es el usuario Marlen (si tuvieramos su ID fijo) o validamos rol.
-                // Implementación genérica: Solo Admins por ahora o quien tenga permiso explícito.
                  if (!isAdmin()) {
                      throw new Exception("No tienes permisos para autorizar bajas.");
                  }
@@ -77,90 +70,95 @@ try {
                 throw new Exception("Debe proporcionar un motivo para el rechazo.");
             }
 
-            $nuevoEstado = $decision === 'aprobada' ? 'autorizado' : 'rechazado';
-
-            $stmt = $pdo->prepare("
-                UPDATE solicitudes_baja 
-                SET estado = ?, autorizador_id = ?, fecha_respuesta = NOW(), comentarios_respuesta = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$nuevoEstado, $userId, $comentarios, $solicitudId]);
-
-            // Si se rechaza, quitamos la marca de "en proceso" del vehículo
-            if ($nuevoEstado === 'rechazado') {
-                $stmtV = $pdo->prepare("SELECT vehiculo_id FROM solicitudes_baja WHERE id = ?");
-                $stmtV->execute([$solicitudId]);
-                $vid = $stmtV->fetchColumn();
-                if ($vid) {
-                    $pdo->prepare("UPDATE vehiculos SET en_proceso_baja = 0 WHERE id = ?")->execute([$vid]);
-                }
-            }
-
-            echo json_encode(['success' => true, 'message' => "Solicitud $decision correctamente."]);
-            break;
-
-        case 'finalizar_baja':
-            $solicitudId = (int)$_POST['solicitud_id'];
-
-            // Obtener solicitud
-            $stmt = $pdo->prepare("SELECT * FROM solicitudes_baja WHERE id = ?");
-            $stmt->execute([$solicitudId]);
-            $solicitud = $stmt->fetch();
+            // Obtener datos de la solicitud original para historial y notas
+            $stmtSol = $pdo->prepare("SELECT * FROM solicitudes_baja WHERE id = ?");
+            $stmtSol->execute([$solicitudId]);
+            $solicitud = $stmtSol->fetch();
 
             if (!$solicitud) {
                 throw new Exception("Solicitud no encontrada.");
             }
 
-            if ($solicitud['estado'] !== 'autorizado') {
-                throw new Exception("La solicitud no está autorizada para finalizar.");
-            }
-
-            // Validar que quien finaliza sea el solicitante o un admin
-            if ($solicitud['solicitante_id'] != $userId && !isAdmin()) {
-                throw new Exception("Solo el solicitante original o un administrador pueden finalizar la baja.");
-            }
-
-            // Ejecutar la BAJA REAL
             $pdo->beginTransaction();
 
-            // 1. Mover a histórico (insert en vehiculos_bajas)
-            // Obtenemos datos del vehículo
-            $stmtV = $pdo->prepare("SELECT * FROM vehiculos WHERE id = ?");
-            $stmtV->execute([$solicitud['vehiculo_id']]);
-            $vehiculo = $stmtV->fetch();
+            if ($decision === 'aprobada') {
+                // AUTOMATIC FINALIZATION
+                
+                // 1. Obtener vehículo
+                $stmtV = $pdo->prepare("SELECT * FROM vehiculos WHERE id = ?");
+                $stmtV->execute([$solicitud['vehiculo_id']]);
+                $vehiculo = $stmtV->fetch();
 
-            if (!$vehiculo) {
-                $pdo->rollBack();
-                throw new Exception("Vehículo no encontrado.");
+                if (!$vehiculo) {
+                    $pdo->rollBack();
+                    throw new Exception("Vehículo asociado no encontrado.");
+                }
+
+                // 2. Insertar Notas en la Bitácora del Vehículo (vehiculos_notas)
+                
+                // Nota 1: La Solicitud Original (incluir info de solicitante en el texto)
+                $notaSolicitud = "SOLICITUD DE BAJA (Usuario ID: " . $solicitud['solicitante_id'] . "): " . $solicitud['motivo'];
+                $stmtNota1 = $pdo->prepare("INSERT INTO vehiculos_notas (vehiculo_id, tipo_origen, nota, created_at) VALUES (?, 'SOLICITUD_BAJA', ?, ?)");
+                $stmtNota1->execute([$vehiculo['id'], $notaSolicitud, $solicitud['created_at']]);
+
+                // Nota 2: La Autorización (incluir info de autorizador en el texto)
+                $notaAuth = "BAJA AUTORIZADA (Usuario ID: " . $userId . "): " . $comentarios;
+                $stmtNota2 = $pdo->prepare("INSERT INTO vehiculos_notas (vehiculo_id, tipo_origen, nota, created_at) VALUES (?, 'AUTORIZACION_BAJA', ?, NOW())");
+                $stmtNota2->execute([$vehiculo['id'], $notaAuth]);
+
+                // 3. Insertar en histórico
+                // Mantenemos el motivo original en la tabla de bajas para referencia rápida
+                $sqlBaja = "INSERT INTO vehiculos_bajas (
+                    vehiculo_origen_id, numero_economico, numero_placas, numero_patrimonio, marca, modelo, 
+                    tipo, color, numero_serie, resguardo_nombre, 
+                    fecha_baja, motivo_baja, usuario_baja_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
+                
+                $stmtBaja = $pdo->prepare($sqlBaja);
+                $stmtBaja->execute([
+                    $vehiculo['id'], $vehiculo['numero_economico'], $vehiculo['numero_placas'], $vehiculo['numero_patrimonio'], 
+                    $vehiculo['marca'], $vehiculo['modelo'], $vehiculo['tipo'], $vehiculo['color'], 
+                    $vehiculo['numero_serie'], $vehiculo['resguardo_nombre'],
+                    "AUTORIZADO: " . $solicitud['motivo'], $userId
+                ]);
+
+                // 4. Actualizar vehículo a inactivo (sin modificar observaciones)
+                $stmtUpdate = $pdo->prepare("UPDATE vehiculos SET activo = 0, en_proceso_baja = 0 WHERE id = ?");
+                $stmtUpdate->execute([$vehiculo['id']]);
+
+                // 5. Actualizar solicitud a finalizado
+                $stmtFinal = $pdo->prepare("
+                    UPDATE solicitudes_baja 
+                    SET estado = 'finalizado', autorizador_id = ?, fecha_respuesta = NOW(), comentarios_respuesta = ?, visto = 0
+                    WHERE id = ?
+                ");
+                $stmtFinal->execute([$userId, $comentarios, $solicitudId]);
+
+                $message = "Solicitud aprobada y vehículo dado de baja automáticamente.";
+
+            } else {
+                // RECHAZADA
+                $stmtRechazo = $pdo->prepare("
+                    UPDATE solicitudes_baja 
+                    SET estado = 'rechazado', autorizador_id = ?, fecha_respuesta = NOW(), comentarios_respuesta = ?, visto = 0
+                    WHERE id = ?
+                ");
+                $stmtRechazo->execute([$userId, $comentarios, $solicitudId]);
+
+                // Liberar vehículo
+                $pdo->prepare("UPDATE vehiculos SET en_proceso_baja = 0 WHERE id = ?")->execute([$solicitud['vehiculo_id']]);
+                
+                $message = "Solicitud rechazada correctamente.";
             }
 
-            // Insertar en historico
-            $sqlBaja = "INSERT INTO vehiculos_bajas (
-                vehiculo_origen_id, numero_economico, numero_placas, numero_patrimonio, marca, modelo, 
-                tipo, color, numero_serie, resguardo_nombre, 
-                fecha_baja, motivo_baja, usuario_baja_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
-            
-            $stmtBaja = $pdo->prepare($sqlBaja);
-            $stmtBaja->execute([
-                $vehiculo['id'], $vehiculo['numero_economico'], $vehiculo['numero_placas'], $vehiculo['numero_patrimonio'], 
-                $vehiculo['marca'], $vehiculo['modelo'], $vehiculo['tipo'], $vehiculo['color'], 
-                $vehiculo['numero_serie'], $vehiculo['resguardo_nombre'],
-                "AUTORIZADO: " . $solicitud['motivo'], $userId
-            ]);
-
-            // 2. Desactivar vehículo (activo = 0)
-            $stmtUpdate = $pdo->prepare("UPDATE vehiculos SET activo = 0, en_proceso_baja = 0, observaciones_baja = ? WHERE id = ?");
-            $stmtUpdate->execute(["Baja Autorizada el " . date('Y-m-d'), $vehiculo['id']]);
-
-            // 3. Actualizar estado solicitud
-            $stmtSol = $pdo->prepare("UPDATE solicitudes_baja SET estado = 'finalizado' WHERE id = ?");
-            $stmtSol->execute([$solicitudId]);
-
             $pdo->commit();
-
-            echo json_encode(['success' => true, 'message' => 'Baja finalizada correctamente. El vehículo ha pasado al histórico.']);
+            echo json_encode(['success' => true, 'message' => $message]);
             break;
+
+        case 'finalizar_baja':
+             // Deprecated functionality
+             throw new Exception("Esta acción ya no es necesaria. La baja se procesa automáticamente al aprobar.");
+             break;
 
         default:
             throw new Exception("Acción no válida.");

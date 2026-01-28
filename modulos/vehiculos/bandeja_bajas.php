@@ -28,6 +28,9 @@ $tab = $_GET['tab'] ?? ($puedeAutorizar ? 'por_autorizar' : 'mis_solicitudes');
 $solicitudes = [];
 
 if ($tab === 'mis_solicitudes') {
+    // 1. Marcar como vistas las notificaciones (finalizado/rechazado)
+    $pdo->prepare("UPDATE solicitudes_baja SET visto = 1 WHERE solicitante_id = ? AND estado IN ('finalizado', 'rechazado')")->execute([$userId]);
+
     $stmt = $pdo->prepare("
         SELECT sb.*, v.marca, v.modelo, v.numero_economico, v.numero_placas, a.nombre_area
         FROM solicitudes_baja sb
@@ -165,12 +168,9 @@ include __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
 
                         <!-- Acciones para Solicitante (Finalizar) -->
-                        <?php if ($tab === 'mis_solicitudes' && $s['estado'] === 'autorizado'): ?>
-                            <button class="btn btn-sm btn-dark w-100" onclick="finalizarBaja(<?= $s['id'] ?>)">
-                                <i class="fas fa-archive me-1"></i> Finalizar Baja
-                            </button>
+                        <?php if ($tab === 'mis_solicitudes' && $s['estado'] === 'finalizado'): ?>
                             <div class="small text-muted text-center mt-1">
-                                <i class="fas fa-info-circle"></i> Requiere acción final
+                                <i class="fas fa-check-double"></i> Proceso Completado
                             </div>
                         <?php endif; ?>
 

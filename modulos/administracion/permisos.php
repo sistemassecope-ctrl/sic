@@ -217,16 +217,16 @@ if ($userId) {
                             </h3>
                         </div>
                         <div class="card-body" style="padding: 0;">
-                            <div class="permissions-matrix">
-                                <table>
+                            <div class="permissions-matrix" style="max-height: 600px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
                                     <thead>
                                         <tr>
-                                            <th
-                                                style="text-align: left; width: 250px; color: #fff !important; background: var(--bg-tertiary);">
-                                                Módulo</th>
+                                            <th style="text-align: left; width: 250px; color: #fff !important; background: var(--bg-tertiary); position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border-primary); padding: 1rem;">
+                                                Módulo
+                                            </th>
                                             <?php foreach ($permisos as $p): ?>
                                                 <th title="<?= e($p['descripcion'] ?? '') ?>"
-                                                    style="color: #fff !important; background: var(--bg-tertiary);">
+                                                    style="color: #fff !important; background: var(--bg-tertiary); position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border-primary); padding: 1rem; text-align: center;">
                                                     <?= e($p['nombre_permiso']) ?>
                                                 </th>
                                             <?php endforeach; ?>
@@ -238,7 +238,7 @@ if ($userId) {
 
                                             <!-- Módulo padre -->
                                             <tr class="module-parent <?= $hasChildren ? 'has-children' : '' ?>">
-                                                <td class="module-name">
+                                                <td class="module-name" style="color: #e0e0e0;">
                                                     <i class="fas <?= e($modulo['icono'] ?? 'fa-cube') ?>"
                                                         style="color: var(--accent-primary); margin-right: 0.5rem;"></i>
                                                     <strong><?= e($modulo['nombre_modulo']) ?></strong>
@@ -263,7 +263,7 @@ if ($userId) {
                                             <?php if ($hasChildren): ?>
                                                 <?php foreach ($modulo['children'] as $child): ?>
                                                     <tr class="module-child">
-                                                        <td class="module-name" style="padding-left: 2.5rem;">
+                                                        <td class="module-name" style="padding-left: 2.5rem; color: #d0d0d0;">
                                                             <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"
                                                                 style="color: var(--text-muted); margin-right: 0.5rem; font-size: 0.75rem;"></i>
                                                             <?= e($child['nombre_modulo']) ?>
@@ -287,10 +287,18 @@ if ($userId) {
 
                     <!-- Áreas accesibles -->
                     <div class="card" style="margin-bottom: 1.5rem;">
-                        <div class="card-header">
-                            <h3 class="card-title">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="card-title mb-0">
                                 <i class="fas fa-building"></i> Áreas Accesibles
                             </h3>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="btnSelectAllAreas" title="Seleccionar Todas">
+                                    <i class="fas fa-check-double"></i> Todo
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnDeselectAllAreas" title="Deseleccionar Todas">
+                                    <i class="fas fa-times"></i> Nada
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
@@ -474,6 +482,22 @@ if ($userId) {
         const activeItem = userList.querySelector('.user-list-item.active');
         if (activeItem) {
             activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        // Toggle All Areas
+        const btnSelectAll = document.getElementById('btnSelectAllAreas');
+        const btnDeselectAll = document.getElementById('btnDeselectAllAreas');
+        
+        if(btnSelectAll && btnDeselectAll) {
+            const areaCheckboxes = document.querySelectorAll('input[name="areas[]"]');
+            
+            btnSelectAll.addEventListener('click', function() {
+                areaCheckboxes.forEach(cb => cb.checked = true);
+            });
+
+            btnDeselectAll.addEventListener('click', function() {
+                areaCheckboxes.forEach(cb => cb.checked = false);
+            });
         }
     });
 </script>

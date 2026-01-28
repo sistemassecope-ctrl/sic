@@ -6,6 +6,7 @@
 
 $pdo = getConnection();
 $user = getCurrentUser();
+$userId = getCurrentUserId();
 $isAdmin = isAdmin();
 
 /**
@@ -100,8 +101,15 @@ if ($isAdmin) {
     $stmtCount = $pdo->query("SELECT COUNT(*) FROM solicitudes_baja WHERE estado = 'pendiente'");
     $bajasPendientesCount = $stmtCount->fetchColumn();
 } else {
-    // User: Count their own pending requests (optional, but good feedback)
-    $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM solicitudes_baja WHERE solicitante_id = ? AND estado = 'pendiente'");
+    // User: Count notifications (Formatted responses: Approved/Rejected that haven't been seen)
+    // We assume 'visto' is 0 by default. When request is pending, it's 0 but not a notification of response yet.
+    // Notification triggers when state is NOT pending and visto is 0.
+    $stmtCount = $pdo->prepare("
+        SELECT COUNT(*) FROM solicitudes_baja 
+        WHERE solicitante_id = ? 
+        AND estado IN ('finalizado', 'rechazado') 
+        AND visto = 0
+    ");
     $stmtCount->execute([$userId]);
     $bajasPendientesCount = $stmtCount->fetchColumn();
 }
@@ -144,6 +152,27 @@ $modulosMenu[] = [
     ]
 ];
 
+// --- FORZAR 'Administración' AL FINAL ---
+// Requerimiento: Administración debe ser siempre el último módulo visible
+$adminKey = null;
+$adminItem = null;
+
+foreach ($modulosMenu as $key => $item) {
+    // Buscamos exacto "Administración"
+    if ($item['nombre_modulo'] === 'Administración') {
+        $adminKey = $key;
+        $adminItem = $item;
+        break;
+    }
+}
+
+if ($adminKey !== null) {
+    // Quitamos del array
+    unset($modulosMenu[$adminKey]);
+    // Agregamos al final
+    $modulosMenu[] = $adminItem;
+}
+
 $currentPath = $_SERVER['REQUEST_URI'];
 ?>
 
@@ -178,6 +207,11 @@ $currentPath = $_SERVER['REQUEST_URI'];
                 if ($hasChildren) {
                     foreach ($modulo['children'] as $child) {
                         if ($child['ruta'] && strpos($currentPath, $child['ruta']) !== false) {
+                            $childActive = true;
+                            break;
+                        }
+                        // Caso especial: edit_baja.php es hijo lógico de bajas.php (Histórico de Bajas)
+                        if ($child['ruta'] && strpos($child['ruta'], 'bajas.php') !== false && strpos($currentPath, 'edit_baja.php') !== false) {
                             $childActive = true;
                             break;
                         }

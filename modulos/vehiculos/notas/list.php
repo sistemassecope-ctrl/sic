@@ -10,8 +10,14 @@ $redirect_to = isset($redirect_to) ? $redirect_to : '../index.php'; // URL actua
 
 // Obtener notas
 $pdo = getConnection();
-$stmtNotas = $pdo->prepare("SELECT * FROM vehiculos_notas WHERE vehiculo_id = ? AND tipo_origen = ? ORDER BY created_at DESC");
-$stmtNotas->execute([$vehiculo_id, $tipo_origen]);
+// Para tipo BAJA, buscar todos los subtipos (SOLICITUD_BAJA, AUTORIZACION_BAJA, BAJA, etc.)
+if ($tipo_origen === 'BAJA') {
+    $stmtNotas = $pdo->prepare("SELECT * FROM vehiculos_notas WHERE vehiculo_id = ? AND tipo_origen LIKE '%BAJA%' ORDER BY created_at DESC");
+    $stmtNotas->execute([$vehiculo_id]);
+} else {
+    $stmtNotas = $pdo->prepare("SELECT * FROM vehiculos_notas WHERE vehiculo_id = ? AND tipo_origen = ? ORDER BY created_at DESC");
+    $stmtNotas->execute([$vehiculo_id, $tipo_origen]);
+}
 $notas = $stmtNotas->fetchAll();
 ?>
 
