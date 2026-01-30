@@ -187,7 +187,9 @@ $currentPath = $_SERVER['REQUEST_URI'];
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SECOPE Logo" class="logo-img">
+            <a href="<?= url('/index.php') ?>" title="Ir al Inicio">
+                <img src="<?= url('/assets/img/logoSecope.svg') ?>" alt="SECOPE Logo" class="logo-img">
+            </a>
         </div>
         <button class="sidebar-toggle-btn" id="sidebarToggle">
             <i class="fas fa-chevron-left"></i>
@@ -236,7 +238,8 @@ $currentPath = $_SERVER['REQUEST_URI'];
                                 $childIsActive = $child['ruta'] && strpos($currentPath, $child['ruta']) !== false;
                                 ?>
                                 <li class="submenu-item">
-                                    <a href="<?= $childUrl ?>" class="submenu-link <?= $childIsActive ? 'active' : '' ?> d-flex justify-content-between align-items-center pe-3">
+                                    <a href="<?= $childUrl ?>"
+                                        class="submenu-link <?= $childIsActive ? 'active' : '' ?> d-flex justify-content-between align-items-center pe-3">
                                         <div class="d-flex align-items-center">
                                             <i class="fas <?= e($child['icono'] ?? 'fa-circle') ?>"></i>
                                             <span>
@@ -244,7 +247,8 @@ $currentPath = $_SERVER['REQUEST_URI'];
                                             </span>
                                         </div>
                                         <?php if (!empty($child['badge'])): ?>
-                                            <span class="badge rounded-pill <?= $child['badge_class'] ?? 'bg-danger' ?>" style="font-size: 0.7em;">
+                                            <span class="badge rounded-pill <?= $child['badge_class'] ?? 'bg-danger' ?>"
+                                                style="font-size: 0.7em;">
                                                 <?= $child['badge'] ?>
                                             </span>
                                         <?php endif; ?>

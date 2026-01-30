@@ -154,17 +154,22 @@ class SignatureFlowService
 
             $insertPaso = $this->pdo->prepare("
                 INSERT INTO documento_flujo_firmas (
-                    documento_id, orden, firmante_id, rol_firmante, tipo_firma, fecha_asignacion, fecha_limite
-                ) VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 48 HOUR))
+                    documento_id, orden, firmante_id, rol_firmante, rol_oficio, tipo_firma, estatus, fecha_asignacion, fecha_limite
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 48 HOUR))
             ");
 
             foreach ($participantes as $p) {
+                // Lógica de Estado Inicial: Solo el orden 1 inicia como Pendiente. Los demás esperan turno.
+                $estatusInicial = ($p['orden'] == 1) ? 'pendiente' : 'por_firmar';
+
                 $insertPaso->execute([
                     $documentoId,
                     $p['orden'],
                     $p['usuario_id'],
                     $p['rol'],
-                    $tipoFirmaGlobal
+                    $p['rol_oficio'] ?? null,
+                    $tipoFirmaGlobal,
+                    $estatusInicial
                 ]);
             }
 
@@ -328,16 +333,22 @@ class SignatureFlowService
 
     private function verificarSiguientePaso(int $documentoId): void
     {
-        // 1. Verificar si hay un siguiente paso pendiente en el orden
+        // 1. Verificar si hay un siguiente paso (Pendiente o Por Firmar)
         $stmt = $this->pdo->prepare("
             SELECT * FROM documento_flujo_firmas 
-            WHERE documento_id = ? AND estatus = 'pendiente' 
+            WHERE documento_id = ? AND estatus IN ('pendiente', 'por_firmar')
             ORDER BY orden ASC LIMIT 1
         ");
         $stmt->execute([$documentoId]);
         $siguientePaso = $stmt->fetch();
 
         if ($siguientePaso) {
+            // ACTIVAR EL PASO: Si está 'por_firmar', lo pasamos a 'pendiente'
+            if ($siguientePaso['estatus'] === 'por_firmar') {
+                $upd = $this->pdo->prepare("UPDATE documento_flujo_firmas SET estatus = 'pendiente' WHERE id = ?");
+                $upd->execute([$siguientePaso['id']]);
+            }
+
             // 2. Asignar a la bandeja del siguiente firmante
             $stmtBandeja = $this->pdo->prepare("
                 INSERT INTO usuario_bandeja_documentos (
@@ -359,6 +370,25 @@ class SignatureFlowService
                 'FINALIZAR',
                 "El documento ha completado su cadena de firmas exitosamente."
             );
+
+            // Actualizar fase de la Solicitud de Suficiencia a "Validación Técnica" (ID 3)
+            // si el documento está vinculado a un FUA.
+            $stmtDocData = $this->pdo->prepare("SELECT contenido_json FROM documentos WHERE id = ?");
+            $stmtDocData->execute([$documentoId]);
+            $jsonContent = $stmtDocData->fetchColumn();
+
+            if ($jsonContent) {
+                $docData = json_decode($jsonContent, true);
+                if (!empty($docData['id_fua'])) {
+                    $stmtFua = $this->pdo->prepare("
+                        UPDATE solicitudes_suficiencia 
+                        SET id_momento_gestion = 3, 
+                            updated_at = NOW() 
+                        WHERE id_fua = ?
+                    ");
+                    $stmtFua->execute([$docData['id_fua']]);
+                }
+            }
 
             // 5. Generar PDF final y archivar
             try {

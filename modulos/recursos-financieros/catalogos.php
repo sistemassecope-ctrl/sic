@@ -69,6 +69,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($accion === 'toggle_prioridad') {
             $pdo->prepare("UPDATE cat_prioridades SET activo = ? WHERE id_prioridad = ?")->execute([(int) $_POST['valor'], (int) $_POST['id']]);
             setFlashMessage('info', 'Estatus de prioridad actualizado');
+        } elseif ($accion === 'guardar_partida') {
+            $nombre = mb_strtoupper(trim($_POST['nombre']));
+            $clave = trim($_POST['clave']);
+            $descripcion = trim($_POST['descripcion']);
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $pdo->prepare("UPDATE cat_partidas_presupuestales SET nombre = ?, clave = ?, descripcion = ? WHERE id_partida = ?")->execute([$nombre, $clave, $descripcion, $id]);
+            } else {
+                $pdo->prepare("INSERT INTO cat_partidas_presupuestales (nombre, clave, descripcion) VALUES (?, ?, ?)")->execute([$nombre, $clave, $descripcion]);
+            }
+            setFlashMessage('success', 'Partida guardada correctamente');
+        } elseif ($accion === 'toggle_partida') {
+            $pdo->prepare("UPDATE cat_partidas_presupuestales SET activo = ? WHERE id_partida = ?")->execute([(int) $_POST['valor'], (int) $_POST['id']]);
+            setFlashMessage('info', 'Estatus de partida actualizado');
         }
     } catch (Exception $e) {
         setFlashMessage('error', 'Error: ' . $e->getMessage());
@@ -80,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Obtener Datos ---
 $ejes = $pdo->query("SELECT * FROM cat_ejes ORDER BY nombre_eje")->fetchAll();
 $prioridades = $pdo->query("SELECT * FROM cat_prioridades ORDER BY nombre_prioridad")->fetchAll();
+$partidas = $pdo->query("SELECT * FROM cat_partidas_presupuestales ORDER BY clave ASC")->fetchAll();
 $objetivos = $pdo->query("
     SELECT o.*, e.nombre_eje 
     FROM cat_objetivos o 
@@ -113,6 +128,8 @@ include __DIR__ . '/../../includes/sidebar.php';
                     onclick="switchTab(this)">Objetivos</button>
                 <button class="nav-link py-3 px-4" data-target="tab-prioridades" role="tab"
                     onclick="switchTab(this)">Prioridades</button>
+                <button class="nav-link py-3 px-4" data-target="tab-partidas" role="tab"
+                    onclick="switchTab(this)">Partidas Presupuestales</button>
             </div>
         </div>
 
@@ -268,6 +285,62 @@ include __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
         </div>
+
+        <!-- TAB: PARTIDAS -->
+        <div class="tab-pane d-none" id="tab-partidas">
+            <div class="p-4 bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Partidas Presupuestales</h5>
+                <?php if ($puedeCrear): ?>
+                    <button class="btn btn-primary btn-sm" onclick="modalPartida()"><i class="fas fa-plus"></i> Nueva
+                        Partida</button>
+                <?php endif; ?>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Clave</th>
+                            <th>Nombre / Descripción</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($partidas as $row): ?>
+                            <tr>
+                                <td class="ps-4 fw-bold text-primary">
+                                    <?= e($row['clave']) ?>
+                                </td>
+                                <td>
+                                    <div class="fw-bold"><?= e($row['nombre']) ?></div>
+                                    <div class="small text-muted"><?= e($row['descripcion']) ?></div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge <?= $row['activo'] ? 'badge-success' : 'badge-secondary' ?>">
+                                        <?= $row['activo'] ? 'Activo' : 'Inactivo' ?>
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <?php if ($puedeEditar): ?>
+                                            <button class="btn btn-sm btn-secondary"
+                                                onclick="modalPartida(<?= $row['id_partida'] ?>, '<?= e($row['nombre']) ?>', '<?= e($row['clave']) ?>', '<?= e($row['descripcion']) ?>')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm <?= $row['activo'] ? 'btn-danger' : 'btn-success' ?>"
+                                                onclick="toggle('partida', <?= $row['id_partida'] ?>, <?= $row['activo'] ? 0 : 1 ?>)">
+                                                <i class="fas <?= $row['activo'] ? 'fa-ban' : 'fa-check' ?>"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     </div>
 </main>
 
@@ -290,6 +363,11 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <input type="hidden" name="accion" id="modalAccion">
                 <input type="hidden" name="id" id="modalId">
 
+                <div class="form-group" id="divInputClave" style="display:none;">
+                    <label class="form-label">Clave Presupuestal</label>
+                    <input type="text" name="clave" id="modalClave" class="form-control fw-bold" placeholder="Ej: 1000">
+                </div>
+
                 <div class="form-group" id="divSelectEje" style="display:none;">
                     <label class="form-label">Eje Estratégico</label>
                     <select name="id_eje" id="modalSelectEje" class="form-control">
@@ -304,6 +382,11 @@ include __DIR__ . '/../../includes/sidebar.php';
                 <div class="form-group">
                     <label class="form-label">Nombre / Descripción</label>
                     <input type="text" name="nombre" id="modalNombre" class="form-control text-uppercase" required>
+                </div>
+
+                <div class="form-group mt-3" id="divInputDesc" style="display:none;">
+                    <label class="form-label">Descripción Detallada</label>
+                    <textarea name="descripcion" id="modalDescripcion" class="form-control" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -404,6 +487,20 @@ include __DIR__ . '/../../includes/sidebar.php';
     function modalPrioridad(id = null, nombre = '') {
         configModal('prioridad', id, nombre);
         document.getElementById('divSelectEje').style.display = 'none';
+        document.getElementById('divInputClave').style.display = 'none';
+        document.getElementById('divInputDesc').style.display = 'none';
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function modalPartida(id = null, nombre = '', clave = '', desc = '') {
+        configModal('partida', id, nombre);
+        document.getElementById('divSelectEje').style.display = 'none';
+        document.getElementById('divInputClave').style.display = 'block';
+        document.getElementById('divInputDesc').style.display = 'block';
+
+        document.getElementById('modalClave').value = clave;
+        document.getElementById('modalDescripcion').value = desc;
+
         document.getElementById('editModal').style.display = 'flex';
     }
 

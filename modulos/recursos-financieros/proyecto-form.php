@@ -69,7 +69,22 @@ $cat_prioridades = $pdo->query("SELECT * FROM cat_prioridades WHERE activo = 1 O
 $cat_ejes = $pdo->query("SELECT * FROM cat_ejes WHERE activo = 1 ORDER BY nombre_eje")->fetchAll();
 $cat_objetivos = $pdo->query("SELECT * FROM cat_objetivos WHERE activo = 1 ORDER BY nombre_objetivo")->fetchAll();
 $cat_ramos = $pdo->query("SELECT * FROM cat_ramos WHERE activo = 1 ORDER BY nombre_ramo")->fetchAll();
+$cat_ramos = $pdo->query("SELECT * FROM cat_ramos WHERE activo = 1 ORDER BY nombre_ramo")->fetchAll();
 $cat_tipos = $pdo->query("SELECT * FROM cat_tipos_proyectos WHERE activo = 1 ORDER BY nombre_tipo")->fetchAll();
+
+// --- Obtener Partidas del POA ---
+$stmtPartidasPOA = $pdo->prepare("
+    SELECT pp.id_partida, c.clave, c.nombre, pp.monto_asignado,
+    (SELECT COALESCE(SUM(po.monto_federal + po.monto_estatal + po.monto_municipal + po.monto_otros), 0) 
+     FROM proyectos_obra po 
+     WHERE po.id_programa = pp.id_programa AND po.id_partida = pp.id_partida AND po.id_proyecto != ?) as monto_usado
+    FROM programa_partidas pp
+    JOIN cat_partidas_presupuestales c ON pp.id_partida = c.id_partida
+    WHERE pp.id_programa = ?
+    ORDER BY c.clave
+");
+$stmtPartidasPOA->execute([$id_proyecto ?: 0, $id_programa_parent]);
+$partidas_poa = $stmtPartidasPOA->fetchAll();
 
 // --- CSV Municipios ---
 $csvFile = __DIR__ . '/../../comun/municipios.csv';
@@ -112,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'monto_municipal' => (float) str_replace(',', '', $_POST['monto_municipal']),
         'monto_otros' => (float) str_replace(',', '', $_POST['monto_otros']),
         'es_multianual' => isset($_POST['es_multianual']) ? 1 : 0,
+        'id_partida' => (int) $_POST['id_partida'],
         'id_usuario_registro' => $user['id']
     ];
 
@@ -127,12 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("El nuevo monto total ($" . number_format($nuevo_total, 2) . ") es menor a lo comprometido ($" . number_format($comprometido, 2) . ").");
             }
 
-            $sql = "UPDATE proyectos_obra SET id_programa=?, ejercicio=?, nombre_proyecto=?, breve_descripcion=?, clave_cartera_shcp=?, id_unidad_responsable=?, id_prioridad=?, id_eje=?, id_objetivo=?, id_ramo=?, id_tipo_proyecto=?, id_municipio=?, localidad=?, impacto_proyecto=?, num_beneficiarios=?, monto_federal=?, monto_estatal=?, monto_municipal=?, monto_otros=?, es_multianual=? WHERE id_proyecto=?";
+            $sql = "UPDATE proyectos_obra SET id_programa=?, ejercicio=?, nombre_proyecto=?, breve_descripcion=?, clave_cartera_shcp=?, id_unidad_responsable=?, id_prioridad=?, id_eje=?, id_objetivo=?, id_ramo=?, id_tipo_proyecto=?, id_municipio=?, localidad=?, impacto_proyecto=?, num_beneficiarios=?, monto_federal=?, monto_estatal=?, monto_municipal=?, monto_otros=?, es_multianual=?, id_partida=? WHERE id_proyecto=?";
             unset($data['id_usuario_registro']);
             $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id_proyecto]));
             setFlashMessage('success', 'Proyecto actualizado');
         } else {
-            $sql = "INSERT INTO proyectos_obra (id_programa, ejercicio, nombre_proyecto, breve_descripcion, clave_cartera_shcp, id_unidad_responsable, id_prioridad, id_eje, id_objetivo, id_ramo, id_tipo_proyecto, id_municipio, localidad, impacto_proyecto, num_beneficiarios, monto_federal, monto_estatal, monto_municipal, monto_otros, es_multianual, id_usuario_registro) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $sql = "INSERT INTO proyectos_obra (id_programa, ejercicio, nombre_proyecto, breve_descripcion, clave_cartera_shcp, id_unidad_responsable, id_prioridad, id_eje, id_objetivo, id_ramo, id_tipo_proyecto, id_municipio, localidad, impacto_proyecto, num_beneficiarios, monto_federal, monto_estatal, monto_municipal, monto_otros, es_multianual, id_partida, id_usuario_registro) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $pdo->prepare($sql)->execute(array_values($data));
             setFlashMessage('success', 'Proyecto registrado');
         }
@@ -197,6 +213,22 @@ include __DIR__ . '/../../includes/sidebar.php';
                     <label class="form-label text-muted x-small">2. NOMBRE DEL PROYECTO</label>
                     <textarea name="nombre_proyecto" class="form-control text-uppercase" rows="2"
                         required <?= $attrReadonlyP ?>><?= $is_editing ? e($proyecto['nombre_proyecto']) : '' ?></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label text-muted x-small">2.1 PARTIDA PRESUPUESTAL</label>
+                    <select name="id_partida" class="form-control fw-bold text-primary" required <?= $attrDisabledP ?>>
+                        <option value="">-- SELECCIONE PARTIDA --</option>
+                        <?php foreach ($partidas_poa as $pp): 
+                            $disponible = $pp['monto_asignado'] - $pp['monto_usado'];
+                        ?>
+                            <option value="<?= $pp['id_partida'] ?>" 
+                                <?= ($is_editing && $proyecto['id_partida'] == $pp['id_partida']) ? 'selected' : '' ?>>
+                                <?= $pp['clave'] ?> - <?= e($pp['nombre']) ?> 
+                                (Disp: $<?= number_format($disponible, 2) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="col-12">

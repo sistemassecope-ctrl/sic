@@ -66,6 +66,114 @@ if (isAdmin()) {
         </div>
     </div>
 
+    <?php
+    // --- WIDGET DE COLA DE FIRMAS ---
+    $stmtQueue = $pdo->prepare("
+        SELECT df.id as flow_id, df.tipo_firma, df.rol_oficio, d.titulo, d.folio_sistema, d.created_at, t.nombre as tipo_doc, d.id as doc_id
+        FROM documento_flujo_firmas df
+        JOIN documentos d ON df.documento_id = d.id
+        JOIN cat_tipos_documento t ON d.tipo_documento_id = t.id
+        WHERE df.firmante_id = ? AND df.estatus = 'pendiente'
+        ORDER BY df.created_at ASC
+    ");
+    $stmtQueue->execute([$user['id']]);
+    $pendientesFirma = $stmtQueue->fetchAll(PDO::FETCH_ASSOC);
+    $totalPendientes = count($pendientesFirma);
+    ?>
+
+    <!-- Sección de Tareas Pendientes -->
+    <div class="mb-4 fade-in">
+        <?php if ($totalPendientes > 0): ?>
+            <div class="card border-warning border-start border-4 shadow-sm">
+                <div class="card-header bg-warning bg-opacity-10 py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title text-dark mb-1">
+                            <i class="fas fa-file-signature text-warning me-2"></i> Tienes <?= $totalPendientes ?>
+                            documento(s) por firmar
+                        </h4>
+                        <p class="mb-0 text-muted small">Su firma es requerida para continuar con estos trámites.</p>
+                    </div>
+                    <a href="mis-firmas.php" class="btn btn-sm btn-outline-dark">Ver Historial</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <?php foreach ($pendientesFirma as $p): ?>
+                            <div class="list-group-item d-flex align-items-center p-3">
+                                <div class="me-3">
+                                    <div class="bg-light rounded p-2 text-center" style="min-width: 60px;">
+                                        <div class="fw-bold text-dark"><?= date('d', strtotime($p['created_at'])) ?></div>
+                                        <div class="small text-uppercase"><?= date('M', strtotime($p['created_at'])) ?></div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 text-dark fw-bold"><?= e($p['titulo']) ?></h6>
+                                    <div class="d-flex align-items-center text-muted small">
+                                        <span class="badge bg-secondary me-2"><?= e($p['folio_sistema']) ?></span>
+                                        <i class="fas fa-tag me-1"></i> <?= e($p['tipo_doc']) ?>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <?php
+                                    $isAttendance = in_array($p['rol_oficio'], ['COPIA', 'ATENCION']);
+                                    $btnText = $isAttendance ? 'CONFIRMAR DE RECIBIDO' : 'FIRMAR';
+                                    $btnIcon = $isAttendance ? 'fa-check-double' : 'fa-pen-fancy';
+                                    $btnClass = $isAttendance ? 'btn-success' : 'btn-warning';
+                                    ?>
+                                    <button
+                                        onclick="openIndexSignature(<?= $p['flow_id'] ?>, '<?= e($p['folio_sistema']) ?>', '<?= e($p['tipo_firma']) ?>')"
+                                        class="btn <?= $btnClass ?> fw-bold pulse-btn">
+                                        <i class="fas <?= $btnIcon ?> me-2"></i> <?= $btnText ?>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-success d-flex align-items-center shadow-sm border-0">
+                <i class="fas fa-check-circle fa-2x me-3 opacity-50"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-0 fw-bold">Estás al día</h5>
+                    <p class="mb-0 small opacity-75">No tienes documentos pendientes de firma.</p>
+                </div>
+                <a href="mis-firmas.php" class="btn btn-sm btn-light fw-bold text-success shadow-none">Consultar
+                    Historial</a>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Script para Modal de Firma desde Index -->
+    <script>
+        function openIndexSignature(flowId, folio, tipo) {
+            // Reusamos el modal de firma si ya está cargado, o redirigimos.
+            // Para simplificar desde el index, redirigimos a la bandeja correspondiente o cargamos el modal dinámicamente.
+            // Aquí optaré por una redirección amigable al módulo, o inyectar el modal.
+            // MEJOR OPCIÓN: Inyectar el modal aquí mismo para firmar sin salir.
+
+            document.getElementById('valFlujoId').value = flowId;
+            document.getElementById('valFlujoIdAuto').value = flowId;
+            document.getElementById('lblFolioFirma').textContent = folio;
+
+            const triggerElPin = document.querySelector('#pills-pin-tab')
+            const triggerElFiel = document.querySelector('#pills-fiel-tab')
+            const triggerElAuto = document.querySelector('#pills-auto-tab')
+
+            if (tipo === 'autografa') {
+                const tab = new bootstrap.Tab(triggerElAuto); tab.show();
+            } else if (tipo === 'fiel') {
+                const tab = new bootstrap.Tab(triggerElFiel); tab.show();
+            } else {
+                const tab = new bootstrap.Tab(triggerElPin); tab.show();
+            }
+
+            new bootstrap.Modal(document.getElementById('modalFirma')).show();
+        }
+    </script>
+
+    <!-- Incluir Modal de Firma (Requerido para el widget) -->
+    <?php include __DIR__ . '/includes/modals/firma-electronica.php'; ?>
+
     <?= renderFlashMessage() ?>
 
     <?php if (isAdmin()): ?>
@@ -244,12 +352,14 @@ if (isAdmin()) {
                         <div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Área</div>
                             <div style="font-weight: 500; color: var(--text-primary);">
-                                <?= e($user['nombre_area'] ?? 'No asignada') ?></div>
+                                <?= e($user['nombre_area'] ?? 'No asignada') ?>
+                            </div>
                         </div>
                         <div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Puesto</div>
                             <div style="font-weight: 500; color: var(--text-primary);">
-                                <?= e($user['nombre_puesto'] ?? 'No asignado') ?></div>
+                                <?= e($user['nombre_puesto'] ?? 'No asignado') ?>
+                            </div>
                         </div>
                     </div>
                 </div>

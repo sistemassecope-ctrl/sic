@@ -69,52 +69,103 @@ $stats = $pdo->query("
     WHERE f.estatus = 'ACTIVO' AND ($areaFilter OR f.id_proyecto IS NULL)
 ")->fetch(PDO::FETCH_ASSOC);
 
-// Consulta principal según el TAB (Momento de Gestión)
+// TAB 1: Solicitudes Nuevas (Fase 1 y 2)
 if ($tab === 1) {
     $sql = "
-        SELECT 
-            po.id_proyecto, 
-            po.nombre_proyecto, 
-            f.nombre_proyecto_accion,
-            po.monto_total as monto_total_solicitado,
-            a.nombre_area,
-            f.id_fua,
-            f.num_oficio_tramite,
-            f.created_at,
-            f.id_momento_gestion,
-            m.nombre as momento_nombre,
-            m.color as momento_color,
-            d.id as documento_id,
-            d.fase_actual as doc_fase,
-            d.estatus as doc_estatus,
-            (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_id,
-            (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_type
-        FROM proyectos_obra po
-        LEFT JOIN areas a ON po.id_unidad_responsable = a.id
-        LEFT JOIN solicitudes_suficiencia f ON po.id_proyecto = f.id_proyecto AND f.estatus = 'ACTIVO'
-        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = f.id_fua
-        LEFT JOIN cat_momentos_suficiencia m ON COALESCE(f.id_momento_gestion, 1) = m.id
-        WHERE ($areaFilter)
-          AND (f.id_momento_gestion IS NULL OR f.id_momento_gestion = 1)
-          AND po.id_proyecto NOT IN (
-              SELECT id_proyecto FROM solicitudes_suficiencia WHERE id_momento_gestion > 1 AND estatus = 'ACTIVO'
-          )
-        ORDER BY po.id_proyecto DESC
-    ";
+            SELECT 
+                po.id_proyecto, 
+                po.nombre_proyecto, 
+                f.nombre_proyecto_accion,
+                po.monto_total as monto_total_solicitado,
+                a.nombre_area,
+                f.id_fua,
+                f.num_oficio_tramite,
+                f.created_at,
+                f.id_momento_gestion,
+                m.nombre as momento_nombre,
+                m.color as momento_color,
+
+                -- DOCUMENTO A: SOLICITUD (Tipo 1)
+                ds.id as doc_suf_id,
+                ds.estatus as doc_suf_status,
+                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_id,
+                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_type,
+                (SELECT df.rol_oficio FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_role,
+
+                -- DOCUMENTO B: VALIDACIÓN (Tipo 7 - VAL_SUF)
+                dv.id as doc_val_id,
+                dv.estatus as doc_val_status,
+                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_id,
+                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_type,
+                (SELECT df.rol_oficio FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_role
+
+            FROM proyectos_obra po
+            LEFT JOIN areas a ON po.id_unidad_responsable = a.id
+            LEFT JOIN solicitudes_suficiencia f ON po.id_proyecto = f.id_proyecto AND f.estatus = 'ACTIVO'
+            LEFT JOIN cat_momentos_suficiencia m ON COALESCE(f.id_momento_gestion, 1) = m.id
+            
+            -- Joins a Documento A: Solicitud (Tipo 1) - ÚLTIMO CREADO
+            LEFT JOIN documentos ds ON ds.id = (
+                SELECT MAX(d.id) FROM documentos d 
+                WHERE d.tipo_documento_id = 1 
+                AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = CAST(f.id_fua AS CHAR)
+            )
+            -- Joins a Documento B: Validación (Tipo 7) - ÚLTIMO CREADO
+            LEFT JOIN documentos dv ON dv.id = (
+                SELECT MAX(d.id) FROM documentos d 
+                WHERE d.tipo_documento_id = 7 
+                AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = CAST(f.id_fua AS CHAR)
+            )
+
+            WHERE ($areaFilter)
+              AND (f.id_momento_gestion IS NULL OR f.id_momento_gestion = 1)
+              AND po.id_proyecto NOT IN (
+                  SELECT id_proyecto FROM solicitudes_suficiencia WHERE id_momento_gestion > 1 AND estatus = 'ACTIVO'
+              )
+            ORDER BY po.id_proyecto DESC
+        ";
 } else {
+    // TABS 2-6: Seguimiento
     $sql = "
-        SELECT f.*, po.nombre_proyecto, a.nombre_area, m.nombre as momento_nombre, m.color as momento_color,
-               d.id as documento_id, d.fase_actual as doc_fase, d.estatus as doc_estatus,
-                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_id,
-                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = d.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_flow_type
-        FROM solicitudes_suficiencia f
-        LEFT JOIN proyectos_obra po ON f.id_proyecto = po.id_proyecto
-        LEFT JOIN areas a ON po.id_unidad_responsable = a.id
-        LEFT JOIN documentos d ON d.tipo_documento_id = 1 AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = f.id_fua
-        LEFT JOIN cat_momentos_suficiencia m ON f.id_momento_gestion = m.id
-        WHERE f.estatus = 'ACTIVO' AND f.id_momento_gestion = $tab AND ($areaFilter OR f.id_proyecto IS NULL)
-        ORDER BY f.created_at ASC
-    ";
+            SELECT 
+                f.id_fua, f.num_oficio_tramite, f.nombre_proyecto_accion, f.monto_total_solicitado, f.created_at, f.id_momento_gestion,
+                po.nombre_proyecto, 
+                a.nombre_area, 
+                m.nombre as momento_nombre, m.color as momento_color,
+
+                -- DOCUMENTO A: SOLICITUD (Tipo 1)
+                ds.id as doc_suf_id,
+                ds.estatus as doc_suf_status,
+                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_id,
+                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_type,
+                (SELECT df.rol_oficio FROM documento_flujo_firmas df WHERE df.documento_id = ds.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_suf_role,
+
+                -- DOCUMENTO B: VALIDACIÓN (Tipo 7)
+                dv.id as doc_val_id,
+                dv.estatus as doc_val_status,
+                (SELECT df.id FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_id,
+                (SELECT df.tipo_firma FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_type,
+                (SELECT df.rol_oficio FROM documento_flujo_firmas df WHERE df.documento_id = dv.id AND df.firmante_id = {$user['id']} AND df.estatus = 'pendiente' LIMIT 1) as pending_val_role
+
+            FROM solicitudes_suficiencia f
+            LEFT JOIN proyectos_obra po ON f.id_proyecto = po.id_proyecto
+            LEFT JOIN areas a ON po.id_unidad_responsable = a.id
+            LEFT JOIN cat_momentos_suficiencia m ON f.id_momento_gestion = m.id
+            
+            LEFT JOIN documentos ds ON ds.id = (
+                SELECT MAX(d.id) FROM documentos d 
+                WHERE d.tipo_documento_id = 1 
+                AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = CAST(f.id_fua AS CHAR)
+            )
+            LEFT JOIN documentos dv ON dv.id = (
+                SELECT MAX(d.id) FROM documentos d 
+                WHERE d.tipo_documento_id = 7 
+                AND JSON_UNQUOTE(JSON_EXTRACT(d.contenido_json, '$.id_fua')) = CAST(f.id_fua AS CHAR)
+            )
+
+            WHERE f.estatus = 'ACTIVO' AND f.id_momento_gestion = $tab AND ($areaFilter OR f.id_proyecto IS NULL)
+            ORDER BY f.created_at ASC
+        ";
 }
 
 $solicitudes = $pdo->query($sql)->fetchAll();
@@ -227,70 +278,141 @@ include __DIR__ . '/../../includes/sidebar.php';
                     ? "solicitud-suficiencia-form.php?id=" . $s['id_fua']
                     : "solicitud-suficiencia-form.php?id_proyecto=" . $s['id_proyecto'];
                 ?>
-                <div class="management-row <?= $priorityClass ?>">
-                    <!-- Paso 1: Folio e Identificación -->
-                    <div class="row-step step-id">
-                        <div class="status-indicator"></div>
-                        <span class="solicitud-folio">#<?= e($s['num_oficio_tramite'] ?: ($s['id_fua'] ?: 'S/F')) ?></span>
-                        <span class="time-elapsed"><i
-                                class="far fa-clock me-1"></i><?= $s['id_fua'] ? "Hace $days días" : 'Pendiente' ?></span>
-                    </div>
+                <?php
+                // --- SINGLE ACTION LOGIC DETERMINATION ---
+                $actionButton = '';
 
-                    <!-- Paso 2: Información del Proyecto -->
-                    <div class="row-step step-details">
-                        <div class="d-flex justify-content-between">
-                            <h4 class="proyecto-name"><?= e($s['nombre_proyecto_accion'] ?: $s['nombre_proyecto']) ?></h4>
-                            <span class="badge"
-                                style="background: <?= $s['momento_color'] ?>1a; color: <?= $s['momento_color'] ?>; border: 1px solid <?= $s['momento_color'] ?>33; font-size: 0.65rem; height: fit-content; margin-top: 5px;">
-                                <?= e($s['momento_nombre']) ?>
-                            </span>
+                // 1. Prioridad Absoluta: Firmar Oficio Externo (Validación)
+                if (!empty($s['pending_val_id'])) {
+                    $isAttendance = in_array($s['pending_val_role'], ['COPIA', 'ATENCION']);
+                    $btnText = $isAttendance ? 'CONFIRMAR DE RECIBIDO' : 'FIRMAR OFICIO';
+                    $btnIcon = $isAttendance ? 'fa-check-double' : 'fa-pen-fancy';
+                    $btnClass = $isAttendance ? 'btn-success' : 'btn-warning'; // Verde para confirmar, Amarillo para firmar
+        
+                    $actionButton = '
+                        <button type="button" class="btn ' . $btnClass . ' w-100 fw-bold pulse-btn shadow-sm mb-2" 
+                                onclick="openSignatureModal(' . $s['pending_val_id'] . ', \'' . e($s['num_oficio_tramite']) . '\', \'' . e($s['pending_val_type']) . '\', ' . $s['doc_val_id'] . ')">
+                            <i class="fas ' . $btnIcon . ' me-2"></i> ' . $btnText . '
+                        </button>';
+                }
+                // 2. Prioridad: Firmar Solicitud Interna
+                else if (!empty($s['pending_suf_id'])) {
+                    $isAttendance = in_array($s['pending_suf_role'], ['COPIA', 'ATENCION']);
+                    $btnText = $isAttendance ? 'CONFIRMAR DE RECIBIDO' : 'FIRMAR SOLICITUD';
+                    $btnIcon = $isAttendance ? 'fa-check-double' : 'fa-file-signature';
+                    $btnClass = $isAttendance ? 'btn-success' : 'btn-warning';
+
+                    $actionButton = '
+                        <button type="button" class="btn ' . $btnClass . ' w-100 fw-bold pulse-btn shadow-sm mb-2" 
+                                onclick="openSignatureModal(' . $s['pending_suf_id'] . ', \'' . e($s['num_oficio_tramite']) . '\', \'' . e($s['pending_suf_type']) . '\', ' . $s['doc_suf_id'] . ')">
+                            <i class="fas ' . $btnIcon . ' me-2"></i> ' . $btnText . '
+                        </button>';
+                }
+                // 3. Generación de Oficio Administrativo (Solo en Fase 3 y si no existe el doc)
+                else if ($s['id_momento_gestion'] == 3 && empty($s['doc_val_id']) && $puedeEditar) {
+                    $actionButton = '
+                        <button type="button" class="btn btn-primary w-100 fw-bold shadow-sm mb-2" 
+                                onclick="generarOficioValidacion(' . $s['id_fua'] . ')">
+                            <i class="fas fa-magic me-2"></i> GENERAR OFICIO EXTERNO
+                        </button>';
+                }
+                // 4. Edición Inicial (Si no hay FUA o está en captura)
+                else if ((empty($s['id_fua']) || $s['id_momento_gestion'] <= 1) && $puedeEditar) {
+                    $actionButton = '
+                        <a href="' . $editLink . '" class="btn btn-primary w-100 fw-bold shadow-sm mb-2">
+                             <i class="fas ' . ($s['id_fua'] ? 'fa-edit' : 'fa-plus') . ' me-2"></i> ' . ($s['id_fua'] ? 'EDITAR SOLICITUD' : 'INICIAR TRÁMITE') . '
+                        </a>';
+                }
+                // 5. Default: Ver/Descargar
+                else if ($s['id_fua']) {
+                    $actionButton = '
+                        <a href="generar-oficio.php?id=' . $s['id_fua'] . '" target="_blank" class="btn btn-outline-secondary w-100 mb-2">
+                             <i class="fas fa-eye me-2"></i> VER SOLICITUD
+                        </a>';
+                }
+                ?>
+
+                <div class="management-row border rounded-3 p-3 mb-3 bg-white shadow-sm position-relative">
+                    <div class="row align-items-center">
+
+                        <!-- COL 1: DETALLES DEL PROYECTO -->
+                        <div class="col-md-5 border-end">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-light text-dark border">
+                                    Folio: <?= $s['num_oficio_tramite'] ?: 'S/N' ?>
+                                </span>
+                                <span class="badge"
+                                    style="background: <?= $s['momento_color'] ?>1a; color: <?= $s['momento_color'] ?>; border: 1px solid <?= $s['momento_color'] ?>;">
+                                    <?= e($s['momento_nombre']) ?>
+                                </span>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-1" style="font-size: 1rem;">
+                                <?= e($s['nombre_proyecto_accion'] ?: $s['nombre_proyecto']) ?>
+                            </h5>
+                            <div class="small text-muted mb-2">
+                                <i class="fas fa-building me-1"></i> <?= e($s['nombre_area'] ?: 'Área no asignada') ?>
+                            </div>
+                            <div class="fw-bold text-primary fs-5">
+                                $<?= number_format($s['monto_total_solicitado'], 2) ?>
+                            </div>
                         </div>
-                        <div class="area-badge"><i
-                                class="fas fa-building me-1"></i><?= e($s['nombre_area'] ?: 'Área no asignada') ?></div>
-                    </div>
 
-                    <!-- Paso 3: Importe -->
-                    <div class="row-step step-finance">
-                        <div class="monto-box">
-                            <span class="label">Importe Solicitado</span>
-                            <span class="value">$<?= number_format($s['monto_total_solicitado'], 2) ?></span>
+                        <!-- COL 2: ESTADO DOCUMENTAL (SEMAFORO) -->
+                        <div class="col-md-4 border-end">
+                            <div class="vstack gap-2 px-3">
+                                <!-- Documento A: Solicitud -->
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light">
+                                    <div class="text-truncate">
+                                        <i class="fas fa-file-alt text-secondary me-2"></i> Solicitud Interna
+                                    </div>
+                                    <?php if ($s['doc_suf_status'] == 'firmado'): ?>
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> OK</span>
+                                    <?php elseif ($s['doc_suf_id']): ?>
+                                        <span class="badge bg-warning text-dark">FIRMANDO...</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">PENDIENTE</span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Documento B: Oficio Validación -->
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light">
+                                    <div class="text-truncate">
+                                        <i class="fas fa-file-contract text-secondary me-2"></i> Oficio Externo
+                                    </div>
+                                    <?php if ($s['doc_val_status'] == 'firmado'): ?>
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> OK</span>
+                                    <?php elseif ($s['doc_val_id']): ?>
+                                        <span class="badge bg-warning text-dark">FIRMANDO...</span>
+                                    <?php elseif ($s['id_momento_gestion'] >= 3): ?>
+                                        <span class="badge bg-danger">NO GENERADO</span>
+                                    <?php else: ?>
+                                        <span class="text-muted small">-</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Paso 4: Acciones -->
-                    <div class="row-step step-actions">
-                        <div class="d-flex gap-2">
-                            <?php if ($puedeEditar): ?>
-                                <a href="<?= $editLink ?>" class="btn-action-row primary"
-                                    title="<?= $s['id_fua'] ? 'Gestionar' : 'Iniciar Trámite' ?>">
-                                    <i class="fas <?= $s['id_fua'] ? 'fa-edit' : 'fa-plus' ?>"></i>
-                                </a>
-                            <?php endif; ?>
-                            <?php if ($s['id_fua']): ?>
-                                <?php if (!empty($s['pending_flow_id'])): ?>
-                                    <button type="button" class="btn-action-row warning pulse-btn"
-                                        onclick="openSignatureModal(<?= $s['pending_flow_id'] ?>, '<?= e($s['num_oficio_tramite']) ?>', '<?= e($s['pending_flow_type']) ?>')"
-                                        title="Firmar Documento Pendiente">
-                                        <?php if ($s['pending_flow_type'] == 'autografa'): ?>
-                                            <i class="fas fa-file-pen"></i>
-                                        <?php else: ?>
-                                            <i class="fas fa-pen-fancy"></i>
-                                        <?php endif; ?>
-                                    </button>
+                        <!-- COL 3: ACCIÓN ÚNICA -->
+                        <div class="col-md-3 text-center">
+                            <?= $actionButton ?>
+
+                            <!-- Links Secundarios Discretos -->
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <?php if ($s['doc_suf_id']): ?>
+                                    <a href="generar-oficio.php?id=<?= $s['id_fua'] ?>" target="_blank" class="text-secondary"
+                                        title="Ver Solicitud PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
                                 <?php endif; ?>
-
-                                <?php if ($s['documento_id']): ?>
-                                    <button type="button" class="btn-action-row info" onclick="showTimeline(<?= $s['documento_id'] ?>)"
-                                        title="Ver Trazabilidad Documental">
+                                <?php if ($s['doc_suf_id']): ?>
+                                    <a href="#" onclick="showTimeline(<?= $s['doc_suf_id'] ?>)" class="text-secondary"
+                                        title="Ver Historial">
                                         <i class="fas fa-history"></i>
-                                    </button>
+                                    </a>
                                 <?php endif; ?>
-                                <a href="generar-oficio.php?id=<?= $s['id_fua'] ?>" target="_blank" class="btn-action-row secondary"
-                                    title="Oficio">
-                                    <i class="fas fa-file-pdf"></i>
-                                </a>
-                            <?php endif; ?>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -671,106 +793,38 @@ include __DIR__ . '/../../includes/sidebar.php';
 
 </script>
 
-<!-- Modal de Firma -->
-<div class="modal fade" id="modalFirma" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-vibrant-bg border-warning shadow-lg"
-            style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
-            <div class="modal-header border-bottom border-warning">
-                <h5 class="modal-title fw-bold text-white">
-                    <i class="fas fa-pen-fancy me-2 text-warning"></i>Firmar Documento
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-white">
-                <p class="text-muted small mb-3">Estás a punto de firmar el documento <strong id="lblFolioFirma"
-                        class="text-warning"></strong>. Esta acción es legalmente vinculante.</p>
-
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active btn-sm" id="pills-pin-tab" data-bs-toggle="pill"
-                        data-bs-target="#pills-pin" type="button" role="tab"><i
-                            class="fas fa-key me-1"></i>Digital</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn-sm" id="pills-fiel-tab" data-bs-toggle="pill"
-                        data-bs-target="#pills-fiel" type="button" role="tab"><i
-                            class="fas fa-file-signature me-1"></i>FIEL</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn-sm" id="pills-auto-tab" data-bs-toggle="pill"
-                        data-bs-target="#pills-auto" type="button" role="tab"><i
-                            class="fas fa-pen-nib me-1"></i>Autógrafa</button>
-                </li>
-
-                <div class="tab-content" id="pills-tabContent">
-                    <!-- PIN FORM -->
-                    <div class="tab-pane fade show active" id="pills-pin" role="tabpanel">
-                        <form id="formFirmaPin">
-                            <input type="hidden" name="flujo_id" id="valFlujoId">
-                            <input type="hidden" name="tipo_firma" value="pin">
-
-                            <div class="mb-3">
-                                <label class="form-label x-small text-muted">Ingresa tu PIN de 4-6 dígitos</label>
-                                <input type="password"
-                                    class="form-control bg-dark border-secondary text-white text-center fs-4 letter-spacing-lg"
-                                    name="pin" maxlength="6" required placeholder="• • • • • •">
-                            </div>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-warning fw-bold">
-                                    <i class="fas fa-check-circle me-2"></i>AUTORIZAR CON PIN
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- FIEL FORM (Simulado para Demo) -->
-                    <div class="tab-pane fade" id="pills-fiel" role="tabpanel">
-                        <div class="text-center p-4 border border-dashed border-secondary rounded mb-3">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="small text-muted mb-0">Arrastra tus archivos .cer y .key aquí</p>
-                            <button type="button" class="btn btn-outline-light btn-sm mt-2">Seleccionar
-                                Archivos</button>
-                        </div>
-                        <div class="alert alert-info x-small">
-                            <i class="fas fa-info-circle me-1"></i> El módulo de FIEL se encuentra en modo de pruebas.
-                            Use Digital por el momento.
-                        </div>
-                    </div>
-
-                    <!-- AUTOGRAFA FORM -->
-                    <div class="tab-pane fade" id="pills-auto" role="tabpanel">
-                        <form id="formFirmaAuto">
-                            <input type="hidden" name="flujo_id" id="valFlujoIdAuto">
-                            <input type="hidden" name="tipo_firma" value="autografa">
-
-                            <div class="text-center mb-4">
-                                <i class="fas fa-print fa-3x text-secondary mb-3"></i>
-                                <h6 class="text-white">Proceso de Firma Autógrafa</h6>
-                                <p class="small text-muted">
-                                    1. Descargue el documento.<br>
-                                    2. Imprímalo y fírmelo con bolígrafo.<br>
-                                    3. Confirme aquí para cambiar el estado a "Firmado".
-                                </p>
-                                <button type="button" class="btn btn-outline-info btn-sm mb-3">
-                                    <i class="fas fa-download me-1"></i> Descargar PDF
-                                </button>
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-success fw-bold">
-                                    <i class="fas fa-check me-2"></i>CONFIRMAR FIRMA
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Modal Firma -->
+<?php include __DIR__ . '/../../includes/modals/firma-electronica.php'; ?>
+<!-- Fin Modal Firma -->
 
 <script>
+    function generarOficioValidacion(idFua) {
+        if (!confirm('¿Confirma que desea generar el Oficio de Validación Administrativa?\n\nEsta acción:\n1. Creará un nuevo documento oficial.\n2. Lo enviará automáticamente a firma del Titular.\n3. Avanzará el trámite a la siguiente fase.')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('id_fua', idFua);
+
+        fetch('generar-oficio-validacion.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('❌ Error de conexión al generar el oficio.');
+            });
+    }
+
     function showTimeline(documentoId) {
         const modalElement = document.getElementById('modalTimeline');
         const modal = new bootstrap.Modal(modalElement);
@@ -789,10 +843,18 @@ include __DIR__ . '/../../includes/sidebar.php';
             });
     }
 
-    function openSignatureModal(flujoId, folio, tipoFirma) {
+    function openSignatureModal(flujoId, folio, tipoFirma, docId) {
         document.getElementById('valFlujoId').value = flujoId;
         document.getElementById('valFlujoIdAuto').value = flujoId;
         document.getElementById('lblFolioFirma').textContent = folio;
+
+        // Setup Download Button
+        const btnDownload = document.getElementById('btnDescargarDoc');
+        if (btnDownload) {
+            btnDownload.onclick = function () {
+                window.open('generar-oficio.php?doc_id=' + docId, '_blank');
+            };
+        }
 
         // Reset tabs
         const triggerElPin = document.querySelector('#pills-pin-tab')
@@ -831,40 +893,9 @@ include __DIR__ . '/../../includes/sidebar.php';
         });
     });
 
-    document.getElementById('formFirmaPin').addEventListener('submit', function (e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verificando...';
-
-        const formData = new FormData(this);
-
-        // Adjust path to ajax-firmar.php based on your structure
-        fetch('procesar-firma.php', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Success popup using sweetalert if available or standard alert
-                    alert('✅ Documento firmado correctamente.');
-                    location.reload();
-                } else {
-                    alert('❌ Error: ' + data.message);
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Error de conexión.');
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            });
-    });
+});
 </script>
+
+<?php include __DIR__ . '/../../includes/modals/expediente-suficiencia.php'; ?>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>
